@@ -8,7 +8,12 @@
       name="description"
       content="Sign in to AfterLink, a product of Kodra."
     />
-    <link rel="icon" href="/assets/mark.webp" />
+    <link
+      rel="icon"
+      href="/assets/favicon.svg"
+      type="image/svg+xml"
+      sizes="any"
+    />
     <link rel="stylesheet" href="/style.css" />
     <script defer src="/app.js"></script>
   </head>
@@ -36,8 +41,9 @@
           <div id="auth">
             <nav class="switch" aria-label="Account access">
               <button id="signin" type="button" aria-pressed="true">
-                Sign In</button
-              ><button id="signup" type="button" aria-pressed="false">
+                Sign In
+              </button>
+              <button id="signup" type="button" aria-pressed="false">
                 Create Account
               </button>
             </nav>
@@ -52,12 +58,16 @@
                     type="email"
                     id="email"
                     required
+                    pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+                    title="Enter an email address such as you@example.com."
                     autocomplete="email"
                     maxlength="254"
                     placeholder="you@example.com"
                   />
                 </div>
-                <label for="phone">Phone</label>
+                <label for="phone"
+                  >Phone <span class="optional">(optional)</span></label
+                >
                 <div class="input">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path
@@ -68,7 +78,6 @@
                     id="phone"
                     autocomplete="tel"
                     maxlength="32"
-                    aria-label="Phone (optional for account creation)"
                     placeholder="+1 (555) 000-0000"
                   />
                 </div>
@@ -83,6 +92,7 @@
                   <input
                     id="password"
                     type="password"
+                    aria-describedby="hint"
                     maxlength="128"
                     autocomplete="current-password"
                     disabled
@@ -123,20 +133,26 @@
           </section>
           <footer>
             <nav aria-label="Information">
-              <button data-info="Privacy">Privacy</button><i>·</i
-              ><button data-info="Terms">Terms</button><i>·</i
-              ><button data-info="Help">Help</button><i>·</i
-              ><button data-info="More">More</button>
+              <button data-info="Privacy">Privacy</button
+              ><i aria-hidden="true">·</i
+              ><button data-info="Terms">Terms</button
+              ><i aria-hidden="true">·</i><button data-info="Help">Help</button
+              ><i aria-hidden="true">·</i><button data-info="More">More</button>
             </nav>
             <small
-              >By continuing you agree to AfterLink's Terms &amp; Privacy
-              Policy</small
+              >By continuing you agree to AfterLink's
+              <button data-info="Terms">Terms</button> &amp;
+              <button data-info="Privacy">Privacy Policy</button>.</small
             >
           </footer>
         </div>
       </section>
     </main>
-    <dialog id="dialog">
+    <dialog
+      id="dialog"
+      aria-labelledby="dialogTitle"
+      aria-describedby="dialogText"
+    >
       <span class="eyebrow">AFTERLINK · KODRA</span>
       <h2 id="dialogTitle"></h2>
       <p id="dialogText"></p>
