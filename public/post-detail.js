@@ -1,0 +1,196 @@
+import {
+  n,
+  box,
+  a,
+  button,
+  input,
+  avatar,
+  profile,
+  ago,
+  error,
+  api,
+  empty,
+  follow,
+  share,
+  media,
+  icon,
+} from "./social-ui.js";
+export async function postDetail(root, id) {
+  let data = await api("/post/" + id),
+    p = data.post,
+    reply = null,
+    first = Infinity;
+  const left = box("post-stage"),
+    stage = box("media-frame"),
+    right = box("discussion"),
+    author = box(
+      "byline",
+      avatar(p.author),
+      box(
+        "summary",
+        profile(data.author),
+        n(
+          "small",
+          "subtle",
+          (p.username ? "@" + p.username + " · " : "") + ago(p.created),
+        ),
+      ),
+      ...(!data.own ? [follow(data.author)] : []),
+    );
+  let index = 0;
+  function slide() {
+    stage.replaceChildren();
+    if (p.media.length) {
+      stage.append(media(p.media[index]));
+      if (p.media.length > 1)
+        stage.append(
+          box(
+            "slide-controls",
+            button("‹", () => {
+              index = (index + p.media.length - 1) % p.media.length;
+              slide();
+            }),
+            n("span", "", `${index + 1} / ${p.media.length}`),
+            button("›", () => {
+              index = (index + 1) % p.media.length;
+              slide();
+            }),
+          ),
+        );
+    } else stage.append(n("blockquote", "", p.body));
+  }
+  slide();
+  const like = button("", async () => {
+    await api("/heart", { post: id, on: !p.liked });
+    p.liked = !p.liked;
+    p.likes += p.liked ? 1 : -1;
+    likeLabel();
+  });
+  function likeLabel() {
+    like.replaceChildren(icon("heart"), n("span", "", p.likes));
+    like.setAttribute("aria-pressed", String(!!p.liked));
+    like.setAttribute("aria-label", `Like post, ${p.likes} likes`);
+  }
+  likeLabel();
+  const countButton = button("", () => field.focus()),
+    send = button("", async () => {
+      if (await share(id)) await api("/share", { post: id });
+    });
+  send.append(icon("share"), "Share");
+  left.append(stage, box("post-actions", like, countButton, send));
+  const title = n("h2", "", "Comments "),
+    count = n("span", "count");
+  title.id = "comments";
+  title.tabIndex = -1;
+  title.append(count);
+  const rows = box("comments"),
+    field = input("Add a comment…", 500),
+    form = n("form", "comment-form"),
+    target = box("reply-target"),
+    submit = n("button", "gradient", "Post");
+  target.hidden = true;
+  field.required = true;
+  form.append(
+    avatar("me"),
+    field,
+    button("☺", () => {
+      field.setRangeText("😊", field.selectionStart, field.selectionEnd, "end");
+      field.focus();
+    }),
+    submit,
+  );
+  right.append(
+    author,
+    n("p", "caption", p.body),
+    postComposer.content({ ...p, media: [] }, api),
+    title,
+    rows,
+    target,
+    form,
+  );
+  root.append(left, right);
+  function cancel() {
+    reply = null;
+    target.hidden = true;
+    field.placeholder = "Add a comment…";
+  }
+  function row(c) {
+    const react = button(
+      "",
+      async () => {
+        await api("/heart", { post: id, comment: c.id, on: !c.liked });
+        c.liked = !c.liked;
+        c.likes += c.liked ? 1 : -1;
+        paint();
+      },
+      "outline",
+    );
+    function paint() {
+      react.textContent = `♡ Like ${c.likes}`;
+      react.setAttribute("aria-pressed", String(!!c.liked));
+    }
+    paint();
+    const respond = button(
+      "↶ Reply",
+      () => {
+        reply = c.id;
+        target.hidden = false;
+        target.replaceChildren(
+          n("span", "", "Replying to " + c.name),
+          button("Cancel", cancel),
+        );
+        field.focus();
+      },
+      "outline",
+    );
+    return box(
+      "comment",
+      avatar(c.author),
+      box(
+        "comment-body",
+        profile(c, c.author),
+        n("small", "subtle", " · " + ago(c.created)),
+        ...(c.parentName
+          ? [n("small", "reply-reference", "↳ " + c.parentName)]
+          : []),
+        n("p", "", c.body),
+        box("comment-actions", respond, react),
+      ),
+    );
+  }
+  function draw(d) {
+    count.textContent = d.post.comments;
+    countButton.replaceChildren(icon("messages"), String(d.post.comments));
+    countButton.setAttribute("aria-label", d.post.comments + " comments");
+    rows.replaceChildren();
+    first = d.comments[0]?.id ?? Infinity;
+    if (d.more) rows.append(older);
+    for (const c of d.comments) rows.append(row(c));
+    if (!d.comments.length)
+      rows.append(empty("No comments yet", "Be the first to leave a comment."));
+  }
+  const older = button("Earlier comments", async () => {
+    const d = await api(`/post/${id}?before=${first}`);
+    first = d.comments[0]?.id ?? first;
+    older.after(...d.comments.map(row));
+    if (!d.more) older.remove();
+  });
+  draw(data);
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    if (submit.disabled || !field.value.trim()) return;
+    submit.disabled = true;
+    try {
+      await api("/comment", { post: id, body: field.value, parent: reply });
+      field.value = "";
+      cancel();
+      draw(await api("/post/" + id));
+      rows.lastChild?.scrollIntoView({ block: "nearest" });
+    } catch (e) {
+      error(e);
+    } finally {
+      submit.disabled = false;
+    }
+  };
+  if (location.hash === "#comments") title.focus();
+}

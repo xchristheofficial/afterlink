@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>AfterLink</title>
+    <link rel="icon" href="/assets/favicon.svg" />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/composer.css" />
+    <link rel="stylesheet" href="/social.css" />
+    <script defer src="/composer.js"></script>
+    <script type="module" src="/social.js"></script>
+  </head>
+  <body class="social">
+    <header id="socialBar">
+      <a href="/home" aria-label="AfterLink home"
+        ><img id="wordmark" src="/assets/profile-wordmark.webp" alt="AfterLink"
+      /></a>
+      <form action="/search" role="search" id="socialSearch">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10" cy="10" r="7" />
+          <path d="m15 15 7 7" /></svg
+        ><input type="search" name="q" aria-label="Search" maxlength="100" />
+      </form>
+      <nav aria-label="Main navigation" id="socialNav"></nav>
+    </header>
+    <p id="alert" hidden role="alert"></p>
+    <main id="surface" aria-busy="true"></main>
+    <dialog id="socialDialog">
+      <button type="button" id="dismiss" aria-label="Close">×</button>
+      <div id="sheet"></div>
+    </dialog>
+  </body>
+</html>

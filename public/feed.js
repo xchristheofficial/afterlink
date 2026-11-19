@@ -97,6 +97,12 @@ const homeFeed = (() => {
     if (profile.username) wrap.append(text("small", "@" + profile.username));
     return wrap;
   }
+  function detailLink(item) {
+    const link = text("a", "Open post & comments");
+    link.href = "/post/" + item.id;
+    link.className = "post-detail-link";
+    return link;
+  }
   function row(item, people) {
     const node = document.createElement("article");
     node.className = "feed-row";
@@ -118,6 +124,7 @@ const homeFeed = (() => {
         head,
         text("p", item.body),
         postComposer.content(item, api),
+        detailLink(item),
         action(item.saved ? "Unsave" : "Save post", () =>
           api("/save", { id: item.id, on: !item.saved }),
         ),
@@ -176,22 +183,32 @@ const homeFeed = (() => {
   }
   for (const b of document.querySelectorAll(".home [data-view]"))
     b.onclick = () => {
+      if (b.dataset.view === "Explore") {
+        location.assign("/search");
+        return;
+      }
       el("searchPeople").value = "";
       load(b.dataset.view);
     };
   for (const b of document.querySelectorAll(".home [data-later]"))
-    b.onclick = () =>
-      info(
-        b.dataset.later,
-        `${b.dataset.later} isn’t available on AfterLink yet.`,
-      );
+    b.onclick = () => {
+      const paths = {
+        Reels: "/reels",
+        Messages: "/messages",
+        Notifications: "/notifications",
+      };
+      if (paths[b.dataset.later]) location.assign(paths[b.dataset.later]);
+      else
+        info(
+          b.dataset.later,
+          `${b.dataset.later} isn’t available on AfterLink yet.`,
+        );
+    };
   el("peopleSearch").onsubmit = (e) => {
     e.preventDefault();
-    if (onProfile || onCreate)
-      location.assign(
-        "/home?q=" + encodeURIComponent(el("searchPeople").value),
-      );
-    else load("Explore");
+    location.assign(
+      "/search?q=" + encodeURIComponent(el("searchPeople").value),
+    );
   };
   function compose(tool = "") {
     const params = new URLSearchParams();
