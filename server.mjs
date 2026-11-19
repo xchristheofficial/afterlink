@@ -1,3 +1,4 @@
+import { installFeed } from "./feed.mjs";
 import { installRecovery, recoveryMailer } from "./recovery.mjs";
 import express from "express";
 import helmet from "helmet";
@@ -110,10 +111,14 @@ function login(req, res, id) {
 const session = (req) =>
   db
     .prepare(
-      "SELECT u.email FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>?",
+      "SELECT u.email,u.id FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>?",
     )
     .get(sha(cookie(req, "afterlink_session")), Date.now());
-app.get("/api/session", (req, res) => res.json({ user: session(req) || null }));
+installFeed(app, db, session, limit);
+app.get("/api/session", (req, res) => {
+  const user = session(req);
+  res.json({ user: user ? { email: user.email } : null });
+});
 app.post("/api/logout", (req, res) => {
   revoke(req);
   res.clearCookie("afterlink_session", sessionFlags(req));

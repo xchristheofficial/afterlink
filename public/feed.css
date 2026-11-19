@@ -1,0 +1,534 @@
+/* Signed-in layout: all three columns share the same baseline below the toolbar. */
+.home,
+#composer {
+  --brand: linear-gradient(108deg, #7728dc, #147cb2 72%, #16adab);
+  --rule: #dedde1;
+}
+.home#account {
+  min-height: 100svh;
+  color: #15131a;
+  text-align: left;
+  font-size: clamp(15px, 1.35vw, 22px);
+}
+.home h2,
+.home h3,
+#composer h2 {
+  line-height: 1.13;
+  margin: 0;
+  letter-spacing: -0.035em;
+}
+.home h2 {
+  font-size: 1.55em;
+}
+.home button {
+  border: 0;
+  background: none;
+  color: inherit;
+}
+.home .fi {
+  width: 1.65em;
+  height: 1.65em;
+  flex: none;
+  fill: none;
+  stroke: url(#fg);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.feed-sprite {
+  position: absolute;
+  pointer-events: none;
+}
+.avatar {
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  width: 3.5em;
+  height: 3.5em;
+}
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3vw;
+  padding: 1.8vw 2.4vw;
+  background: #fff;
+  box-shadow: 0 5px 12px #25253d26;
+}
+.topbar button,
+.story-strip button {
+  padding: 0;
+}
+.feed-brand {
+  display: block;
+  width: min(26vw, 410px);
+}
+#peopleSearch {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 34vw;
+  gap: 0.6em;
+  border: 1px solid #8669a6;
+  border-radius: 99px;
+  padding: 0.6em 1em;
+}
+.home input {
+  background: none;
+  border: 0;
+  min-width: 0;
+  width: 100%;
+  color: inherit;
+}
+#peopleSearch:focus-within {
+  outline: 2px solid #8963bb;
+}
+.topbar nav {
+  display: flex;
+  gap: 1.4vw;
+  align-items: center;
+}
+.topbar nav button {
+  display: grid;
+  place-items: center;
+}
+.topbar .avatar {
+  width: 5vw;
+  height: 5vw;
+  max-width: 84px;
+  max-height: 84px;
+}
+.topbar .fi {
+  width: 2.35em;
+  height: 2.35em;
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: 28.2% 42.1% minmax(0, 1fr);
+  min-height: calc(100svh - 9vw);
+}
+.profile-rail {
+  border-right: 3px solid var(--rule);
+  padding: 3vw 1.3vw 1em 2.3vw;
+}
+.who {
+  text-align: center;
+}
+.who > .avatar {
+  width: 11vw;
+  height: 11vw;
+  max-width: 175px;
+  max-height: 175px;
+  margin: 0 auto 1em;
+}
+.who h2 {
+  font-size: 1.9em;
+}
+.who p {
+  margin: 0.25em 0;
+}
+.who small {
+  font-size: 0.68em;
+  font-weight: 700;
+  color: #644399;
+  letter-spacing: 0.02em;
+}
+.side-nav {
+  margin-top: 1.4em;
+  display: grid;
+  gap: 0.15em;
+}
+.side-nav button {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  text-align: left;
+  font-size: 1.22em;
+  padding: 0.68em 0.6em;
+  border-radius: 0.6em;
+}
+.side-nav [aria-current="page"],
+.home .pill,
+.home .banner button,
+#composer .pill {
+  background: var(--brand);
+  color: white;
+  font-weight: 700;
+}
+.side-nav [aria-current="page"] svg,
+.pill svg,
+.banner button svg {
+  stroke: currentColor;
+}
+.logout {
+  font-size: 0.82em;
+  margin-top: 1.2em;
+  text-decoration: underline;
+}
+.stream {
+  min-width: 0;
+  border-right: 3px solid var(--rule);
+}
+.story-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 0.4em;
+  padding: 3.8vw 0.7vw 3vw;
+  border-bottom: 3px solid var(--rule);
+}
+.story-strip button {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+.story-strip .avatar,
+.story-disc {
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+  display: block;
+  border-radius: 50%;
+  margin-bottom: 0.6em;
+}
+.story-disc {
+  background: #100f14;
+  border: 3px solid #55515f;
+}
+.story-strip strong {
+  font-size: 0.87em;
+}
+.compose-row,
+.compose-box,
+.compose-tools {
+  display: flex;
+  align-items: center;
+}
+.compose-row {
+  padding: 1.4vw;
+  gap: 0.8em;
+  border-bottom: 2px solid var(--rule);
+}
+.compose-box {
+  border: 1px solid #aaa;
+  border-radius: 1.3em;
+  flex: 1;
+  min-width: 0;
+  padding: 0.5em 0.55em;
+}
+.compose-tools {
+  gap: 0.35em;
+}
+.compose-tools button {
+  padding: 0;
+  display: flex;
+}
+.compose-box #openComposer {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  color: #58565a;
+}
+.banner {
+  border-radius: 2.3em;
+  margin: 0 1.2vw;
+  text-align: center;
+  padding: 0.7em;
+  background:
+    radial-gradient(ellipse at bottom left, #b76ddd99, transparent 50%),
+    var(--brand);
+  color: #fff;
+  box-shadow: 0 4px 10px #36265628;
+}
+.banner h2 {
+  font-size: 1.65em;
+}
+.banner p {
+  margin: 0.1em 0 0.5em;
+  font-weight: 600;
+}
+.banner button,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  padding: 0.38em 1em;
+  border-radius: 99px;
+}
+.home .pill .fi,
+.banner button .fi {
+  width: 1.2em;
+  height: 1.2em;
+  stroke: white;
+}
+.empty-feed {
+  text-align: center;
+  padding: 0 0.7em 1.5em;
+}
+.empty-feed img {
+  width: 55%;
+  display: block;
+  margin: 0 auto;
+}
+.empty-feed h2 {
+  font-size: 1.55em;
+}
+.empty-feed p {
+  margin: 0.55em auto;
+  font-size: 0.94em;
+}
+.home .pill {
+  padding: 0.55em 1.9em;
+}
+.welcome-card {
+  align-self: start;
+  margin: 1.8vw 1.7vw 2vw;
+  padding: 1em 0.9em 2em;
+  border-radius: 1.25em;
+  box-shadow: 0 3px 16px #27213826;
+  min-height: 77svh;
+}
+.welcome-card h3 {
+  margin: 1em 0 0;
+  font-size: 1.35em;
+}
+.welcome-card h3 span {
+  color: #7b46bd;
+}
+.welcome-card p,
+.welcome-card li {
+  font-size: 0.92em;
+  color: #49474c;
+}
+.welcome-card li {
+  margin-bottom: 1em;
+}
+.welcome-card p {
+  margin: 3em 0.7em;
+}
+.feed-row,
+#otherPanel {
+  padding: 1.25em;
+}
+.feed-row {
+  border-top: 1px solid var(--rule);
+}
+.feed-row header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7em;
+}
+.feed-row small,
+.feed-row time {
+  font-size: 0.8em;
+  color: #656168;
+}
+.feed-row small {
+  display: block;
+}
+.feed-row p {
+  white-space: pre-wrap;
+}
+.home .mini-action,
+#settingsLinks button,
+#cancelPost {
+  border: 1px solid #cabedf;
+  border-radius: 1.3em;
+  padding: 0.35em 0.9em;
+  background: #faf8fc;
+  color: #573782;
+}
+.home #settingsLinks nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+}
+#feedError,
+#postError {
+  color: #902940;
+  padding: 0 1em;
+}
+#composer {
+  width: min(470px, 92vw);
+}
+#composer h2 {
+  font-size: 26px;
+  margin-bottom: 1em;
+}
+#composer textarea {
+  width: 100%;
+  font: inherit;
+  padding: 12px;
+  border: 1px solid #9487a1;
+  border-radius: 12px;
+  margin: 0.6em 0;
+  resize: vertical;
+}
+#composer form > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5em;
+}
+#composer button {
+  border: 0;
+}
+@media (max-width: 1000px) {
+  .home-grid {
+    grid-template-columns: minmax(190px, 28%) minmax(0, 1fr);
+  }
+  .welcome-card {
+    grid-column: 2;
+    min-height: 0;
+  }
+  .stream {
+    border: 0;
+  }
+  .topbar .fi {
+    width: 1.7em;
+    height: 1.7em;
+  }
+  .story-strip .avatar,
+  .story-disc {
+    max-width: 90px;
+    margin-inline: auto;
+  }
+}
+@media (max-width: 650px) {
+  .home-grid {
+    display: block;
+  }
+  .topbar {
+    padding: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .feed-brand {
+    width: 140px;
+  }
+  .topbar nav {
+    gap: 12px;
+  }
+  .topbar nav button:nth-child(2),
+  .topbar nav button:nth-child(3) {
+    display: none;
+  }
+  .topbar .avatar {
+    width: 34px;
+    height: 34px;
+  }
+  #peopleSearch {
+    order: 3;
+    max-width: none;
+    flex-basis: 100%;
+    padding: 5px 12px;
+  }
+  .profile-rail {
+    padding: 12px;
+    border: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .who > .avatar {
+    width: 35px;
+    height: 35px;
+    margin: 0;
+  }
+  .who h2 {
+    font-size: 1.2em;
+  }
+  .who p {
+    font-size: 0.8em;
+  }
+  .side-nav {
+    display: flex;
+    overflow-x: auto;
+    margin-top: 10px;
+    gap: 4px;
+  }
+  .side-nav button {
+    padding: 6px;
+    gap: 3px;
+    font-size: 0.85em;
+    flex-direction: column;
+    flex: 1;
+  }
+  .logout {
+    margin-top: 8px;
+  }
+  .story-strip {
+    padding: 18px 10px;
+    gap: 8px;
+  }
+  .story-strip strong {
+    font-size: 0.78em;
+  }
+  .compose-row {
+    padding: 14px 10px;
+  }
+  .compose-row > .avatar {
+    width: 34px;
+    height: 34px;
+  }
+  .compose-tools .fi {
+    width: 20px;
+    height: 20px;
+  }
+  .banner {
+    margin: 8px 12px;
+  }
+  .empty-feed img {
+    max-width: 240px;
+  }
+  .welcome-card {
+    margin: 12px;
+  }
+  .welcome-card p {
+    margin: 1em 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  button,
+  .field input {
+    transition:
+      background-color 0.18s,
+      box-shadow 0.18s,
+      transform 0.18s;
+  }
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+  .home button:not(:disabled):hover {
+    background-color: #ede8f566;
+  }
+  .side-nav button:hover {
+    transform: translateX(2px);
+  }
+  .home:not([hidden]),
+  #auth:not([hidden]),
+  #recovery:not([hidden]),
+  dialog[open],
+  .feed-row,
+  #otherPanel:not([hidden]) {
+    animation: appear 0.23s ease-out;
+  }
+  @keyframes appear {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

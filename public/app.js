@@ -61,31 +61,79 @@ $("switchMode").onclick = () => {
 };
 $("reveal").onclick = () => showPassword($("password").type === "password");
 let resetToken = new URLSearchParams(location.hash.slice(1)).get("reset");
+const resetEyes = document.querySelectorAll(".reset-eye");
+function setResetVisibility(button, visible) {
+  const input = $(button.getAttribute("aria-controls"));
+  input.type = visible ? "text" : "password";
+  button.setAttribute("aria-pressed", String(visible));
+  button.setAttribute(
+    "aria-label",
+    `${visible ? "Hide" : "Show"} ${input.placeholder.toLowerCase()}`,
+  );
+}
+for (const button of resetEyes)
+  button.onclick = () =>
+    setResetVisibility(button, button.getAttribute("aria-pressed") !== "true");
+function checkPassword() {
+  const value = $("newPassword").value;
+  const rules = {
+    length: value.length >= 12,
+    upper: /[A-Z]/.test(value),
+    digit: /[0-9]/.test(value),
+  };
+  const score = Object.values(rules).filter(Boolean).length;
+  for (const item of document.querySelectorAll("#passwordRules li")) {
+    const met = rules[item.dataset.rule];
+    item.dataset.met = String(met);
+    item.setAttribute(
+      "aria-label",
+      `${item.textContent}: ${met ? "met" : "not met"}`,
+    );
+  }
+  $("strengthMeter").value = score;
+  $("strengthText").textContent = value
+    ? ["Weak", "Weak", "Fair", "Strong"][score]
+    : "Not entered";
+  $("newPassword").setCustomValidity(
+    value && score !== 3 ? "Meet all three password requirements." : "",
+  );
+  $("confirmPassword").setCustomValidity(
+    $("confirmPassword").value && $("confirmPassword").value !== value
+      ? "The passwords do not match."
+      : "",
+  );
+}
+function clearResetFields() {
+  $("newPassword").value = $("confirmPassword").value = "";
+  for (const button of resetEyes) setResetVisibility(button, false);
+  checkPassword();
+}
+$("resetField").addEventListener("input", checkPassword);
 function openRecovery() {
   const reset = !!resetToken;
   $("auth").hidden = true;
   $("recovery").hidden = false;
-  document.querySelector(".inside").dataset.mode = "recovery";
+  document.querySelector(".inside").dataset.mode = reset ? "reset" : "recovery";
   $("password").value = "";
   $("recoveryEmail").value = $("email").value;
   $("requestField").hidden = $("recoveryEmail").disabled = reset;
-  $("resetField").hidden = $("newPassword").disabled = !reset;
-  $("newPassword").value = "";
+  $("resetField").hidden = $("resetField").disabled = !reset;
+  clearResetFields();
   $("resendGroup").hidden = reset;
   $("recoveryHeading").textContent = reset
     ? "Reset Password"
     : "Forgot Password?";
   $("recoveryIntro").textContent = reset
-    ? "Choose a new password of at least 12 characters."
+    ? "Choose a new password for your AfterLink account. Make it strong and unique."
     : "No worries. Enter your email and we will send you a reset link.";
-  $("sendReset").textContent = reset ? "Save Password" : "Send Reset Link";
+  $("sendReset").textContent = reset ? "Reset Password" : "Send Reset Link";
   $("recoveryStatus").textContent = "";
   document.querySelector(".card").scrollTop = 0;
   $("recoveryHeading").focus({ preventScroll: true });
 }
 function closeRecovery() {
   resetToken = null;
-  $("newPassword").value = "";
+  clearResetFields();
   $("recovery").hidden = true;
   $("auth").hidden = false;
   $("email").value = $("recoveryEmail").value;
@@ -104,6 +152,10 @@ $("resend").onclick = () => $("recoveryForm").requestSubmit();
 $("recoveryForm").onsubmit = async (event) => {
   event.preventDefault();
   if (busy) return;
+  if (resetToken) {
+    checkPassword();
+    if (!$("recoveryForm").reportValidity()) return;
+  }
   busy = $("sendReset").disabled = $("resend").disabled = true;
   $("recoveryStatus").textContent = "";
   try {
@@ -140,9 +192,12 @@ async function post(path, data) {
   return json;
 }
 function account(user) {
+  document.querySelector(".layout").hidden = !!user;
   $("auth").hidden = !!user;
   $("account").hidden = !user;
   $("accountEmail").textContent = user?.email || "";
+  if (user) homeFeed.open();
+  else homeFeed.clear();
   if (user) {
     $("recovery").hidden = true;
     $("form").reset();
