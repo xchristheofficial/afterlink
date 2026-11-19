@@ -5,11 +5,15 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>AfterLink</title>
     <link rel="icon" href="/assets/favicon.svg" />
+    <link rel="stylesheet" href="/theme.css" />
+    <script defer src="/navigation.js"></script>
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="/composer.css" />
     <link rel="stylesheet" href="/social.css" />
     <script defer src="/composer.js"></script>
     <script type="module" src="/social.js"></script>
+    <link rel="stylesheet" href="/preferences.css" />
+    <script src="/appearance.js"></script>
   </head>
   <body class="social">
     <header id="socialBar">
@@ -18,8 +22,7 @@
       /></a>
       <form action="/search" role="search" id="socialSearch">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="10" cy="10" r="7" />
-          <path d="m15 15 7 7" /></svg
+          <use href="/assets/icons.svg#search" /></svg
         ><input type="search" name="q" aria-label="Search" maxlength="100" />
       </form>
       <nav aria-label="Main navigation" id="socialNav"></nav>

@@ -1,0 +1,50 @@
+:root {
+  --tone: #6844c4;
+  --tint: #475fc3;
+  --panel: #fff;
+  --soft: #f3f3f8;
+  --ink: #191925;
+  --edge: #dddde6;
+  --dim: #626273;
+}
+:root[data-accent="green"] {
+  --tone: #147f71;
+  --tint: #167556;
+}
+:root[data-accent="blue"] {
+  --tone: #345fbe;
+  --tint: #226f99;
+}
+:root[data-accent="orange"] {
+  --tone: #aa5122;
+  --tint: #9b5629;
+}
+:root[data-accent="rose"] {
+  --tone: #af396d;
+  --tint: #93448e;
+}
+
+/* All UI surfaces and actions inherit these roles. Artwork, media overlays,
+   actual color swatches and destructive actions keep their own colors. */
+:root {
+  color-scheme: light;
+  --accent: linear-gradient(110deg, var(--tint), var(--tone));
+  --brand: var(--accent);
+  --accent-ink: var(--tone);
+  --wash: color-mix(in srgb, var(--tone) 12%, var(--panel));
+  --rule: var(--edge);
+  --line: var(--edge);
+  --muted: var(--dim);
+  --paper: var(--panel);
+  accent-color: var(--tone);
+}
+:root[data-color="dark"] {
+  color-scheme: dark;
+  --panel: #20212c;
+  --soft: #161722;
+  --ink: #f5f4ff;
+  --edge: #424354;
+  --dim: #c0becf;
+  --accent-ink: color-mix(in srgb, var(--tone) 44%, white);
+  --wash: color-mix(in srgb, var(--tone) 24%, var(--panel));
+}

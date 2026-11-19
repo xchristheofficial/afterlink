@@ -115,7 +115,7 @@ const profileEditor = (() => {
       api = service;
       document.title = "Edit Profile · AfterLink";
       el("account").classList.add("compact-editor");
-      document.querySelector(".feed-brand").src = "/assets/editor-brand.webp";
+      document.querySelector(".feed-brand").src = "/assets/profile-wordmark.webp";
       el("memberPage").hidden = true;
       el("editMember").hidden = false;
       try {

@@ -87,7 +87,7 @@ const postComposer = (() => {
     document.title = "Create Post · AfterLink";
     el("account").classList.add("editor-screen", "compose-screen");
     el("createPage").hidden = false;
-    document.querySelector(".feed-brand").src = "/assets/editor-brand.webp";
+    document.querySelector(".feed-brand").src = "/assets/profile-wordmark.webp";
     document.querySelector(".profile-nav .avatar").src = el("postAvatar").src =
       "/api/feed/avatar/me";
     el("searchPeople").placeholder = "Search people…";

@@ -13,6 +13,8 @@ import {
   empty,
   sheet,
   profile,
+  withIcon,
+  icon,
 } from "./social-ui.js";
 export async function messages(root, peer) {
   const left = box("chat-list"),
@@ -55,7 +57,7 @@ export async function messages(root, peer) {
     box(
       "list-heading",
       n("h1", "", "Messages"),
-      button("＋ New Message", compose, "gradient"),
+      button("New Message", compose, "gradient"),
     ),
     search,
     list,
@@ -106,13 +108,10 @@ export async function messages(root, peer) {
   search.oninput = () => inbox().catch(error);
   let update = async () => {};
   if (!peer) {
-    const illustration = n("img", "chat-illustration");
-    illustration.src = "/assets/social/select-chat.webp";
-    illustration.alt = "";
     right.append(
       box(
         "select-chat",
-        illustration,
+        box("chat-prompt-mark", icon("messages")),
         n("h2", "", "Select a conversation"),
         n("p", "", "Choose a chat to start messaging"),
       ),
@@ -121,14 +120,18 @@ export async function messages(root, peer) {
     const log = box("chat-log"),
       bar = n("form", "send-bar"),
       msg = input("Message…", 1000),
-      send = n("button", "gradient", "Send ➤");
+      send = n("button", "gradient", "Send");
     let photo,
       processing = false;
     const attach = n("input");
     attach.type = "file";
     attach.accept = "image/jpeg,image/png,image/webp";
     attach.hidden = true;
-    const pick = button("▧", () => attach.click());
+    const pick = withIcon(
+      button("", () => attach.click()),
+      "photo",
+      "Attach photo",
+    );
     pick.setAttribute("aria-label", "Attach photo");
     const attachment = box("attachment");
     attachment.hidden = true;
@@ -178,10 +181,14 @@ export async function messages(root, peer) {
     bar.append(
       attach,
       pick,
-      button("☺", () => {
-        msg.setRangeText("😊", msg.selectionStart, msg.selectionEnd, "end");
-        msg.focus();
-      }),
+      withIcon(
+        button("", () => {
+          msg.setRangeText("😊", msg.selectionStart, msg.selectionEnd, "end");
+          msg.focus();
+        }),
+        "smile",
+        "Add emoji",
+      ),
       msg,
       send,
     );
@@ -208,21 +215,30 @@ export async function messages(root, peer) {
     function draw(d, prepend) {
       if (!ready) {
         header.append(
-          a("/messages", "‹", "back-chat"),
+          withIcon(a("/messages", "", "back-chat"), "back", "Back to messages"),
           avatar(peer),
           box(
             "summary",
             profile(d.member),
             n(
               "small",
-              "subtle",
+              "subtle chat-status",
               d.member.username ? "@" + d.member.username : "Member",
             ),
           ),
-          a("/profile/" + peer, "ⓘ", "info-link"),
+          withIcon(
+            a("/profile/" + peer, "", "info-link"),
+            "info",
+            "Member profile",
+          ),
         );
         ready = true;
       }
+      header.querySelector(".chat-status").textContent = d.active
+        ? "Active recently"
+        : d.member.username
+          ? "@" + d.member.username
+          : "Member";
       const frag = document.createDocumentFragment(),
         atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 70;
       for (const m of d.messages) {

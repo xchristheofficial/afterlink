@@ -183,6 +183,10 @@ const homeFeed = (() => {
   }
   for (const b of document.querySelectorAll(".home [data-view]"))
     b.onclick = () => {
+      if (["Settings", "Saved"].includes(b.dataset.view)) {
+        location.assign("/" + b.dataset.view.toLowerCase());
+        return;
+      }
       if (b.dataset.view === "Explore") {
         location.assign("/search");
         return;
@@ -193,6 +197,7 @@ const homeFeed = (() => {
   for (const b of document.querySelectorAll(".home [data-later]"))
     b.onclick = () => {
       const paths = {
+        "Your Story": "/stories",
         Reels: "/reels",
         Messages: "/messages",
         Notifications: "/notifications",

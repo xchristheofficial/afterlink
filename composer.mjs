@@ -1,10 +1,11 @@
+import { separated } from "./visibility.mjs";
 import express from "express";
 
 // Used for every path to a post, including saved items, votes, and direct media URLs.
 export const visiblePost = (p, viewer) =>
-  `(${p}.author=${viewer} OR EXISTS(SELECT 1 FROM follows WHERE followed=${p}.author AND follower=${viewer}) OR (${p}.audience='everyone' AND NOT EXISTS(SELECT 1 FROM profile_settings WHERE user_id=${p}.author AND private=1)))`;
+  `(NOT ${separated(`${p}.author`, viewer)} AND (${p}.author=${viewer} OR EXISTS(SELECT 1 FROM follows WHERE followed=${p}.author AND follower=${viewer}) OR (${p}.audience='everyone' AND NOT EXISTS(SELECT 1 FROM profile_settings WHERE user_id=${p}.author AND private=1))))`;
 const MAX = 8 * 1024 * 1024;
-function mediaType(b) {
+export function mediaType(b) {
   if (b.subarray(0, 3).toString("hex") === "ffd8ff") return "image/jpeg";
   if (b.subarray(0, 8).toString("hex") === "89504e470d0a1a0a")
     return "image/png";
@@ -238,10 +239,26 @@ export function installComposer(app, db, limit, mention) {
       Number.isSafeInteger(id) &&
       db
         .prepare(
-          `SELECT m.type,length(m.bytes) AS size FROM post_media m JOIN posts p ON p.id=m.post_id WHERE m.id=? AND ${visiblePost("p", ":uid")}`,
+          `SELECT p.author,p.audience,m.type,length(m.bytes) AS size FROM post_media m JOIN posts p ON p.id=m.post_id WHERE m.id=? AND ${visiblePost("p", ":uid")}`,
         )
         .get({ uid }, id);
     if (!meta) return res.sendStatus(404);
+    if (req.query.download === "1") {
+      if (
+        meta.author !== uid &&
+        (meta.audience !== "everyone" ||
+          db
+            .prepare("SELECT private FROM profile_settings WHERE user_id=?")
+            .get(meta.author)?.private ||
+          !db
+            .prepare(
+              "SELECT 1 FROM preferences WHERE owner=? AND json_extract(data,'$.downloads')=1",
+            )
+            .get(meta.author))
+      )
+        return res.sendStatus(403);
+      res.attachment("AfterLink-" + id + "." + meta.type.split("/")[1]);
+    }
     let start = 0,
       end = meta.size - 1;
     res.set("Accept-Ranges", "bytes");

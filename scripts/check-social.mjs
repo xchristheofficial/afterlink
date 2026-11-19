@@ -177,6 +177,15 @@ export async function checkSocial({
         search: "/search",
         reels: "/reels",
         notifications: "/notifications",
+        settings: "/settings",
+        privacy: "/settings/privacy",
+        security: "/settings/security",
+        preferences: "/settings/notifications",
+        appearance: "/settings/appearance",
+        saved: "/saved",
+        connections: "/connections",
+        storyEditor: "/stories/create",
+        safety: "/safety?id=" + author,
       })) {
         await v.goto(url + path);
         await v.locator("#surface[aria-busy=false]").waitFor();
@@ -186,6 +195,23 @@ export async function checkSocial({
         });
       }
     }
+    await v.goto(url + "/stories/create");
+    await v.getByRole("button", { name: "Forest", exact: true }).click();
+    await v.getByRole("textbox", { name: "Add caption…" }).fill("Forest story");
+    await v
+      .getByRole("button", { name: "Share to Story", exact: true })
+      .click();
+    await v.locator(".story-player").getByText("Forest story").waitFor();
+    await v.goto(url + "/settings/appearance");
+    await v.getByRole("button", { name: "dark", exact: true }).click();
+    await v.getByRole("button", { name: "green", exact: true }).click();
+    await v.getByRole("switch", { name: "Reduce Motion" }).check();
+    await v.getByRole("button", { name: "Save Appearance" }).click();
+    await v.waitForFunction(
+      () =>
+        document.documentElement.dataset.color === "dark" &&
+        document.documentElement.dataset.motion === "reduce",
+    );
     await v.setViewportSize({ width: 320, height: 640 });
     for (const path of [
       "/messages",
@@ -194,16 +220,72 @@ export async function checkSocial({
       "/notifications",
       "/reels",
       "/post/" + postId,
+      "/settings",
+      "/settings/privacy",
+      "/settings/notifications",
+      "/settings/appearance",
+      "/settings/security",
+      "/connections",
+      "/saved",
+      "/safety?id=" + author + "&post=" + postId,
+      "/stories/create",
+      "/stories",
     ]) {
       await v.goto(url + path);
       await v.locator("#surface[aria-busy=false]").waitFor();
       assert.equal(await v.locator("#alert").isVisible(), false, path);
+      assert.equal(
+        await v.locator("html").getAttribute("data-accent"),
+        "green",
+        path,
+      );
+      assert.equal(
+        await v
+          .locator("#socialBar")
+          .evaluate((e) => getComputedStyle(e).backgroundColor),
+        "rgb(32, 33, 44)",
+        path,
+      );
+      assert.deepEqual(
+        await v
+          .locator("#socialNav a")
+          .evaluateAll((nodes) => nodes.map((e) => e.getAttribute("href"))),
+        ["/home", "/messages", "/notifications", "/settings", "/profile"],
+        path,
+      );
+      for (const use of await v.locator("#socialNav svg use").all()) {
+        assert.match(await use.getAttribute("href"), /^\/assets\/icons\.svg#/);
+        assert.ok(await use.evaluate((n) => n.getBBox().width > 0));
+      }
       assert.ok(
         await v.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
         path + " overflows mobile",
       );
+    }
+    for (const path of ["/home", "/profile", "/profile/edit", "/create"]) {
+      await v.goto(url + path);
+      await v.locator("#account").waitFor();
+      assert.equal(
+        await v.locator("html").getAttribute("data-accent"),
+        "green",
+        path,
+      );
+      assert.equal(
+        await v
+          .locator(".topbar")
+          .evaluate((e) => getComputedStyle(e).backgroundColor),
+        "rgb(32, 33, 44)",
+        path,
+      );
+      if (path === "/create")
+        assert.match(
+          await v
+            .locator("#publishPost")
+            .evaluate((e) => getComputedStyle(e).backgroundImage),
+          /rgb\(20, 127, 113\)/,
+        );
     }
     assert.deepEqual(errors, []);
   } finally {

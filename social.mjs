@@ -1,3 +1,5 @@
+import { installMemberSettings } from "./member-settings.mjs";
+import { separated, muted } from "./visibility.mjs";
 import express from "express";
 import { rateLimit } from "express-rate-limit";
 import { visiblePost } from "./composer.mjs";
@@ -48,7 +50,7 @@ export function installSocial(app, db, enrich) {
       `SELECT a.*,coalesce(s.private,0) private,exists(SELECT 1 FROM follows WHERE follower=:uid AND followed=a.id) following FROM feed_profiles a LEFT JOIN profile_settings s ON s.user_id=a.id WHERE a.id=:who`,
       { who, uid },
     ) || fail("Member not found.", 404);
-  const selection = `SELECT p.*,a.name,a.username,a.founder,(SELECT count(*) FROM link_shares WHERE post_id=p.id) shares,(SELECT count(*) FROM saved_posts WHERE post_id=p.id) saves,(SELECT count(*) FROM reel_views WHERE post_id=p.id) views,(SELECT count(*) FROM post_hearts WHERE post_id=p.id) likes,exists(SELECT 1 FROM post_hearts WHERE post_id=p.id AND actor=:uid) liked,(SELECT count(*) FROM comments WHERE post_id=p.id) comments,exists(SELECT 1 FROM saved_posts WHERE post_id=p.id AND user_id=:uid) saved FROM posts p JOIN feed_profiles a ON a.id=p.author WHERE ${visible}`;
+  const selection = `SELECT p.*,a.name,a.username,a.founder,(SELECT count(*) FROM link_shares WHERE post_id=p.id) shares,(SELECT count(*) FROM saved_posts WHERE post_id=p.id) saves,(SELECT count(*) FROM reel_views WHERE post_id=p.id) views,(SELECT count(*) FROM post_hearts WHERE post_id=p.id) likes,exists(SELECT 1 FROM post_hearts WHERE post_id=p.id AND actor=:uid) liked,(SELECT count(*) FROM comments c WHERE c.post_id=p.id AND NOT ${separated(":uid", "c.author")}) comments,exists(SELECT 1 FROM saved_posts WHERE post_id=p.id AND user_id=:uid) saved FROM posts p JOIN feed_profiles a ON a.id=p.author WHERE ${visible}`;
   const getPost = (pid, uid) =>
     one(selection + " AND p.id=:pid", { uid, pid }) ||
     fail("Post unavailable.", 404);
@@ -76,6 +78,18 @@ export function installSocial(app, db, enrich) {
       },
     );
   }
+  const { prefs, hidden, allowedDM } = installMemberSettings(app, db, {
+    endpoint,
+    one,
+    all,
+    run,
+    id,
+    body,
+    fail,
+    person,
+    getPost,
+    enrich,
+  });
   function notify(recipient, actor, kind, pid) {
     if (recipient !== actor)
       run(
@@ -99,6 +113,12 @@ export function installSocial(app, db, enrich) {
       );
       if (
         member &&
+        (prefs(member.id).mentions === "everyone" ||
+          one(
+            "SELECT 1 FROM follows WHERE follower=? AND followed=?",
+            actor,
+            member.id,
+          )) &&
         one(`SELECT 1 FROM posts p WHERE id=:pid AND ${visible}`, {
           pid,
           uid: member.id,
@@ -115,7 +135,7 @@ export function installSocial(app, db, enrich) {
       kind = q.kind === "reels" ? "reels" : "posts";
     const rows = all(
       selection +
-        ` AND (instr(lower(p.body),:term) OR instr(lower(a.name),:term) OR instr(lower(coalesce(a.username,'')),:term) OR instr(lower(coalesce(json_extract(p.details,'$.location'),'')),:term)) ${kind === "reels" ? "AND EXISTS(SELECT 1 FROM post_media WHERE post_id=p.id AND type LIKE 'video/%')" : ""} ORDER BY p.id DESC LIMIT 51`,
+        ` AND NOT ${muted(":uid", "p.author")} AND (instr(lower(p.body),:term) OR instr(lower(a.name),:term) OR instr(lower(coalesce(a.username,'')),:term) OR instr(lower(coalesce(json_extract(p.details,'$.location'),'')),:term)) ${kind === "reels" ? "AND EXISTS(SELECT 1 FROM post_media WHERE post_id=p.id AND type LIKE 'video/%')" : ""} ORDER BY p.id DESC LIMIT 51`,
       { uid, term },
     );
     return { posts: enrich(rows.slice(0, 50), uid), more: rows.length > 50 };
@@ -124,15 +144,21 @@ export function installSocial(app, db, enrich) {
     const item = getPost(id(p.id), uid),
       before = q.before ? id(q.before) : Number.MAX_SAFE_INTEGER;
     const rows = all(
-      `SELECT c.*,a.name,a.username,a.founder,pa.name parentName,(SELECT count(*) FROM comment_hearts WHERE comment=c.id) likes,exists(SELECT 1 FROM comment_hearts WHERE comment=c.id AND actor=?) liked FROM comments c JOIN feed_profiles a ON a.id=c.author LEFT JOIN comments pc ON pc.id=c.parent LEFT JOIN feed_profiles pa ON pa.id=pc.author WHERE c.post_id=? AND c.id<? ORDER BY c.id DESC LIMIT 51`,
-      uid,
-      item.id,
-      before,
+      `SELECT c.*,a.name,a.username,a.founder,pa.name parentName,(SELECT count(*) FROM comment_hearts WHERE comment=c.id) likes,exists(SELECT 1 FROM comment_hearts WHERE comment=c.id AND actor=:uid) liked FROM comments c JOIN feed_profiles a ON a.id=c.author LEFT JOIN comments pc ON pc.id=c.parent LEFT JOIN feed_profiles pa ON pa.id=pc.author AND NOT ${separated(":uid", "pc.author")} WHERE c.post_id=:post AND c.id<:before AND NOT ${separated(":uid", "c.author")} ORDER BY c.id DESC LIMIT 51`,
+      { uid, post: item.id, before },
     );
     return {
       post: enrich([item], uid)[0],
       author: person(item.author, uid),
       own: item.author === uid,
+      downloadable:
+        item.author === uid ||
+        (prefs(item.author).downloads &&
+          item.audience === "everyone" &&
+          !one(
+            "SELECT 1 FROM profile_settings WHERE user_id=? AND private=1",
+            item.author,
+          )),
       comments: rows.slice(0, 50).reverse(),
       more: rows.length > 50,
     };
@@ -148,7 +174,8 @@ export function installSocial(app, db, enrich) {
           parent,
           p.id,
         );
-    if (parent && !reply) fail("Reply not found.");
+    if (parent && (!reply || hidden(uid, reply.author)))
+      fail("Reply not found.");
     run(
       "INSERT INTO comments(post_id,author,parent,body,created) VALUES(?,?,?,?,?)",
       p.id,
@@ -185,7 +212,12 @@ export function installSocial(app, db, enrich) {
     if (typeof b.on !== "boolean") fail("Invalid selection.");
     if (b.comment) {
       const c = id(b.comment);
-      if (!one("SELECT 1 FROM comments WHERE id=? AND post_id=?", c, p.id))
+      if (
+        !one(
+          `SELECT 1 FROM comments c WHERE c.id=:c AND c.post_id=:post AND NOT ${separated(":uid", "c.author")}`,
+          { c, post: p.id, uid },
+        )
+      )
         fail("Comment unavailable.", 404);
       run(
         b.on
@@ -216,7 +248,7 @@ export function installSocial(app, db, enrich) {
   });
   endpoint("get", "notices", (uid) => ({
     notices: all(
-      `SELECT n.*,a.name,a.founder,exists(SELECT 1 FROM follows WHERE follower=:uid AND followed=n.actor) following,coalesce(s.private,0) private FROM notices n JOIN feed_profiles a ON a.id=n.actor LEFT JOIN profile_settings s ON s.user_id=a.id WHERE recipient=:uid AND (post_id IS NULL OR EXISTS(SELECT 1 FROM posts p WHERE p.id=n.post_id AND ${visible})) ORDER BY n.id DESC LIMIT 100`,
+      `SELECT n.*,a.name,a.founder,exists(SELECT 1 FROM follows WHERE follower=:uid AND followed=n.actor) following,coalesce(s.private,0) private FROM notices n JOIN feed_profiles a ON a.id=n.actor LEFT JOIN profile_settings s ON s.user_id=a.id WHERE recipient=:uid AND NOT ${separated(":uid", "n.actor")} AND (post_id IS NULL OR EXISTS(SELECT 1 FROM posts p WHERE p.id=n.post_id AND ${visible})) ORDER BY n.id DESC LIMIT 100`,
       { uid },
     ),
   }));
@@ -236,7 +268,7 @@ export function installSocial(app, db, enrich) {
       .slice(0, 100);
     return {
       threads: all(
-        `WITH mine AS (SELECT *,CASE WHEN sender=:uid THEN recipient ELSE sender END peer FROM messages WHERE sender=:uid OR recipient=:uid), latest AS (SELECT peer,max(id) id,sum(CASE WHEN recipient=:uid AND seen=0 THEN 1 ELSE 0 END) unread FROM mine GROUP BY peer) SELECT p.*,m.body,m.created,m.sender=:uid outgoing,l.unread FROM latest l JOIN mine m ON m.id=l.id JOIN feed_profiles p ON p.id=l.peer WHERE instr(lower(p.name||' '||coalesce(p.username,'')),:term) OR EXISTS(SELECT 1 FROM mine t WHERE t.peer=l.peer AND instr(lower(t.body),:term)) ORDER BY l.id DESC LIMIT 100`,
+        `WITH mine AS (SELECT *,CASE WHEN sender=:uid THEN recipient ELSE sender END peer FROM messages WHERE sender=:uid OR recipient=:uid), latest AS (SELECT peer,max(id) id,sum(CASE WHEN recipient=:uid AND seen=0 THEN 1 ELSE 0 END) unread FROM mine GROUP BY peer) SELECT p.*,m.body,m.created,m.sender=:uid outgoing,l.unread FROM latest l JOIN mine m ON m.id=l.id JOIN feed_profiles p ON p.id=l.peer WHERE NOT ${separated(":uid", "l.peer")} AND (instr(lower(p.name||' '||coalesce(p.username,'')),:term) OR EXISTS(SELECT 1 FROM mine t WHERE t.peer=l.peer AND instr(lower(t.body),:term))) ORDER BY l.id DESC LIMIT 100`,
         { uid, term },
       ),
     };
@@ -244,6 +276,7 @@ export function installSocial(app, db, enrich) {
   endpoint("get", "thread/:peer", (uid, q, b, p) => {
     const peer = id(p.peer);
     if (peer === uid) fail("Choose another member.");
+    if (hidden(peer, uid)) fail("Conversation unavailable.", 403);
     const member = person(peer, uid),
       before = q.before ? id(q.before) : Number.MAX_SAFE_INTEGER;
     const rows = all(
@@ -256,6 +289,15 @@ export function installSocial(app, db, enrich) {
     );
     return {
       member,
+      active: !!(
+        prefs(uid).activity &&
+        prefs(peer).activity &&
+        one(
+          "SELECT 1 FROM last_activity WHERE owner=? AND seen>?",
+          peer,
+          Date.now() - 90000,
+        )
+      ),
       messages: rows.slice(0, 60).reverse(),
       more: rows.length > 60,
     };
@@ -265,6 +307,8 @@ export function installSocial(app, db, enrich) {
     const peer = id(p.peer);
     if (peer === uid) fail("Choose another member.");
     person(peer, uid);
+    if (!allowedDM(uid, peer))
+      fail("This member is not accepting messages from you.", 403);
     let photo = null;
     if (b.photo !== undefined) {
       if (
@@ -303,7 +347,7 @@ export function installSocial(app, db, enrich) {
   app.get("/api/feed/message-photo/:id", (req, res) => {
     const uid = res.locals.uid,
       row = one(
-        "SELECT bytes FROM message_photos JOIN messages ON message=id WHERE id=? AND (sender=? OR recipient=?)",
+        `SELECT bytes FROM message_photos JOIN messages ON message=id WHERE id=? AND (sender=? OR recipient=?) AND NOT ${separated("sender", "recipient")}`,
         Number(req.params.id),
         uid,
         uid,
@@ -320,6 +364,7 @@ export function installSocial(app, db, enrich) {
       through = Number(req.body?.through);
     if (!Number.isSafeInteger(peer) || !Number.isSafeInteger(through))
       return res.sendStatus(400);
+    if (hidden(res.locals.uid, peer)) return res.sendStatus(403);
     run(
       "UPDATE messages SET seen=1 WHERE recipient=? AND sender=? AND id<=? AND seen=0",
       res.locals.uid,

@@ -4,7 +4,7 @@ Reference-led account access page. The left panel is noninteractive artwork from
 
 ## Run
 
-Node 22.13 or newer (built-in SQLite), `npm ci`, then `npm start`. The app serves the page and API from one origin on port 3000. Run `npm test` for the isolated authentication integration test; it never touches the live database.
+Node 22.13 or newer (built-in SQLite), `npm ci`, then `npm start`. The app serves the page and API from one origin on port 3000. Run `npm test` for the isolated authentication, recovery, and social settings tests; it never touches the live database.
 
 For browser checks, install Chromium with `npx playwright install --with-deps chromium`, then run `npm run test:ui`. The script starts a separate service with a temporary database, exercises the actual page, and removes the database afterward.
 
@@ -16,7 +16,7 @@ Accounts and revocable, seven-day sessions are stored in `data/afterlink.sqlite`
 
 ## Home feed
 
-Signing in opens `/home`, the bookmarkable, session-protected Home Feed. Opening `/home` while signed out returns you to sign-in. The responsive feed opens with a post composer, people search, follow/unfollow, follower counts and saved posts. The latest 50 posts by the viewer or accounts they follow are shown newest first. All records and counts start empty. Stories remain unavailable; the inbox and activity center use real member data.
+Signing in opens `/home`, the bookmarkable, session-protected Home Feed. Opening `/home` while signed out returns you to sign-in. The responsive feed opens with a post composer, people search, follow/unfollow, follower counts and saved posts. The latest 50 posts by the viewer or accounts they follow are shown newest first. All records and counts start empty. Stories, the inbox, and the activity center use real member data.
 
 The first account in this SQLite database (lowest user ID) is bound once to the **RADAR** public display name and developer badge. This changes neither its credentials nor its username, and grants no permissions. Other accounts use their own profile details; public directory and feed responses exclude emails and phone numbers. Keep the database on persistent storage to retain this association. Site transitions are opt-in via the browser’s no-reduced-motion preference.
 
@@ -41,7 +41,17 @@ Open **Profile** from the home sidebar, or select a name in a post or Explore Pe
 - **Notifications** (`/notifications`): follows, post likes, comments, replies and visible `@username` mentions. Filter activity, follow back, open the referenced item or mark all read. Profile visits and individual saves are not disclosed.
 - Motion uses short entry/interaction transitions and respects the device’s reduced-motion setting. `npm run test:ui` exercises these screens with isolated accounts, including a third-party privacy check and a real short WebM generated at test time. Optional `SOCIAL_SCREENSHOTS` names a directory for review images.
 
-## Settings
+## Member settings and stories
+
+Open **Settings** from navigation to search account, privacy, notification and appearance controls. Notification preferences affect new in-app activity, not historical notices; push and email notifications are not delivered. Appearance includes system/light/dark mode, accent color, reduced motion and separate video and reel autoplay preferences. All screens use the same surface and action colors from `public/theme.css`; saved appearance changes carry across navigation and open tabs. Media backdrops remain neutral for legibility.
+
+Profile counts open searchable follower/following lists. **Saved** shows your private bookmarks and collections. Use **Report or Block** on another member’s profile or post to report, block, mute or unfollow. Reports are stored for operator review; there is no automated moderation decision or moderator dashboard. Blocked and muted accounts can be managed in Privacy & Safety.
+
+**Create Story** supports a photo, video or provided background, plus caption, audience and reply controls. Stories expire after 24 hours. Replies and quick reactions go to the author’s inbox and require messaging permission.
+
+**Account & Security** lists active sessions, lets password users change their password, and offers authenticator-based two-factor sign-in with single-use recovery codes. To enable enrollment, provision `AFTERLINK_2FA_KEY` as a stable secret (32 random bytes encoded as base64; generate with `openssl rand -base64 32`). Back it up separately from the database. Do not regenerate it on restart or commit it. Without it, new enrollment is unavailable. Google-only accounts use their provider for sign-in security.
+
+## Server configuration
 
 - `PORT` — default `3000`.
 - `DB_FILE` — override database location (including its filename).
@@ -56,4 +66,4 @@ Links expire in 15 minutes, contain a random single-use token in the URL fragmen
 
 ## Launch checklist
 
-Before public launch, configure production storage/TLS, recovery delivery and email verification, operational monitoring, and Kodra-approved legal and support information. The brief information dialogs describe this implementation, not a comprehensive production policy. Moderation controls are needed before opening public posting broadly. Add reporting and blocking before opening direct messaging broadly.
+Before public launch, configure production storage/TLS, recovery delivery and email verification, operational monitoring, and Kodra-approved legal and support information. The brief information dialogs describe this implementation, not a comprehensive production policy. Assign operators to review stored reports and define an escalation policy before opening posting and messaging broadly.
