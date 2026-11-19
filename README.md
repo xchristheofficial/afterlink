@@ -16,9 +16,21 @@ Accounts and revocable, seven-day sessions are stored in `data/afterlink.sqlite`
 
 ## Home feed
 
-Signing in opens `/home`, the bookmarkable, session-protected Home Feed. Opening `/home` while signed out returns you to sign-in. The responsive feed opens with a public text composer, people search, follow/unfollow, follower counts and saved posts. The latest 50 posts by the viewer or accounts they follow are shown newest first. All records and counts start empty. Media, story, messaging, and notification surfaces are reserved for future pages and do not simulate activity.
+Signing in opens `/home`, the bookmarkable, session-protected Home Feed. Opening `/home` while signed out returns you to sign-in. The responsive feed opens with a post composer, people search, follow/unfollow, follower counts and saved posts. The latest 50 posts by the viewer or accounts they follow are shown newest first. All records and counts start empty. Story, messaging, and notification surfaces are reserved for future pages and do not simulate activity.
 
 The first account in this SQLite database (lowest user ID) is bound once to the **RADAR** public display name and developer badge. This changes neither its credentials nor its username, and grants no permissions. Other accounts use their own profile details; public directory and feed responses exclude emails and phone numbers. Keep the database on persistent storage to retain this association. Site transitions are opt-in via the browser’s no-reduced-motion preference.
+
+## Create Post
+
+Open `/create` from the Home Feed or your empty profile. Write up to 500 characters, choose Everyone (signed-in members) or Followers, attach up to ten photos/GIFs or one MP4/WebM video, add a two-answer poll, a feeling, or a typed place. Uploads are limited to 8 MB per post and 128 MB of published media per member. Media, votes, and one private saved draft per member use the same persistent SQLite database as posts. **Drafts** lets you explicitly save, reopen, replace, or delete your draft. Following status and account privacy apply to the feed, shared profiles, saved posts, votes and direct media requests. Nothing is posted until Publish succeeds.
+
+## Profiles
+
+Open **Profile** from the home sidebar, or select a name in a post or Explore People. `/profile` shows your account; `/profile/<id>` is a stable link you can share with other members. Bios and display-name edits are persisted for the signed-in owner. RADAR’s public founder name and badge cannot be changed through this form. The profile grid lists the latest 50 posts while the count covers all posts. Saved posts are only available to their owner. Reels and Tagged have empty states until those features exist. Motion enhancements respect reduced-motion preferences.
+
+### Edit Profile
+
+`/profile/edit` edits the signed-in account. Photos are center-cropped on the device before saving. Usernames are checked case-insensitively and the sign-in email is read-only. Email and phone are not sent in other members’ profiles. Enabling Private Account limits posts to existing followers and pauses new follows; it does not hide the directory listing. Deleting an account requires typing `DELETE`, removes its posts, saves, follows, recovery tokens and sessions, and retires its profile ID and founder designation.
 
 ## Settings
 

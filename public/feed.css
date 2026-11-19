@@ -1,6 +1,5 @@
 /* Signed-in layout: all three columns share the same baseline below the toolbar. */
-.home,
-#composer {
+.home {
   --brand: linear-gradient(108deg, #7728dc, #147cb2 72%, #16adab);
   --rule: #dedde1;
 }
@@ -11,8 +10,7 @@
   font-size: 1rem;
 }
 .home h2,
-.home h3,
-#composer h2 {
+.home h3 {
   line-height: 1.13;
   margin: 0;
   letter-spacing: -0.035em;
@@ -116,7 +114,7 @@
 .who {
   text-align: center;
 }
-.who > .avatar {
+.who .avatar {
   width: 4.5rem;
   height: 4.5rem;
   margin: 0 auto 0.5rem;
@@ -145,7 +143,7 @@
   display: grid;
   gap: 0.15em;
 }
-.side-nav button {
+.side-nav :is(button, .rail-profile-link) {
   display: flex;
   align-items: center;
   gap: 1em;
@@ -157,8 +155,7 @@
 }
 .side-nav [aria-current="page"],
 .home .pill,
-.home .banner button,
-#composer .pill {
+.home .banner button {
   background: var(--brand);
   color: white;
   font-weight: 700;
@@ -359,30 +356,6 @@
   color: #902940;
   padding: 0 1em;
 }
-#composer {
-  width: min(470px, 92vw);
-}
-#composer h2 {
-  font-size: 26px;
-  margin-bottom: 1em;
-}
-#composer textarea {
-  width: 100%;
-  font: inherit;
-  padding: 12px;
-  border: 1px solid #9487a1;
-  border-radius: 12px;
-  margin: 0.6em 0;
-  resize: vertical;
-}
-#composer form > div {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5em;
-}
-#composer button {
-  border: 0;
-}
 .logout {
   display: inline-flex;
   align-items: center;
@@ -399,7 +372,7 @@
 .rail-collapsed .side-nav {
   margin-top: 0;
 }
-.rail-collapsed .side-nav button {
+.rail-collapsed .side-nav :is(button, .rail-profile-link) {
   justify-content: center;
   min-width: 44px;
 }
@@ -465,7 +438,7 @@
     gap: 6px;
     flex-wrap: wrap;
   }
-  .who > .avatar {
+  .who .avatar {
     width: 35px;
     height: 35px;
     margin: 0;
@@ -494,7 +467,7 @@
   .rail-collapsed .logout {
     margin: 0;
   }
-  .side-nav button {
+  .side-nav :is(button, .rail-profile-link) {
     padding: 6px;
     gap: 3px;
     font-size: 0.85em;

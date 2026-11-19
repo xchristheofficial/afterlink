@@ -1,5 +1,7 @@
 const homeFeed = (() => {
   const el = (id) => document.getElementById(id);
+  const onProfile = /^\/profile(?:\/|$)/.test(location.pathname);
+  const onCreate = /^\/create\/?$/.test(location.pathname);
   let view = "Feed",
     version = 0;
   const grid = document.querySelector(".home-grid");
@@ -87,7 +89,11 @@ const homeFeed = (() => {
     const wrap = document.createElement("div");
     const name = document.createElement("strong");
     renderName(name, profile);
-    wrap.append(name);
+    const link = document.createElement("a");
+    link.href = "/profile/" + (profile.author ?? profile.id);
+    link.className = "author-link";
+    link.append(name);
+    wrap.append(link);
     if (profile.username) wrap.append(text("small", "@" + profile.username));
     return wrap;
   }
@@ -97,17 +103,21 @@ const homeFeed = (() => {
     const head = document.createElement("header");
     head.append(identity(item));
     if (people) {
-      head.append(
-        action(item.following ? "Unfollow" : "Follow", () =>
-          api("/follow", { id: item.id, on: !item.following }),
-        ),
-      );
+      if (item.private && !item.following)
+        head.append(text("small", "Private account"));
+      else
+        head.append(
+          action(item.following ? "Unfollow" : "Follow", () =>
+            api("/follow", { id: item.id, on: !item.following }),
+          ),
+        );
       node.append(head);
     } else {
       head.append(text("time", new Date(item.created).toLocaleDateString()));
       node.append(
         head,
         text("p", item.body),
+        postComposer.content(item, api),
         action(item.saved ? "Unsave" : "Save post", () =>
           api("/save", { id: item.id, on: !item.saved }),
         ),
@@ -141,6 +151,9 @@ const homeFeed = (() => {
       ]);
       if (id !== version) return;
       const p = data.profile;
+      document
+        .querySelectorAll(".home-grid .avatar")
+        .forEach((img) => (img.src = "/api/feed/avatar/me"));
       renderName(el("profileName"), p);
       el("profileHandle").textContent = p.username ? "@" + p.username : "";
       el("founderBadge").hidden = !p.founder;
@@ -174,32 +187,22 @@ const homeFeed = (() => {
       );
   el("peopleSearch").onsubmit = (e) => {
     e.preventDefault();
-    load("Explore");
+    if (onProfile || onCreate)
+      location.assign(
+        "/home?q=" + encodeURIComponent(el("searchPeople").value),
+      );
+    else load("Explore");
   };
-  function compose(initial) {
-    el("postText").value = initial;
-    el("postError").textContent = "";
-    el("composer").showModal();
-    el("postText").focus();
+  function compose(tool = "") {
+    const params = new URLSearchParams();
+    if (onProfile) params.set("from", "profile");
+    if (tool) params.set("tool", tool);
+    location.assign("/create" + (params.size ? "?" + params : ""));
   }
-  el("openComposer").onclick = () => compose("");
-  el("composeEmoji").onclick = () => compose("😊 ");
-  el("cancelPost").onclick = () => el("composer").close();
-  el("postForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const button = el("publishPost");
-    if (button.disabled) return;
-    button.disabled = true;
-    try {
-      await api("/posts", { body: el("postText").value });
-      el("composer").close();
-      await load("Feed");
-    } catch (err) {
-      el("postError").textContent = err.message;
-    } finally {
-      button.disabled = false;
-    }
-  };
+  el("openComposer").onclick = () => compose();
+  el("composePhoto").onclick = () => compose("photo");
+  el("composeVideo").onclick = () => compose("video");
+  el("composeEmoji").onclick = () => compose("feeling");
   function clear() {
     version++;
     for (const id of [
@@ -212,13 +215,28 @@ const homeFeed = (() => {
       el(id).replaceChildren();
     el("searchPeople").value = "";
     el("postForm").reset();
-    el("composer").close();
+
     el("founderBadge").hidden = true;
   }
   return {
     open: () => {
       clear();
-      load("Feed");
+      if (onProfile || onCreate) {
+        grid.hidden = true;
+        railToggle.hidden = true;
+        document.querySelector(".profile-nav").hidden = false;
+        el("account").classList.add("profile-screen");
+        if (onCreate) {
+          postComposer.open(api, renderName);
+          return;
+        }
+        el("memberPage").hidden = false;
+        memberPage.start({ api, renderName, compose });
+      } else {
+        const q = new URLSearchParams(location.search).get("q");
+        if (q !== null) el("searchPeople").value = q;
+        load(q === null ? "Feed" : "Explore");
+      }
     },
     clear,
   };
