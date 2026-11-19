@@ -183,16 +183,16 @@
   color: var(--accent-ink);
 }
 .social .danger {
-  color: #aa2442;
+  color: var(--danger-ink);
 }
 .danger-zone {
-  background: #fae5e9;
+  background: var(--danger-panel);
   border-radius: 12px;
   padding: 16px;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  color: #70223b;
+  color: var(--danger-ink);
 }
 .danger-zone p {
   flex-basis: 100%;
@@ -548,7 +548,7 @@
   height: 1.2em;
 }
 .dialog-error {
-  color: #a3324b;
+  color: var(--danger-ink);
 }
 .comment-actions svg,
 .send-bar svg,
@@ -646,10 +646,6 @@
 :is(.home, .social) :focus-visible {
   outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
-}
-:root[data-color="dark"] .inside h1 img {
-  background: white;
-  border-radius: 6px;
 }
 @media (max-width: 760px) {
   :is(.social #socialBar, .home .topbar) {

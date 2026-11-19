@@ -36,6 +36,38 @@ try {
   await page.goto(url + "/home");
   await page.getByText(/Sign in to open your Home Feed/).waitFor();
   assert.equal(new URL(page.url()).pathname, "/");
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "afterlink.appearance",
+      JSON.stringify({ theme: "dark", accent: "green" }),
+    ),
+  );
+  await page.goto(url + "/home");
+  await page.getByText(/Sign in to open your Home Feed/).waitFor();
+  const brand = page.getByRole("heading", { level: 1, name: /AfterLink/ });
+  assert.equal(
+    await brand.locator("use").getAttribute("href"),
+    "/assets/icons.svg#brand-link",
+  );
+  assert.equal(await brand.locator("img").count(), 0);
+  assert.equal(
+    await brand.evaluate((el) => getComputedStyle(el).backgroundColor),
+    "rgba(0, 0, 0, 0)",
+  );
+  assert.equal(
+    await brand.evaluate((el) => getComputedStyle(el).color),
+    "rgb(245, 244, 255)",
+  );
+  assert.equal(
+    await page.locator("#error").evaluate((el) => getComputedStyle(el).color),
+    "rgb(255, 172, 187)",
+  );
+  if (process.env.AUTH_DARK_SCREENSHOT)
+    await page.screenshot({
+      path: process.env.AUTH_DARK_SCREENSHOT,
+      animations: "disabled",
+    });
+  await page.evaluate(() => localStorage.removeItem("afterlink.appearance"));
   await page.goto(url);
   await page.evaluate(() => document.fonts.ready);
   for (const [width, height] of [

@@ -58,7 +58,7 @@
   left: 2.2vw;
   right: 2.2vw;
   height: 1px;
-  background: #dedee0;
+  background: var(--edge);
 }
 .create-title h1 {
   font-size: clamp(26px, 3.5vw, 56px);

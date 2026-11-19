@@ -6,6 +6,9 @@
   --ink: #191925;
   --edge: #dddde6;
   --dim: #626273;
+  --danger-ink: #952239;
+  --danger-panel: #fae8ed;
+  --success-ink: #206d56;
 }
 :root[data-accent="green"] {
   --tone: #147f71;
@@ -45,6 +48,9 @@
   --ink: #f5f4ff;
   --edge: #424354;
   --dim: #c0becf;
+  --danger-ink: #ffacbb;
+  --danger-panel: #3a2632;
+  --success-ink: #88d5b6;
   --accent-ink: color-mix(in srgb, var(--tone) 44%, white);
   --wash: color-mix(in srgb, var(--tone) 24%, var(--panel));
 }

@@ -159,12 +159,12 @@
 }
 #handleState {
   font-weight: 600;
-  color: #765949;
+  color: var(--dim);
   padding-left: 0.5em;
   font-size: 0.83em;
 }
 #handleState.available {
-  color: #2d813e;
+  color: var(--success-ink);
 }
 #editMember #editPrivate {
   appearance: none;
@@ -236,7 +236,7 @@
   justify-self: center;
   background: transparent;
   text-decoration: underline;
-  color: #8c2931;
+  color: var(--danger-ink);
   border: 0;
   padding: 0;
   min-height: 30px;
