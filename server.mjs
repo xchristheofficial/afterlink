@@ -1,3 +1,4 @@
+import { installRecovery, recoveryMailer } from "./recovery.mjs";
 import express from "express";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
@@ -119,6 +120,11 @@ app.post("/api/logout", (req, res) => {
   res.json({ ok: true });
 });
 const bad = (res, msg, status = 400) => res.status(status).json({ error: msg });
+async function hashPassword(password) {
+  const salt = token();
+  return `${salt}:${(await derive(password, salt, 64)).toString("hex")}`;
+}
+installRecovery(app, db, limit, recoveryMailer(process.env), hashPassword);
 const invalid = "Check your email, phone (if entered), and password.";
 app.post(["/api/signup", "/api/signin"], limit, async (req, res) => {
   const signup = req.path.endsWith("signup");
@@ -154,13 +160,12 @@ app.post(["/api/signup", "/api/signin"], limit, async (req, res) => {
         res,
         "Choose a username with 3–30 letters, numbers, or underscores.",
       );
-    const salt = token(),
-      hash = (await derive(password, salt, 64)).toString("hex");
+    const hash = await hashPassword(password);
     const row = db
       .prepare(
         "INSERT INTO users(email,phone,hash,full_name,username) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING RETURNING id",
       )
-      .get(email, phone || null, `${salt}:${hash}`, fullName.trim(), username);
+      .get(email, phone || null, hash, fullName.trim(), username);
     if (!row)
       return bad(
         res,
@@ -178,6 +183,9 @@ app.post(["/api/signup", "/api/signin"], limit, async (req, res) => {
   if (
     !timingSafeEqual(attempt, Buffer.from(hash, "hex")) ||
     !row?.hash ||
+    !db
+      .prepare("SELECT 1 FROM users WHERE id=? AND hash=?")
+      .get(row.id, row.hash) ||
     (phone && phone !== row.phone)
   )
     return bad(res, invalid, 401);
