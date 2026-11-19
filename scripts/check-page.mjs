@@ -45,7 +45,10 @@ try {
       const image = page.locator(".art img");
       const box = await image.boundingBox();
       assert.ok(box && box.y >= 0 && box.y + box.height <= height);
-      assert.equal(await image.evaluate(el => getComputedStyle(el).objectFit), "contain");
+      assert.equal(
+        await image.evaluate((el) => getComputedStyle(el).objectFit),
+        "contain",
+      );
     }
     assert.equal(bounds.x, 0);
     assert.equal(bounds.y, 0);
@@ -57,17 +60,44 @@ try {
       ),
     );
   }
-  await page.setViewportSize({ width: 390, height: 844 });
-  for (const button of await page.locator("footer button").all()) {
-    await button.click();
-    const dialog = page.getByRole("dialog");
-    await dialog.waitFor();
-    assert.equal(
-      await dialog.locator("h2").innerText(),
-      await button.getAttribute("data-info"),
+  await page.setViewportSize({ width: 1568, height: 784 });
+  const art = page.locator(".art img");
+  await art.evaluate((img) => img.decode());
+  const original = await art.elementHandle();
+  const rect = await art.boundingBox();
+  const imageRequests = () =>
+    page.evaluate(
+      () =>
+        performance
+          .getEntriesByType("resource")
+          .filter((e) => e.name.endsWith("/auth-illustration.webp")).length,
     );
-    await dialog.getByRole("button", { name: "Close" }).click();
+  const initialRequests = await imageRequests();
+  for (const label of [
+    "Create Account",
+    "Sign In",
+    "Create Account",
+    "Sign In",
+  ]) {
+    await page.fill("#password", "discarded");
+    await page.click("#reveal");
+    assert.equal(await page.getAttribute("#password", "type"), "text");
+    await page.click("#switchMode");
+    assert.equal(await page.innerText("#heading"), label);
+    assert.equal(await page.getAttribute("#password", "type"), "password");
+    assert.equal(await page.inputValue("#password"), "");
+    assert.ok(
+      await original.evaluate(
+        (el) => el === document.querySelector(".art img"),
+      ),
+    );
+    assert.deepEqual(await art.boundingBox(), rect);
+    assert.equal(await imageRequests(), initialRequests);
   }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.click("#forgot");
+  await page.getByRole("dialog", { name: "Forgot password?" }).waitFor();
+  await page.keyboard.press("Escape");
   await page.click("#google");
   await page.getByRole("dialog", { name: "Google sign-in" }).waitFor();
   await page.keyboard.press("Escape");
@@ -78,33 +108,10 @@ try {
   assert.match(icon.headers()["content-type"], /svg/);
   const email = `${randomUUID()}@example.test`,
     password = randomUUID();
-  await page.click("#signup");
-  await page.click("#submit");
-  assert.ok(await page.locator("#email:invalid").count());
+  await page.click("#switchMode");
+  await page.fill("#fullName", "UI test");
+  await page.fill("#username", "ui_test");
   await page.fill("#email", email);
-  await page.fill("#phone", "abc");
-  await page.click("#submit");
-  await page.locator("#error").waitFor();
-  await page.fill("#phone", "");
-  await page.click("#submit");
-  for (const [mode, other, finalLabel, autocomplete] of [
-    ["signin", "signup", "Sign In", "current-password"],
-    ["signup", "signin", "Create Account", "new-password"],
-  ]) {
-    await page.fill("#password", password);
-    await page.click(`#${mode}`);
-    assert.equal(await page.getAttribute(`#${mode}`, "aria-pressed"), "true");
-    assert.equal(await page.getAttribute(`#${other}`, "aria-pressed"), "false");
-    assert.equal(await page.inputValue("#password"), "");
-    assert.equal(await page.inputValue("#email"), email);
-    assert.equal(await page.innerText("#submit"), `Continue to ${finalLabel.toLowerCase()}`);
-    await page.click("#submit");
-    assert.equal(await page.innerText("#submit"), finalLabel);
-    assert.equal(await page.getAttribute("#password", "autocomplete"), autocomplete);
-  }
-  await page.click("#back");
-  assert.equal(await page.inputValue("#email"), email);
-  await page.click("#submit");
   await page.fill("#password", password);
   await page.click("#submit");
   await page.locator("#account").waitFor();
@@ -112,9 +119,7 @@ try {
   await page.locator("#account").waitFor();
   assert.equal(await page.innerText("#accountEmail"), email);
   await page.click("#logout");
-  await page.click("#signin");
   await page.fill("#email", email);
-  await page.click("#submit");
   await page.fill("#password", "incorrect");
   await page.click("#submit");
   await page.locator("#error").waitFor();
@@ -122,10 +127,10 @@ try {
   await page.click("#submit");
   await page.locator("#account").waitFor();
   await page.click("#logout");
-  await page.locator("#identity").waitFor();
+  await page.locator("#form").waitFor();
   assert.deepEqual(errors, []);
   console.log(
-    "Browser checks passed: responsive bounds, favicon, footer, Google fallback, validation and account lifecycle.",
+    "Browser checks passed: stationary artwork, form switching, responsive bounds, favicon, Google fallback, validation and account lifecycle.",
   );
 } finally {
   await browser?.close();

@@ -23,87 +23,107 @@
         class="art"
         aria-label="Decorative feed illustration from the AfterLink design reference, not live user activity"
       >
-        <img src="/assets/feed-art.webp" alt="" width="834" height="1144" />
+        <img
+          src="/assets/auth-illustration.webp"
+          alt=""
+          width="1119"
+          height="1120"
+        />
       </aside>
       <section class="card" aria-label="AfterLink account access">
-        <div class="inside">
+        <div class="inside" data-mode="signin">
           <header>
             <h1>
               <img
-                src="/assets/afterlink.webp"
-                alt="AfterLink"
-                width="648"
-                height="143"
+                src="/assets/auth-brand.webp"
+                width="810"
+                height="209"
+                alt="AfterLink — Connect After. Link Forever."
               />
             </h1>
-            <p><strong>Connect</strong> After. <strong>Link</strong> Forever.</p>
           </header>
           <div id="auth">
-            <nav class="switch" aria-label="Account access">
-              <button id="signin" type="button" aria-pressed="true">
-                Sign In
-              </button>
-              <button id="signup" type="button" aria-pressed="false">
-                Create Account
-              </button>
-            </nav>
-            <form id="form">
-              <div id="identity">
-                <label for="email">Email</label>
-                <div class="input">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="2" y="5" width="20" height="14" rx="2" />
-                    <path d="m3 6 9 7 9-7M3 18l6-6m12 6-6-6" /></svg
-                  ><input
-                    type="email"
-                    id="email"
-                    required
-                    pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
-                    title="Enter an email address such as you@example.com."
-                    autocomplete="email"
-                    maxlength="254"
-                    placeholder="you@example.com"
-                  />
-                </div>
-                <label for="phone"
-                  >Phone <span class="optional">(optional)</span></label
-                >
-                <div class="input">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M21 16.8v2.5a2 2 0 0 1-2.1 2C10 20.5 3.5 14 2.7 5.1a2 2 0 0 1 2-2.1h2.5l2 4.9-2.1 2c1.4 3 3.1 4.7 6.1 6.1l2-2.1z"
-                    /></svg
-                  ><input
-                    type="tel"
-                    id="phone"
-                    autocomplete="tel"
-                    maxlength="32"
-                    placeholder="+1 (555) 000-0000"
-                  />
-                </div>
+            <h2 id="heading" tabindex="-1">Sign In</h2>
+            <form id="form" aria-labelledby="heading">
+              <div class="field" data-registration hidden>
+                <label for="fullName">Full Name</label
+                ><input
+                  id="fullName"
+                  autocomplete="name"
+                  maxlength="100"
+                  placeholder="Enter your full name"
+                  required
+                  disabled
+                />
               </div>
-              <div id="secret" hidden>
-                <button type="button" class="back" id="back">
-                  ← Edit details
-                </button>
-                <p id="summary"></p>
+              <div class="field" data-registration hidden>
+                <label for="username">Username</label
+                ><input
+                  id="username"
+                  autocomplete="username"
+                  minlength="3"
+                  maxlength="30"
+                  pattern="[A-Za-z0-9_]{3,30}"
+                  title="3–30 letters, numbers, or underscores"
+                  placeholder="Choose a username"
+                  required
+                  disabled
+                />
+              </div>
+              <div class="field">
+                <label for="email">Email</label
+                ><input
+                  id="email"
+                  type="email"
+                  autocomplete="email"
+                  maxlength="254"
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              <div class="field">
                 <label for="password">Password</label>
-                <div class="input">
+                <div class="password-wrap">
                   <input
                     id="password"
                     type="password"
-                    aria-describedby="hint"
-                    maxlength="128"
                     autocomplete="current-password"
-                    disabled
-                  />
+                    maxlength="128"
+                    placeholder="••••••••••••"
+                    required
+                  /><button
+                    type="button"
+                    id="reveal"
+                    aria-label="Show password"
+                    aria-pressed="false"
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Zm11 4.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0-2a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"
+                      />
+                    </svg>
+                  </button>
                 </div>
-                <small id="hint"></small>
               </div>
+              <div class="field" data-registration hidden>
+                <label for="phone">Phone (optional)</label
+                ><input
+                  id="phone"
+                  type="tel"
+                  autocomplete="tel"
+                  maxlength="32"
+                  placeholder="+1 (555) 000-0000"
+                  disabled
+                />
+              </div>
+              <button class="link forgot" id="forgot" type="button">
+                Forgot password?
+              </button>
               <p role="alert" id="error" hidden></p>
-              <button class="primary" id="submit">Continue to sign in</button>
+              <button class="primary" id="submit">Sign In</button>
             </form>
-            <div class="divider">or continue with</div>
+            <div class="divider">or</div>
             <button class="google" id="google">
               <svg viewBox="0 0 48 48" aria-hidden="true">
                 <path
@@ -124,27 +144,35 @@
                 /></svg
               >Continue with Google
             </button>
+            <p class="switch">
+              <span id="switchPrompt">Don’t have an account?</span>
+              <button type="button" class="link" id="switchMode">
+                Sign up
+              </button>
+            </p>
           </div>
           <section id="account" hidden>
             <span class="eyebrow">AFTERLINK ACCOUNT</span>
             <h2>You're signed in.</h2>
             <p id="accountEmail"></p>
             <button class="primary" id="logout">Sign out</button>
+            <footer>
+              <nav aria-label="Information">
+                <button data-info="Privacy">Privacy</button
+                ><i aria-hidden="true">·</i
+                ><button data-info="Terms">Terms</button
+                ><i aria-hidden="true">·</i
+                ><button data-info="Help">Help</button
+                ><i aria-hidden="true">·</i
+                ><button data-info="More">More</button>
+              </nav>
+              <small
+                >By continuing you agree to AfterLink's
+                <button data-info="Terms">Terms</button> &amp;
+                <button data-info="Privacy">Privacy Policy</button>.</small
+              >
+            </footer>
           </section>
-          <footer>
-            <nav aria-label="Information">
-              <button data-info="Privacy">Privacy</button
-              ><i aria-hidden="true">·</i
-              ><button data-info="Terms">Terms</button
-              ><i aria-hidden="true">·</i><button data-info="Help">Help</button
-              ><i aria-hidden="true">·</i><button data-info="More">More</button>
-            </nav>
-            <small
-              >By continuing you agree to AfterLink's
-              <button data-info="Terms">Terms</button> &amp;
-              <button data-info="Privacy">Privacy Policy</button>.</small
-            >
-          </footer>
         </div>
       </section>
     </main>

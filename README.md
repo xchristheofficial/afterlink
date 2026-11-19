@@ -10,7 +10,7 @@ For browser checks, install Chromium with `npx playwright install --with-deps ch
 
 ## Accounts
 
-Select **Create Account**, enter an email and optional phone, then **Continue** to choose a password of at least 12 characters. Sign in with email and password. If a phone is entered at sign-in, it must also match. Phone is an optional contact field, not SMS verification. Email/password accounts do not claim the address has been verified. The signed-in state shows the account email and a sign-out action, not a simulated social feed.
+Select **Sign up** and enter a full name, unique username (3–30 letters, numbers, or underscores), email and password of at least 12 characters. Both forms share one decorative image. Sign in with email and password. Existing accounts remain usable without a username. Phone is an optional contact field, not SMS verification. Email/password accounts do not claim the address has been verified. The signed-in state shows the account email and a sign-out action, not a simulated social feed.
 
 Accounts and revocable, seven-day sessions are stored in `data/afterlink.sqlite`. Passwords use salted scrypt hashes; session tokens are random, hashed in storage and held in HTTP-only cookies in the browser. Never commit or serve the data directory. Run behind HTTPS with `NODE_ENV=production` to require secure cookies. Use a persistent volume and backups for the database in a deployed single-instance service; a workspace preview is not production hosting.
 
