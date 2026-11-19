@@ -1,4 +1,4 @@
-/* Signed-in layout: all three columns share the same baseline below the toolbar. */
+/* The feed keeps account navigation separate from its reading column. */
 .home#account {
   min-height: 100svh;
   color: var(--ink);
@@ -52,13 +52,8 @@
   background: var(--panel);
   box-shadow: 0 5px 12px #25253d26;
 }
-.topbar button,
-.story-strip button {
+.topbar button {
   padding: 0;
-}
-.feed-brand {
-  display: block;
-  width: 11rem;
 }
 #peopleSearch {
   display: flex;
@@ -98,21 +93,25 @@
 }
 .home-grid {
   display: grid;
-  max-width: 81rem;
+  max-width: 68rem;
+  padding: clamp(12px, 2.5vw, 32px);
+  gap: clamp(12px, 2vw, 24px);
+  align-items: start;
   margin-inline: auto;
-  grid-template-columns: minmax(13rem, 21%) minmax(0, 1fr) minmax(16rem, 25%);
+  grid-template-columns: minmax(13rem, 23%) minmax(0, 1fr);
   min-height: calc(100svh - 4rem);
 }
 .profile-rail {
-  border-right: 1px solid var(--rule);
+  border: 1px solid var(--edge);
+  border-radius: 16px;
   padding: 1.25rem 1rem;
 }
 .who {
   text-align: center;
 }
 .who .avatar {
-  width: 4.5rem;
-  height: 4.5rem;
+  width: 3rem;
+  height: 3rem;
   margin: 0 auto 0.5rem;
 }
 .who h2 {
@@ -149,16 +148,18 @@
   padding: 0.45em 0.7em;
   border-radius: 0.6em;
 }
-.side-nav [aria-current="page"],
-.home .pill,
-.home .banner button {
+.side-nav [aria-current="page"] {
+  background: var(--wash);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.home .pill {
   background: var(--brand);
   color: white;
   font-weight: 700;
 }
 .side-nav [aria-current="page"] svg,
-.pill svg,
-.banner button svg {
+.pill svg {
   stroke: currentColor;
 }
 .logout {
@@ -168,37 +169,39 @@
 }
 .stream {
   min-width: 0;
-  border-right: 1px solid var(--rule);
 }
-.story-strip {
+.feed-heading,
+.story-links {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.4em;
-  padding: 1rem;
-  border-bottom: 1px solid var(--rule);
+  gap: 12px;
+  flex-wrap: wrap;
 }
-.story-strip button {
-  flex: none;
-  min-width: 0;
-  text-align: center;
+.feed-heading {
+  justify-content: space-between;
+  margin: 4px 0 18px;
 }
-.story-strip .avatar,
-.story-disc {
-  width: min(100%, 3.5rem);
-  margin-inline: auto;
-  aspect-ratio: 1;
-  height: auto;
-  display: block;
-  border-radius: 50%;
-  margin-bottom: 0.6em;
+.feed-heading h1 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  letter-spacing: -0.045em;
+  line-height: 1.12;
 }
-.story-disc {
-  background: #100f14;
-  border: 3px solid #55515f;
+.story-links a {
+  font-weight: 650;
+  font-size: 0.87rem;
+  color: var(--dim);
+  text-decoration: none;
+  padding: 0.6em 0.1em;
 }
-.story-strip strong {
-  font-size: 0.87em;
+.story-links a:last-child {
+  color: var(--accent-ink);
+  padding: 0.6em 0.9em;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: var(--panel);
+}
+.story-links a:hover {
+  text-decoration: underline;
 }
 .compose-row,
 .compose-box,
@@ -209,7 +212,9 @@
 .compose-row {
   padding: 0.75rem 1rem;
   gap: 0.8em;
-  border-bottom: 2px solid var(--rule);
+  border: 1px solid var(--edge);
+  border-radius: 16px;
+  background: var(--panel);
 }
 .compose-box {
   border: 1px solid var(--edge);
@@ -231,23 +236,6 @@
   text-align: left;
   color: var(--dim);
 }
-.banner {
-  border-radius: 1rem;
-  margin: 0.75rem 1rem 0;
-  text-align: center;
-  padding: 0.7em;
-  background: var(--brand);
-  color: #fff;
-  box-shadow: 0 4px 10px #36265628;
-}
-.banner h2 {
-  font-size: 1.35em;
-}
-.banner p {
-  margin: 0.1em 0 0.5em;
-  font-weight: 600;
-}
-.banner button,
 .pill {
   display: inline-flex;
   align-items: center;
@@ -256,63 +244,47 @@
   padding: 0.38em 1em;
   border-radius: 99px;
 }
-.home .pill .fi,
-.banner button .fi {
+.home .pill .fi {
   width: 1.2em;
   height: 1.2em;
   stroke: white;
 }
 .empty-feed {
   text-align: center;
-  padding: 0 0.7em 1.5em;
+  margin-top: 16px;
+  padding: clamp(32px, 5vw, 60px) 18px;
+  border: 1px solid var(--edge);
+  border-radius: 16px;
+  background:
+    linear-gradient(to bottom, var(--wash), transparent 54%), var(--panel);
 }
-.empty-feed img {
-  width: min(45%, 12rem);
-  display: block;
-  margin: 0 auto;
+.feed-landscape {
+  width: 140px;
+  height: auto;
+  color: var(--accent-ink);
+  margin-bottom: 1.25rem;
 }
 .empty-feed h2 {
-  font-size: 1.55em;
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
 }
 .empty-feed p {
-  margin: 0.55em auto;
-  font-size: 0.94em;
+  max-width: 38ch;
+  margin: 0.7rem auto 1.4rem;
+  color: var(--dim);
+  line-height: 1.5;
 }
 .home .pill {
   padding: 0.55em 1.9em;
-}
-.welcome-card {
-  align-self: start;
-  margin: 1rem;
-  padding: 1em 0.9em 2em;
-  border-radius: 1.25em;
-  box-shadow: 0 3px 16px #27213826;
-  line-height: 1.45;
-}
-.welcome-card h3 {
-  margin: 1em 0 0;
-  font-size: 1.35em;
-}
-.welcome-card h3 span {
-  color: var(--accent-ink);
-}
-.welcome-card p,
-.welcome-card li {
-  font-size: 0.92em;
-  color: var(--dim);
-}
-.welcome-card li {
-  margin-bottom: 1em;
-}
-.welcome-card p {
-  margin: 1.5em 0 0;
 }
 .feed-row,
 #otherPanel {
   padding: 1.25em;
 }
 .feed-row {
-  border-top: 1px solid var(--rule);
+  border: 1px solid var(--edge);
+  border-radius: 16px;
+  background: var(--panel);
+  margin-top: 14px;
 }
 .feed-row header {
   display: flex;
@@ -372,7 +344,7 @@
 }
 @media (min-width: 651px) {
   .home-grid.rail-collapsed {
-    grid-template-columns: 4.25rem minmax(0, 1fr) minmax(16rem, 25%);
+    grid-template-columns: 4.25rem minmax(0, 1fr);
   }
   .rail-collapsed .profile-rail {
     padding: 0.75rem 0.5rem;
@@ -386,10 +358,6 @@
   .home-grid.rail-collapsed {
     grid-template-columns: 4.25rem minmax(0, 1fr);
   }
-  .welcome-card {
-    grid-column: 2;
-    min-height: 0;
-  }
   .stream {
     border: 0;
   }
@@ -397,23 +365,22 @@
     width: 1.7em;
     height: 1.7em;
   }
-  .story-strip .avatar,
-  .story-disc {
-    max-width: 90px;
-    margin-inline: auto;
-  }
 }
 @media (max-width: 650px) {
   .home-grid {
     display: block;
+    padding: 12px;
+  }
+  .feed-heading {
+    margin: 16px 0 12px;
+  }
+  .home-grid .profile-rail {
+    border: 1px solid var(--edge);
   }
   .topbar {
     padding: 12px;
     gap: 12px;
     flex-wrap: wrap;
-  }
-  .feed-brand {
-    width: 140px;
   }
   #peopleSearch {
     order: 3;
@@ -471,13 +438,6 @@
   .logout {
     margin-top: 8px;
   }
-  .story-strip {
-    padding: 18px 10px;
-    gap: 8px;
-  }
-  .story-strip strong {
-    font-size: 0.78em;
-  }
   .compose-row {
     padding: 14px 10px;
   }
@@ -488,18 +448,6 @@
   .compose-tools .fi {
     width: 20px;
     height: 20px;
-  }
-  .banner {
-    margin: 8px 12px;
-  }
-  .empty-feed img {
-    max-width: 240px;
-  }
-  .welcome-card {
-    margin: 12px;
-  }
-  .welcome-card p {
-    margin: 1em 0;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -550,10 +498,4 @@
 }
 .home .post-detail-link:hover {
   text-decoration: underline;
-}
-
-.story-strip a {
-  color: var(--accent-ink);
-  font-weight: 650;
-  margin-inline-start: 0.75rem;
 }

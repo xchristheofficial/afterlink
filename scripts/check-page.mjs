@@ -184,8 +184,41 @@ try {
     "/assets/radar-gold-badge.webp",
   );
   await radarBadge.evaluate((img) => img.decode());
+  // Check the actual empty feed, including on a dark device with no saved theme.
+  await page.evaluate(() => scrollTo(0, 0));
+  await page.emulateMedia({ colorScheme: "dark" });
+  assert.equal(await page.locator("html").getAttribute("data-color"), "light");
+  assert.equal(
+    await page.locator('#feedPanel [data-view="Explore"]:visible').count(),
+    1,
+  );
+  assert.equal(await page.locator(".story-links a:visible").count(), 2);
   if (process.env.FEED_SCREENSHOT)
-    await page.screenshot({ path: process.env.FEED_SCREENSHOT });
+    await page.screenshot({
+      path: process.env.FEED_SCREENSHOT,
+      animations: "disabled",
+    });
+  await page.goto(url + "/settings/appearance");
+  await page.getByRole("button", { name: "dark", exact: true }).click();
+  await page.getByRole("button", { name: "Save Appearance" }).click();
+  await page.waitForFunction(
+    () => document.documentElement.dataset.color === "dark",
+  );
+  await page.goto(url + "/home");
+  await page.locator("#emptyFeed").waitFor();
+  assert.equal(await page.locator("html").getAttribute("data-color"), "dark");
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .map((animation) => animation.finished.catch(() => {})),
+    ),
+  );
+  if (process.env.DARK_FEED_SCREENSHOT)
+    await page.screenshot({
+      path: process.env.DARK_FEED_SCREENSHOT,
+      animations: "disabled",
+    });
   await page.getByRole("link", { name: "Open your profile" }).click();
   await page.locator("#memberName .verified-mark").waitFor();
   assert.equal(await page.innerText("#memberName"), "RADAR");

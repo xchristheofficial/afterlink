@@ -300,13 +300,11 @@
             <path class="rail-arrow" d="m17 9-3 3 3 3" />
           </svg>
         </button>
-        <a href="/home" aria-label="AfterLink home">
-          <img
-            class="feed-brand"
-            src="/assets/profile-wordmark.webp"
-            alt="AfterLink"
-          />
-        </a>
+        <a href="/home" class="member-brand" aria-label="AfterLink home"
+          ><svg viewBox="0 0 24 24" aria-hidden="true">
+            <use href="/assets/icons.svg#brand-link" /></svg
+          >AfterLink</a
+        >
         <form id="peopleSearch" role="search">
           <svg class="fi" aria-hidden="true">
             <use href="/assets/icons.svg#search" /></svg
@@ -314,6 +312,7 @@
             id="searchPeople"
             type="search"
             aria-label="Search people"
+            placeholder="Search AfterLink"
             maxlength="100"
           />
         </form>
@@ -391,15 +390,13 @@
         <section class="stream" aria-label="Feed content">
           <p role="alert" id="feedError" hidden></p>
           <div id="feedPanel">
-            <div class="story-strip">
-              <button data-later="Your Story">
-                <img
-                  class="avatar"
-                  src="/assets/avatar-default.webp"
-                  alt=""
-                /><strong>Your Story</strong></button
-              ><a href="/stories/create">Create story</a>
-            </div>
+            <header class="feed-heading">
+              <h1>Home feed</h1>
+              <nav class="story-links" aria-label="Stories">
+                <a href="/stories">View stories</a
+                ><a href="/stories/create">Create story</a>
+              </nav>
+            </header>
             <div class="compose-row">
               <img class="avatar" src="/assets/avatar-default.webp" alt="" />
               <div class="compose-box">
@@ -420,32 +417,49 @@
                 ></span>
               </div>
             </div>
-            <div class="banner">
-              <h2>Welcome to AfterLink!</h2>
-              <p>Connect After. Link Forever.</p>
-              <button data-view="Explore">
-                <svg class="fi" aria-hidden="true">
-                  <use href="/assets/icons.svg#explore" />
-                </svg>
-                Explore People
-              </button>
-            </div>
-            <div id="emptyFeed" class="empty-feed" hidden>
-              <img src="/assets/feed-mountains.webp" alt="" />
-              <h2>
-                Welcome to AfterLink —<br />Follow people to see their posts
-              </h2>
+            <section
+              id="emptyFeed"
+              class="empty-feed"
+              hidden
+              aria-labelledby="emptyTitle"
+            >
+              <svg
+                class="feed-landscape"
+                viewBox="0 0 180 70"
+                aria-hidden="true"
+                fill="none"
+              >
+                <circle
+                  cx="123"
+                  cy="17"
+                  r="10"
+                  fill="currentColor"
+                  opacity=".25"
+                />
+                <path
+                  d="M5 62 48 23l13 12L88 7l38 39 15-11 34 27Z"
+                  fill="currentColor"
+                  opacity=".11"
+                />
+                <g
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                >
+                  <path
+                    d="m6 61 42-38 13 12m-30 26L88 7l38 39m-59-18 9 4 12-12 11 13 5-5m-5 33 42-26 33 26"
+                  />
+                  <path d="M4 66h172" opacity=".35" />
+                </g>
+              </svg>
+              <h2 id="emptyTitle">No posts in your feed yet</h2>
               <p>
-                Your feed is empty for now. Discover people<br />
-                to get started.
+                Follow people to see their updates here, or start with a post of
+                your own.
               </p>
-              <button data-view="Explore" class="pill">
-                <svg class="fi" aria-hidden="true">
-                  <use href="/assets/icons.svg#explore" />
-                </svg>
-                Explore People
-              </button>
-            </div>
+              <button data-view="Explore" class="pill">Explore people</button>
+            </section>
           </div>
           <section id="otherPanel" hidden>
             <h2 id="viewTitle"></h2>
@@ -462,19 +476,6 @@
           </section>
           <div id="feedRows" aria-live="polite"></div>
         </section>
-        <aside class="welcome-card">
-          <h2>Welcome</h2>
-          <h3><span aria-hidden="true">✦</span> Get started</h3>
-          <ul>
-            <li>Share a little about yourself in your first post</li>
-            <li>Follow people to see their posts in your feed</li>
-            <li>Explore People to find others to connect with</li>
-          </ul>
-          <p>
-            Your activity starts with the people you follow and the posts you
-            share.
-          </p>
-        </aside>
       </div>
       <section id="memberPage" hidden aria-label="Member profile">
         <p id="memberStatus" role="status">Loading profile…</p>

@@ -101,12 +101,6 @@
   border-bottom: 1px solid var(--line);
   background: var(--paper);
 }
-#wordmark {
-  display: block;
-  width: clamp(150px, 24vw, 398px);
-  max-height: 9vh;
-  object-fit: contain;
-}
 #socialSearch {
   display: flex;
   align-items: center;
@@ -747,10 +741,6 @@
     padding: 10px 14px;
     flex-wrap: wrap;
     gap: 8px;
-  }
-  #wordmark {
-    width: 140px;
-    max-height: 44px;
   }
   #socialNav {
     margin-left: auto;

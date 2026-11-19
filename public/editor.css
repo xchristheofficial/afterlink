@@ -3,9 +3,6 @@
   padding: clamp(12px, 4.8vh, 52px) 3vw clamp(10px, 2vh, 24px);
   gap: 3vw;
 }
-.editor-screen .feed-brand {
-  width: clamp(160px, 28vw, 440px);
-}
 .editor-screen #peopleSearch {
   max-width: none;
   border: 0;
@@ -34,9 +31,6 @@
 }
 .compact-editor .profile-nav > :not([href="/profile"]) {
   display: none;
-}
-.compact-editor .feed-brand {
-  width: clamp(128px, 14vw, 180px);
 }
 .compact-editor .profile-nav .avatar {
   width: 36px;
@@ -274,9 +268,6 @@
   .editor-screen .topbar {
     padding: 0.6rem 0.9rem;
     gap: 8px;
-  }
-  .editor-screen .feed-brand {
-    width: 130px;
   }
   .editor-screen .profile-nav {
     gap: 5px;

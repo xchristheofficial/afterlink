@@ -178,8 +178,7 @@ const memberPage = (() => {
   return {
     start(services) {
       ({ api, renderName, compose } = services);
-      document.querySelector(".feed-brand").src =
-        "/assets/profile-wordmark.webp";
+
       el("searchPeople").placeholder = "Search people…";
       document.querySelector(".profile-nav .avatar").src =
         "/api/feed/avatar/me";
