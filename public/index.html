@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AfterLink — Connect After. Link Forever.</title>
+    <meta
+      name="description"
+      content="Sign in to AfterLink, a product of Kodra."
+    />
+    <link rel="icon" href="/assets/mark.webp" />
+    <link rel="stylesheet" href="/style.css" />
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <main class="layout">
+      <aside
+        class="art"
+        aria-label="Decorative feed illustration from the AfterLink design reference, not live user activity"
+      >
+        <img src="/assets/feed-art.webp" alt="" width="834" height="1144" />
+      </aside>
+      <section class="card" aria-label="AfterLink account access">
+        <div class="inside">
+          <header>
+            <h1>
+              <img
+                src="/assets/afterlink.webp"
+                alt="AfterLink"
+                width="648"
+                height="143"
+              />
+            </h1>
+            <p>Connect After. Link Forever.</p>
+          </header>
+          <div id="auth">
+            <nav class="switch" aria-label="Account access">
+              <button id="signin" type="button" aria-pressed="true">
+                Sign In</button
+              ><button id="signup" type="button" aria-pressed="false">
+                Create Account
+              </button>
+            </nav>
+            <form id="form">
+              <div id="identity">
+                <label for="email">Email</label>
+                <div class="input">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="2" y="5" width="20" height="14" rx="2" />
+                    <path d="m3 6 9 7 9-7M3 18l6-6m12 6-6-6" /></svg
+                  ><input
+                    type="email"
+                    id="email"
+                    required
+                    autocomplete="email"
+                    maxlength="254"
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <label for="phone">Phone</label>
+                <div class="input">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M21 16.8v2.5a2 2 0 0 1-2.1 2C10 20.5 3.5 14 2.7 5.1a2 2 0 0 1 2-2.1h2.5l2 4.9-2.1 2c1.4 3 3.1 4.7 6.1 6.1l2-2.1z"
+                    /></svg
+                  ><input
+                    type="tel"
+                    id="phone"
+                    autocomplete="tel"
+                    maxlength="32"
+                    aria-label="Phone (optional for account creation)"
+                    placeholder="+1 (555) 000-0000"
+                  />
+                </div>
+              </div>
+              <div id="secret" hidden>
+                <button type="button" class="back" id="back">
+                  ← Edit details
+                </button>
+                <p id="summary"></p>
+                <label for="password">Password</label>
+                <div class="input">
+                  <input
+                    id="password"
+                    type="password"
+                    maxlength="128"
+                    autocomplete="current-password"
+                    disabled
+                  />
+                </div>
+                <small id="hint"></small>
+              </div>
+              <p role="alert" id="error" hidden></p>
+              <button class="primary" id="submit">Continue</button>
+            </form>
+            <div class="divider">or continue with</div>
+            <button class="google" id="google">
+              <svg viewBox="0 0 48 48" aria-hidden="true">
+                <path
+                  fill="#4285F4"
+                  d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.7c3.9-3.6 6-8.8 6-15z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M24 44c5.5 0 10.1-1.8 13.6-4.9L31 34c-1.8 1.2-4.1 1.9-7 1.9-5.3 0-9.8-3.6-11.4-8.4H5.7v5.3A20.5 20.5 0 0 0 24 44z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M12.6 27.5a12 12 0 0 1 0-7.2V15H5.7a20 20 0 0 0 0 17.8z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M24 12c3 0 5.6 1 7.6 3l5.8-5.8C34 6 29.5 4 24 4A20.5 20.5 0 0 0 5.7 15l6.9 5.3C14.2 15.5 18.7 12 24 12z"
+                /></svg
+              >Continue with Google
+            </button>
+          </div>
+          <section id="account" hidden>
+            <span class="eyebrow">AFTERLINK ACCOUNT</span>
+            <h2>You're signed in.</h2>
+            <p id="accountEmail"></p>
+            <button class="primary" id="logout">Sign out</button>
+          </section>
+          <footer>
+            <nav aria-label="Information">
+              <button data-info="Privacy">Privacy</button><i>·</i
+              ><button data-info="Terms">Terms</button><i>·</i
+              ><button data-info="Help">Help</button><i>·</i
+              ><button data-info="More">More</button>
+            </nav>
+            <small
+              >By continuing you agree to AfterLink's Terms &amp; Privacy
+              Policy</small
+            >
+          </footer>
+        </div>
+      </section>
+    </main>
+    <dialog id="dialog">
+      <span class="eyebrow">AFTERLINK · KODRA</span>
+      <h2 id="dialogTitle"></h2>
+      <p id="dialogText"></p>
+      <form method="dialog"><button class="primary">Close</button></form>
+    </dialog>
+  </body>
+</html>
