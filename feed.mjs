@@ -24,7 +24,7 @@ export function installFeed(app, db, session, limit) {
     const view = req.query.view === "saved" ? "saved" : "feed";
     const posts = db
       .prepare(
-        `SELECT t.id,t.body,t.created,p.name,p.username, s.post_id IS NOT NULL AS saved FROM posts t JOIN feed_profiles p ON p.id=t.author LEFT JOIN saved_posts s ON s.post_id=t.id AND s.user_id=? WHERE ${view === "saved" ? "s.user_id=?" : "(t.author=? OR t.author IN (SELECT followed FROM follows WHERE follower=?))"} ORDER BY t.id DESC LIMIT 50`,
+        `SELECT t.id,t.body,t.created,p.name,p.username,p.founder, s.post_id IS NOT NULL AS saved FROM posts t JOIN feed_profiles p ON p.id=t.author LEFT JOIN saved_posts s ON s.post_id=t.id AND s.user_id=? WHERE ${view === "saved" ? "s.user_id=?" : "(t.author=? OR t.author IN (SELECT followed FROM follows WHERE follower=?))"} ORDER BY t.id DESC LIMIT 50`,
       )
       .all(...(view === "saved" ? [uid, uid] : [uid, uid, uid]));
     res.json({ profile, posts });

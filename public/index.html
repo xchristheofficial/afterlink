@@ -318,6 +318,20 @@
         </defs>
       </svg>
       <header class="topbar">
+        <button
+          id="railToggle"
+          type="button"
+          aria-label="Collapse sidebar"
+          title="Collapse sidebar"
+          aria-controls="profileRail"
+          aria-expanded="true"
+        >
+          <svg class="fi" aria-hidden="true" viewBox="0 0 24 24">
+            <rect x="2" y="3" width="20" height="18" rx="3" />
+            <path d="M9 3v18" />
+            <path class="rail-arrow" d="m17 9-3 3 3 3" />
+          </svg>
+        </button>
         <a href="/home" aria-label="AfterLink home">
           <img
             class="feed-brand"
@@ -334,34 +348,9 @@
             maxlength="100"
           />
         </form>
-        <nav aria-label="Quick access">
-          <button type="button" data-view="Feed" aria-label="Feed">
-            <svg class="fi" aria-hidden="true">
-              <use href="#icFeed" />
-            </svg></button
-          ><button type="button" data-later="Reels" aria-label="Reels">
-            <svg class="fi" aria-hidden="true">
-              <use href="#icReels" />
-            </svg></button
-          ><button type="button" data-later="Messages" aria-label="Messages">
-            <svg class="fi" aria-hidden="true">
-              <use href="#icMessages" />
-            </svg></button
-          ><button
-            type="button"
-            data-later="Notifications"
-            aria-label="Notifications"
-          >
-            <svg class="fi" aria-hidden="true">
-              <use href="#icNotifications" />
-            </svg></button
-          ><button data-view="Settings" aria-label="Account settings">
-            <img class="avatar" src="/assets/avatar-default.webp" alt="" />
-          </button>
-        </nav>
       </header>
       <div class="home-grid">
-        <aside class="profile-rail">
+        <aside class="profile-rail" id="profileRail">
           <section class="who">
             <img class="avatar" src="/assets/avatar-default.webp" alt="" />
             <h2 id="profileName"></h2>
@@ -382,6 +371,14 @@
             ><button type="button" data-later="Messages" aria-label="Messages">
               <svg class="fi" aria-hidden="true"><use href="#icMessages" /></svg
               ><span>Messages</span></button
+            ><button
+              type="button"
+              data-later="Notifications"
+              aria-label="Notifications"
+            >
+              <svg class="fi" aria-hidden="true">
+                <use href="#icNotifications" /></svg
+              ><span>Notifications</span></button
             ><button type="button" data-view="Saved" aria-label="Saved">
               <svg class="fi" aria-hidden="true"><use href="#icSaved" /></svg
               ><span>Saved</span></button
@@ -390,7 +387,16 @@
               ><span>Settings</span>
             </button>
           </nav>
-          <button class="logout" id="logout">Sign out</button>
+          <button
+            class="logout"
+            id="logout"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <svg class="fi" aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M9 4H4v16h5m-1-8h13m-5-5 5 5-5 5" /></svg
+            ><span>Sign out</span>
+          </button>
         </aside>
         <section class="stream" aria-label="Feed content">
           <p role="alert" id="feedError" hidden></p>
