@@ -2,6 +2,31 @@ const homeFeed = (() => {
   const el = (id) => document.getElementById(id);
   let view = "Feed",
     version = 0;
+  const grid = document.querySelector(".home-grid");
+  const railToggle = el("railToggle");
+  const railKey = "afterlink.sidebar.collapsed";
+  function setRail(collapsed) {
+    grid.classList.toggle("rail-collapsed", collapsed);
+    railToggle.setAttribute("aria-expanded", String(!collapsed));
+    railToggle.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+    railToggle.setAttribute("aria-label", railToggle.title);
+  }
+  try {
+    setRail(localStorage.getItem(railKey) === "true");
+  } catch {
+    setRail(false);
+  }
+  railToggle.onclick = () => {
+    const collapsed = !grid.classList.contains("rail-collapsed");
+    setRail(collapsed);
+    try {
+      localStorage.setItem(railKey, String(collapsed));
+    } catch {
+      /* Storage is optional. */
+    }
+  };
+  for (const button of document.querySelectorAll(".side-nav button"))
+    button.title = button.getAttribute("aria-label");
   const text = (tag, value) => {
     const node = document.createElement(tag);
     node.textContent = value;
@@ -49,9 +74,20 @@ const homeFeed = (() => {
     };
     return b;
   }
+  function renderName(node, profile) {
+    node.textContent = profile.name;
+    if (!profile.founder) return;
+    const badge = document.createElement("img");
+    badge.className = "verified-mark";
+    badge.src = "/assets/verified.svg";
+    badge.alt = badge.title = "Verified account";
+    node.append(badge);
+  }
   function identity(profile) {
     const wrap = document.createElement("div");
-    wrap.append(text("strong", profile.name));
+    const name = document.createElement("strong");
+    renderName(name, profile);
+    wrap.append(name);
     if (profile.username) wrap.append(text("small", "@" + profile.username));
     return wrap;
   }
@@ -105,7 +141,7 @@ const homeFeed = (() => {
       ]);
       if (id !== version) return;
       const p = data.profile;
-      el("profileName").textContent = p.name;
+      renderName(el("profileName"), p);
       el("profileHandle").textContent = p.username ? "@" + p.username : "";
       el("founderBadge").hidden = !p.founder;
       el("counts").textContent =

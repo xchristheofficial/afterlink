@@ -141,13 +141,46 @@ try {
       () => document.documentElement.scrollWidth === innerWidth,
     ),
   );
-  await page.setViewportSize({ width: 1568, height: 1045 });
+  await page.setViewportSize({ width: 1568, height: 721 });
+  assert.ok((await page.locator(".topbar").boundingBox()).height <= 76);
+  const exploreButton = await page.locator("#emptyFeed .pill").boundingBox();
+  assert.ok(exploreButton.y + exploreButton.height <= 721);
+  await page
+    .locator("#profileName")
+    .getByRole("img", { name: "Verified account" })
+    .waitFor();
+  assert.equal(await page.locator(".topbar nav").count(), 0);
+  const toggle = page.locator("#railToggle");
+  const menu = page.locator("#profileRail");
+  const expandedWidth = (await menu.boundingBox()).width;
+  await toggle.click();
+  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+  assert.ok((await menu.boundingBox()).width < expandedWidth);
+  await menu.getByRole("button", { name: "Notifications" }).click();
+  await page.getByRole("dialog", { name: "Notifications" }).waitFor();
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await toggle.waitFor();
+  assert.equal(await toggle.getAttribute("aria-label"), "Expand sidebar");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await toggle.click();
+  assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+  assert.ok(
+    await menu.locator('[data-later="Notifications"] span').isVisible(),
+  );
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth === innerWidth,
+    ),
+  );
+  await page.setViewportSize({ width: 1568, height: 721 });
   if (process.env.FEED_SCREENSHOT)
     await page.screenshot({ path: process.env.FEED_SCREENSHOT });
   await page.click("#openComposer");
   await page.fill("#postText", "My first real post.");
   await page.click("#publishPost");
   await page.locator("#feedRows").getByText("My first real post.").waitFor();
+  await page.locator("#feedRows .verified-mark").waitFor();
   await page.getByRole("button", { name: "Save post", exact: true }).click();
   await page.getByRole("button", { name: "Unsave", exact: true }).waitFor();
   await page.locator('.side-nav [data-view="Saved"]').click();
@@ -184,6 +217,15 @@ try {
   });
   assert.equal((await secondFeed()).posts[0].body, "My first real post.");
   assert.equal((await secondFeed()).profile.following, 1);
+  const otherPage = await second.newPage();
+  await otherPage.goto(url + "/home");
+  await otherPage.locator("#feedRows .verified-mark").waitFor();
+  assert.equal(
+    await otherPage.locator("#profileName .verified-mark").count(),
+    0,
+  );
+  await otherPage.locator('.side-nav [data-view="Explore"]').click();
+  await otherPage.locator("#feedRows .verified-mark").waitFor();
   await second.close();
   await page.click("#logout");
   await page.fill("#email", email);
