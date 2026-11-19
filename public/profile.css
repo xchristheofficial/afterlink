@@ -1,0 +1,328 @@
+/* The feed keeps its compact rail. A profile has its own full-width identity header. */
+.author-link,
+.rail-profile-link,
+.profile-nav a {
+  color: inherit;
+  text-decoration: none;
+}
+.author-link:hover {
+  text-decoration: underline;
+}
+.profile-avatar-link {
+  display: block;
+  width: fit-content;
+  margin: auto;
+}
+.rail-profile-link {
+  display: flex;
+  align-items: center;
+}
+.rail-collapsed .rail-profile-link {
+  justify-content: center;
+}
+.home .rail-profile-link:hover {
+  background: #f6f3fa;
+}
+.profile-screen {
+  background: #f5f5fa;
+}
+.profile-screen .topbar {
+  justify-content: space-between;
+  background: white;
+  border-bottom: 1px solid #d6d5dc;
+}
+.profile-screen .feed-brand {
+  width: clamp(145px, 17vw, 240px);
+}
+.profile-screen #peopleSearch {
+  margin: 0;
+  background: #f5f5f8;
+  border-color: #cbc9d1;
+}
+.profile-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.4rem, 1.4vw, 1.3rem);
+}
+.profile-nav :is(button, a) {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 44px;
+  font-size: 0.77rem;
+  font-weight: 650;
+}
+.profile-nav .avatar {
+  width: 42px;
+  height: 42px;
+}
+#memberPage {
+  min-height: calc(100svh - 64px);
+  background: #f5f5fa;
+  overflow-wrap: anywhere;
+}
+#memberStatus {
+  text-align: center;
+  padding: 2rem;
+  margin: 0;
+}
+.member-hero {
+  text-align: center;
+  padding: clamp(1rem, 2.8vh, 2rem) 1rem 1.4rem;
+}
+.member-avatar {
+  display: block;
+  width: clamp(78px, 12vh, 125px);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  margin: auto;
+}
+.member-hero h1 {
+  line-height: 1.1;
+  font-size: clamp(1.65rem, 2.8vw, 2.4rem);
+  margin: 0.4rem 0 0.1rem;
+  letter-spacing: -0.035em;
+}
+.member-hero h1 .verified-mark {
+  height: 1.3em;
+}
+#memberHandle,
+#memberBio {
+  margin: 0.35rem auto;
+  color: #56555e;
+}
+#memberBio {
+  max-width: 38rem;
+  margin: 0.85rem auto;
+  white-space: pre-wrap;
+}
+.member-stats {
+  display: flex;
+  justify-content: center;
+  gap: clamp(1.3rem, 5vw, 5rem);
+  margin: 1rem auto;
+}
+.member-stats div {
+  display: flex;
+  flex-direction: column-reverse;
+}
+.member-stats dd {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+.member-stats dt {
+  color: #555460;
+}
+.member-actions,
+.editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+}
+.member-actions button,
+#editMember button,
+#shareMember button {
+  min-height: 42px;
+  padding: 0.55em 1.5em;
+  border: 1px solid #6944ac;
+  border-radius: 30px;
+  font-weight: 650;
+}
+.member-actions #shareProfile {
+  color: #582f89;
+  background: transparent;
+}
+.member-tabs {
+  display: flex;
+  justify-content: center;
+  border-block: 1px solid #d2d1da;
+}
+.member-tabs button {
+  position: relative;
+  flex: 1;
+  max-width: 165px;
+  min-height: 54px;
+  color: #64626c;
+  font-size: 1.12rem;
+  font-weight: 700;
+}
+.member-tabs button::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: var(--brand);
+  transform: scaleX(0);
+}
+.member-tabs [aria-pressed="true"] {
+  color: #442364;
+}
+.member-tabs [aria-pressed="true"]::after {
+  transform: scaleX(1);
+}
+#memberGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(12px, 2vw, 30px);
+  max-width: 1340px;
+  margin: auto;
+  padding: clamp(16px, 2.4vw, 30px);
+}
+.member-empty,
+.is-empty::before,
+.is-empty::after,
+.member-post {
+  border: 1px solid #d6d8dd;
+  border-radius: 10px;
+  background: #e4e6eb;
+  padding: 1.25rem;
+  min-height: clamp(165px, 22vh, 255px);
+}
+.is-empty::before,
+.is-empty::after {
+  content: "";
+}
+.member-empty {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+}
+.member-empty svg {
+  width: 42px;
+  color: #a3a6af;
+}
+.member-empty p {
+  margin: 0.5rem 0 1rem;
+}
+.member-post {
+  background: white;
+  text-align: left;
+}
+.member-post time {
+  display: block;
+  color: #666;
+  font-size: 0.83rem;
+}
+.member-post p {
+  white-space: pre-wrap;
+}
+.profile-screen .member-empty button {
+  padding: 0.55em 1.25em;
+}
+#editMember label,
+#shareMember label {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.85rem 0;
+}
+#editMember :is(input, textarea),
+#shareUrl {
+  font: inherit;
+  padding: 0.6rem;
+  width: 100%;
+  border: 1px solid #c4bccb;
+  border-radius: 8px;
+}
+#editMember textarea {
+  resize: vertical;
+}
+#editError {
+  color: #93263e;
+}
+.editor-actions {
+  justify-content: flex-end;
+}
+.editor-actions .pill {
+  background: linear-gradient(105deg, #7829d4, #159d99);
+  color: white;
+}
+@media (max-width: 760px) {
+  .profile-screen .topbar {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.65rem 0.85rem;
+  }
+  .profile-screen .feed-brand {
+    width: 130px;
+  }
+  .profile-screen #peopleSearch {
+    order: 3;
+    max-width: none;
+    flex-basis: 100%;
+  }
+  .profile-nav {
+    gap: 0;
+  }
+  .profile-nav :is(button, a) {
+    min-width: 32px;
+    font-size: 0.68rem;
+  }
+  .profile-nav .avatar {
+    width: 29px;
+    height: 29px;
+  }
+  #memberGrid {
+    grid-template-columns: 1fr;
+  }
+  .is-empty::before,
+  .is-empty::after {
+    display: none;
+  }
+  .member-tabs button {
+    min-width: 0;
+  }
+  .profile-avatar-link {
+    margin: 0;
+  }
+}
+/* Progressive enhancement: normal navigation and input remain immediate without motion. */
+@media (prefers-reduced-motion: no-preference) {
+  a,
+  input,
+  textarea,
+  .member-tabs button::after {
+    transition:
+      color 0.16s ease,
+      border-color 0.16s ease,
+      background-color 0.16s ease,
+      transform 0.18s ease;
+  }
+  dialog::backdrop {
+    animation: veil 0.16s ease-out;
+  }
+  .member-post,
+  .member-empty,
+  #memberContent:not([hidden]),
+  #feedPanel:not([hidden]),
+  #memberStatus:not([hidden]) {
+    animation: appear 0.22s ease-out;
+  }
+  .inside[data-mode="signin"] #form {
+    animation: signin-in 0.2s ease-out;
+  }
+  .inside[data-mode="signup"] #form {
+    animation: appear 0.2s ease-out;
+  }
+  @keyframes signin-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes veil {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}

@@ -1,0 +1,345 @@
+/* The editor uses the quieter, icon-only toolbar from its own reference. */
+.editor-screen .topbar {
+  padding: clamp(12px, 4.8vh, 52px) 3vw clamp(10px, 2vh, 24px);
+  gap: 3vw;
+}
+.editor-screen .feed-brand {
+  width: clamp(160px, 28vw, 440px);
+}
+.editor-screen #peopleSearch {
+  max-width: none;
+  border: 0;
+  background: #efeff1;
+  padding: 0.62em 1em;
+  font-size: clamp(15px, 1.6vw, 24px);
+}
+.editor-screen .profile-nav {
+  gap: clamp(8px, 1.35vw, 22px);
+}
+.editor-screen .profile-nav :is(a, button) {
+  font-size: 0;
+  min-width: 0;
+}
+.editor-screen .profile-nav .fi {
+  display: none;
+}
+.editor-screen .profile-nav :is(button, a):not(:last-child)::before {
+  content: "";
+  display: block;
+  width: clamp(32px, 4.3vw, 68px);
+  aspect-ratio: 1;
+  background: center/contain no-repeat var(--icon);
+}
+.editor-screen .profile-nav a:first-child {
+  --icon: url(/assets/editor-home.webp);
+}
+.editor-screen [data-later="Reels"] {
+  --icon: url(/assets/editor-reels.webp);
+}
+.editor-screen [data-later="Messages"] {
+  --icon: url(/assets/editor-messages.webp);
+}
+.editor-screen [data-later="Notifications"] {
+  --icon: url(/assets/editor-notifications.webp);
+}
+.editor-screen .profile-nav .avatar {
+  width: clamp(42px, 6.3vw, 100px);
+  height: auto;
+  aspect-ratio: 1;
+}
+#editMember {
+  min-height: 80svh;
+  padding: clamp(16px, 3.8vh, 42px) 16px;
+  background: #f4f4f6;
+}
+.edit-card {
+  width: min(100%, 75vw, 1180px);
+  margin: auto;
+  background: white;
+  border-radius: clamp(20px, 2.5vw, 40px);
+  box-shadow: 0 9px 36px #26293628;
+  padding: 1.4% 2.7% 1.6%;
+  font-size: clamp(15px, 1.4vw, 21px);
+}
+.edit-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  border-bottom: 1px solid #e9e9ec;
+  padding-bottom: 0.2em;
+  font-size: clamp(30px, 4vw, 64px);
+  line-height: 1.12;
+}
+.edit-heading h1 {
+  font-size: inherit;
+  letter-spacing: -0.04em;
+  margin: 0;
+  color: #38383b;
+}
+.edit-heading a {
+  color: #64646a;
+  text-decoration: none;
+  line-height: 0.9;
+}
+#editForm {
+  display: grid;
+  grid-template-columns: 36% minmax(0, 1fr);
+  gap: 5%;
+  padding-top: clamp(22px, 4.8vh, 52px);
+}
+.edit-photo {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding-top: 2.5vh;
+  text-align: center;
+}
+#editAvatar {
+  width: 68%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+#editMember #pickPhoto {
+  width: 68%;
+  margin-top: 2vh;
+  color: #502293;
+  background: #faf9fc;
+  font-size: 1.16em;
+  padding: 0.42em 0.2em;
+}
+#badgeNote {
+  width: 78%;
+  color: #555463;
+  margin: 1.5em 0;
+  line-height: 1.3;
+}
+.edit-fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(10px, 2vh, 22px) 1.45vw;
+}
+#editMember label {
+  display: block;
+  margin: 0;
+  font-weight: 590;
+}
+#editMember .edit-fields :is(input:not([type="checkbox"]), textarea),
+.handle-field {
+  border: 1px solid #c5c4c8;
+  background: #f0f0f2;
+  font: inherit;
+  width: 100%;
+  padding: 0.52em 0.65em;
+  border-radius: 0.66em;
+  min-width: 0;
+}
+#editMember #editBio,
+#editMember #editName {
+  background: #e5e5e8;
+}
+#editMember #editBio {
+  resize: vertical;
+  margin-top: 2.8vh;
+}
+#editMember label[for="editBio"] {
+  align-self: start;
+  padding-top: 0.5em;
+}
+#editEmail {
+  color: #62616a;
+}
+.handle-field {
+  display: flex;
+  align-items: center;
+}
+#editMember .handle-field #editUsername {
+  width: 0;
+  flex: 1;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+#handleState {
+  font-weight: 600;
+  color: #765949;
+  padding-left: 0.5em;
+  font-size: 0.83em;
+}
+#handleState.available {
+  color: #2d813e;
+}
+#editMember #editPrivate {
+  appearance: none;
+  cursor: pointer;
+  width: 3.2em;
+  height: 1.8em;
+  padding: 0;
+  border-radius: 99px;
+  background: #aaa9ac;
+  justify-self: end;
+  margin: 0;
+  position: relative;
+}
+#editPrivate:before {
+  content: "";
+  position: absolute;
+  left: 0.17em;
+  top: 0.17em;
+  width: 1.42em;
+  height: 1.42em;
+  background: white;
+  border-radius: 50%;
+}
+#editMember #editPrivate:checked {
+  background: #7449b9;
+}
+#editPrivate:checked:before {
+  transform: translateX(1.4em);
+}
+#privacyNote,
+#editError,
+.edit-buttons,
+#editMember #deleteAccount {
+  grid-column: 1/-1;
+}
+#privacyNote {
+  font-size: 0.85em;
+  color: #5f5968;
+}
+#editError {
+  margin: 0;
+}
+#editError:empty {
+  display: none;
+}
+.edit-buttons {
+  display: grid;
+  grid-template-columns: 1.27fr 1fr;
+  gap: 1.25vw;
+}
+#editMember .edit-buttons :is(a, button) {
+  display: grid;
+  place-items: center;
+  border: 1px solid #70479d;
+  border-radius: 0.7em;
+  padding: 0.4em;
+  min-height: 44px;
+  text-decoration: none;
+  color: #502493;
+  font-size: 1.14em;
+  font-weight: 650;
+}
+#editMember #editSave {
+  background: linear-gradient(105deg, #7721ed, #2aaea5);
+  border-color: transparent;
+  color: white;
+}
+#editMember #deleteAccount {
+  justify-self: center;
+  background: transparent;
+  text-decoration: underline;
+  color: #8c2931;
+  border: 0;
+  padding: 0;
+  min-height: 30px;
+  font-weight: 500;
+}
+#deleteDialog input {
+  width: 100%;
+  padding: 0.55em;
+  margin: 0.4em 0;
+}
+#deleteDialog button {
+  padding: 0.6em 0.8em;
+  border-radius: 8px;
+  border: 1px solid #cabdd5;
+}
+#confirmDelete {
+  background: #912737;
+  color: white;
+}
+@media (max-width: 950px) {
+  .edit-card {
+    width: min(100%, 850px);
+    padding: 20px;
+  }
+  .editor-screen .profile-nav :is(button, a) {
+    gap: 0;
+  }
+}
+@media (max-width: 760px) {
+  .editor-screen .topbar {
+    padding: 0.6rem 0.9rem;
+    gap: 8px;
+  }
+  .editor-screen .feed-brand {
+    width: 130px;
+  }
+  .editor-screen .profile-nav {
+    gap: 5px;
+  }
+  .editor-screen .profile-nav :is(button, a):not(:last-child)::before {
+    width: 26px;
+  }
+  .editor-screen .profile-nav .avatar {
+    width: 30px;
+  }
+  .editor-screen #peopleSearch {
+    padding: 0.4em 0.7em;
+  }
+  .edit-card {
+    padding: 18px;
+  }
+  #editMember {
+    padding: 14px 10px;
+  }
+  #editForm {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+    padding-top: 18px;
+  }
+  .edit-photo {
+    padding: 0;
+  }
+  #editAvatar {
+    width: 100px;
+  }
+  #editMember #pickPhoto {
+    width: auto;
+    padding: 0.45em 1.4em;
+  }
+  #badgeNote {
+    margin: 0.7em 0 0;
+    font-size: 0.9em;
+  }
+  .edit-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+  .edit-fields label:not(:first-child) {
+    margin-top: 8px !important;
+  }
+  #editMember #editBio {
+    margin: 0;
+  }
+  #editPrivate {
+    grid-column: 1;
+    grid-row: auto;
+    margin-top: -2em !important;
+  }
+  .edit-buttons {
+    margin-top: 8px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .edit-card {
+    animation: appear 0.22s ease-out;
+  }
+  #editPrivate:before {
+    transition: transform 0.16s ease;
+  }
+}

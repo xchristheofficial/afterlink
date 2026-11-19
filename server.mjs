@@ -30,6 +30,8 @@ if (!columns.includes("username"))
 db.exec(
   "CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username COLLATE NOCASE)",
 );
+if (!columns.includes("bio"))
+  db.exec("ALTER TABLE users ADD COLUMN bio TEXT NOT NULL DEFAULT ''");
 const app = express(),
   derive = promisify(scrypt),
   sha = (s) => createHash("sha256").update(s).digest("hex");
@@ -41,6 +43,7 @@ app.use(
     xFrameOptions: production ? undefined : false,
     contentSecurityPolicy: {
       directives: {
+        "media-src": ["'self'", "data:"],
         "frame-ancestors": production ? ["'self'"] : null,
         "upgrade-insecure-requests": production ? [] : null,
       },
@@ -59,7 +62,13 @@ app.use("/api", (req, res, next) => {
     return res.sendStatus(403);
   next();
 });
-app.use(express.json({ limit: "4kb" }));
+app.use("/api/feed/profile", express.json({ limit: "100kb" }));
+const smallJson = express.json({ limit: "4kb" });
+app.use((req, res, next) =>
+  /^\/api\/feed\/(posts|draft)\/?$/.test(req.path)
+    ? next()
+    : smallJson(req, res, next),
+);
 const limit = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 45,
@@ -130,6 +139,12 @@ async function hashPassword(password) {
   return `${salt}:${(await derive(password, salt, 64)).toString("hex")}`;
 }
 installRecovery(app, db, limit, recoveryMailer(process.env), hashPassword);
+// Never recycle a deleted profile link or transfer the founder identity.
+db.exec(
+  "CREATE TABLE IF NOT EXISTS retired_profiles(id INTEGER PRIMARY KEY, founder INTEGER NOT NULL)",
+);
+const nextId =
+  "(SELECT 1+max(coalesce((SELECT max(id) FROM users),0),coalesce((SELECT max(id) FROM retired_profiles),0)))";
 const invalid = "Check your email, phone (if entered), and password.";
 app.post(["/api/signup", "/api/signin"], limit, async (req, res) => {
   const signup = req.path.endsWith("signup");
@@ -168,7 +183,7 @@ app.post(["/api/signup", "/api/signin"], limit, async (req, res) => {
     const hash = await hashPassword(password);
     const row = db
       .prepare(
-        "INSERT INTO users(email,phone,hash,full_name,username) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING RETURNING id",
+        `INSERT INTO users(id,email,phone,hash,full_name,username) VALUES(${nextId},?,?,?,?,?) ON CONFLICT DO NOTHING RETURNING id`,
       )
       .get(email, phone || null, hash, fullName.trim(), username);
     if (!row)
@@ -251,7 +266,7 @@ app.get("/auth/google/callback", limit, async (req, res) => {
     if (!row)
       row = db
         .prepare(
-          "INSERT INTO users(email,google_sub) VALUES(?,?) ON CONFLICT DO NOTHING RETURNING id",
+          `INSERT INTO users(id,email,google_sub) VALUES(${nextId},?,?) ON CONFLICT DO NOTHING RETURNING id`,
         )
         .get(p.email.toLowerCase(), p.sub);
     if (!row) return res.redirect("/?auth=existing");
@@ -261,9 +276,20 @@ app.get("/auth/google/callback", limit, async (req, res) => {
     return res.redirect("/?auth=failed");
   }
 });
-app.get("/home", (req, res) => {
+app.get(["/home", "/create", "/profile", "/profile/:id"], (req, res) => {
   res.set("Cache-Control", "no-store");
-  if (!session(req)) return res.redirect("/?auth=session");
+  if (!session(req)) {
+    const profile = req.path.startsWith("/profile")
+      ? req.params.id === "edit"
+        ? "edit"
+        : /^[1-9]\d*$/.test(req.params.id)
+          ? req.params.id
+          : "me"
+      : "";
+    return res.redirect(
+      "/?auth=session" + (profile ? "&profile=" + profile : ""),
+    );
+  }
   res.sendFile(resolve(dir, "public/index.html"));
 });
 app.use(express.static(resolve(dir, "public")));

@@ -250,6 +250,32 @@ $("google").onclick = async () => {
     info("Connection issue", "Please try again when you are online.");
   }
 };
+// Remember only an internal numeric profile destination across sign-in, including OAuth.
+const target = new URLSearchParams(location.search).get("profile");
+try {
+  if (
+    location.pathname === "/" &&
+    (target === "edit" || target === "me" || /^[1-9]\d*$/.test(target))
+  )
+    sessionStorage.setItem("afterlink.returnProfile", target);
+} catch {
+  /* Storage may be unavailable. */
+}
+function returnProfile() {
+  try {
+    const id = sessionStorage.getItem("afterlink.returnProfile");
+    sessionStorage.removeItem("afterlink.returnProfile");
+    return id === "edit"
+      ? "/profile/edit"
+      : id === "me"
+        ? "/profile"
+        : /^[1-9]\d*$/.test(id)
+          ? "/profile/" + id
+          : null;
+  } catch {
+    return null;
+  }
+}
 const auth = new URLSearchParams(location.search).get("auth");
 if (auth) {
   error(
@@ -265,8 +291,12 @@ if (auth) {
 }
 if (!resetToken) {
   const atHome = location.pathname.replace(/\/$/, "") === "/home";
-  if (atHome) {
-    document.title = "Home Feed · AfterLink";
+  const atCreate = location.pathname.replace(/\/$/, "") === "/create";
+  const atProfile = /^\/profile(?:\/|$)/.test(location.pathname);
+  if (atHome || atProfile || atCreate) {
+    document.title = atProfile
+      ? "Profile · AfterLink"
+      : "Home Feed · AfterLink";
     document.querySelector(".layout").hidden = true;
   }
   fetch("/api/session")
@@ -275,9 +305,13 @@ if (!resetToken) {
       return r.json();
     })
     .then(({ user }) => {
-      if (user && atHome) account(user);
-      else if (user) location.replace("/home");
-      else if (atHome) location.replace("/?auth=session");
+      if (user && (atHome || atProfile || atCreate)) {
+        const target = atHome && returnProfile();
+        if (target) location.replace(target);
+        else account(user);
+      } else if (user) location.replace("/home");
+      else if (atHome || atProfile || atCreate)
+        location.replace("/?auth=session");
     })
     .catch(() => {
       document.querySelector(".layout").hidden = false;

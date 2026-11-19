@@ -16,6 +16,12 @@
     />
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="/feed.css" />
+    <link rel="stylesheet" href="/profile.css" />
+    <link rel="stylesheet" href="/editor.css" />
+    <link rel="stylesheet" href="/composer.css" />
+    <script defer src="/composer.js"></script>
+    <script defer src="/editor.js"></script>
+    <script defer src="/profile.js"></script>
     <script defer src="/feed.js"></script>
     <script defer src="/app.js"></script>
   </head>
@@ -348,17 +354,45 @@
             maxlength="100"
           />
         </form>
+        <nav class="profile-nav" aria-label="Profile navigation" hidden>
+          <a href="/home"
+            ><svg class="fi"><use href="#icFeed" /></svg>Home</a
+          ><button data-later="Reels">
+            <svg class="fi"><use href="#icReels" /></svg>Reels</button
+          ><button data-later="Messages">
+            <svg class="fi"><use href="#icMessages" /></svg>Messages</button
+          ><button data-later="Notifications">
+            <svg class="fi"><use href="#icNotifications" /></svg>Bell</button
+          ><a href="/profile" aria-label="My profile"
+            ><img class="avatar" src="/assets/avatar-default.webp" alt=""
+          /></a>
+        </nav>
       </header>
       <div class="home-grid">
         <aside class="profile-rail" id="profileRail">
           <section class="who">
-            <img class="avatar" src="/assets/avatar-default.webp" alt="" />
+            <a
+              class="profile-avatar-link"
+              href="/profile"
+              aria-label="Open your profile"
+              ><img class="avatar" src="/assets/avatar-default.webp" alt=""
+            /></a>
             <h2 id="profileName"></h2>
             <p id="profileHandle"></p>
             <small id="founderBadge" hidden>AfterLink developer</small>
             <p id="counts"></p>
           </section>
           <nav class="side-nav" aria-label="Main navigation">
+            <a
+              class="rail-profile-link"
+              href="/profile"
+              title="Profile"
+              aria-label="Profile"
+              ><svg class="fi" aria-hidden="true" viewBox="0 0 24 24">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M3 22c0-10 18-10 18 0" /></svg
+              ><span>Profile</span></a
+            >
             <button type="button" data-view="Feed" aria-label="Feed">
               <svg class="fi" aria-hidden="true"><use href="#icFeed" /></svg
               ><span>Feed</span></button
@@ -427,11 +461,11 @@
               <div class="compose-box">
                 <button id="openComposer">What's on your mind?</button
                 ><span class="compose-tools"
-                  ><button data-later="Photos" aria-label="Photo uploads">
+                  ><button id="composePhoto" aria-label="Photo uploads">
                     <svg class="fi" aria-hidden="true">
                       <use href="#icPhoto" />
                     </svg></button
-                  ><button data-later="Video" aria-label="Video uploads">
+                  ><button id="composeVideo" aria-label="Video uploads">
                     <svg class="fi" aria-hidden="true">
                       <use href="#icReels" />
                     </svg></button
@@ -498,19 +532,300 @@
           </p>
         </aside>
       </div>
+      <section id="memberPage" hidden aria-label="Member profile">
+        <p id="memberStatus" role="status">Loading profile…</p>
+        <div id="memberContent" hidden>
+          <section class="member-hero">
+            <img
+              class="member-avatar"
+              src="/assets/avatar-default.webp"
+              alt=""
+            />
+            <h1 id="memberName"></h1>
+            <p id="memberHandle"></p>
+            <p id="memberBio"></p>
+            <dl class="member-stats">
+              <div>
+                <dt>Posts</dt>
+                <dd id="postCount"></dd>
+              </div>
+              <div>
+                <dt>Followers</dt>
+                <dd id="followerCount"></dd>
+              </div>
+              <div>
+                <dt>Following</dt>
+                <dd id="followingCount"></dd>
+              </div>
+            </dl>
+            <div class="member-actions">
+              <button id="memberAction" class="pill"></button
+              ><button id="shareProfile">Share Profile</button>
+            </div>
+          </section>
+          <nav class="member-tabs" aria-label="Profile content">
+            <button data-tab="Posts">Posts</button
+            ><button data-tab="Reels">Reels</button
+            ><button data-tab="Saved">Saved</button
+            ><button data-tab="Tagged">Tagged</button>
+          </nav>
+          <section
+            id="memberGrid"
+            aria-label="Posts"
+            aria-live="polite"
+          ></section>
+        </div>
+      </section>
+      <section id="editMember" hidden aria-labelledby="editTitle">
+        <div class="edit-card">
+          <header class="edit-heading">
+            <a href="/profile" aria-label="Back to profile">‹</a>
+            <h1 id="editTitle">Edit Profile</h1>
+          </header>
+          <form id="editForm" hidden>
+            <aside class="edit-photo">
+              <img
+                id="editAvatar"
+                src="/assets/editor-avatar.webp"
+                alt="Profile photo"
+              /><button id="pickPhoto" type="button">Change Photo</button
+              ><input
+                hidden
+                id="photoFile"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+              />
+              <p id="badgeNote" hidden>
+                Your legendary gold badge cannot be changed
+              </p>
+            </aside>
+            <div class="edit-fields">
+              <label for="editName">Name</label
+              ><input id="editName" maxlength="100" required />
+              <label for="editUsername">Username</label>
+              <div class="handle-field">
+                <span aria-hidden="true">@</span
+                ><input
+                  aria-describedby="handleState"
+                  id="editUsername"
+                  maxlength="30"
+                  pattern="[A-Za-z0-9_]{3,30}"
+                  required
+                  autocomplete="off"
+                /><small id="handleState" role="status"></small>
+              </div>
+              <label for="editBio">Bio</label
+              ><textarea
+                rows="2"
+                id="editBio"
+                maxlength="220"
+                placeholder="Just joined AfterLink. Connect After. Link Forever."
+              ></textarea>
+              <label for="editEmail">Email</label
+              ><input
+                id="editEmail"
+                type="email"
+                readonly
+                title="Your sign-in email"
+              />
+              <label for="editPhone">Phone (optional)</label
+              ><input
+                id="editPhone"
+                type="tel"
+                maxlength="25"
+                placeholder="+1 (___) ___-____"
+              />
+              <label for="editPrivate">Private Account</label
+              ><input
+                type="checkbox"
+                role="switch"
+                id="editPrivate"
+                aria-describedby="privacyNote"
+              /><small hidden id="privacyNote"
+                >Only existing followers can see your posts. New follows are
+                paused.</small
+              >
+              <p id="editError" role="alert"></p>
+              <div class="edit-buttons">
+                <button id="editSave">Save Changes</button
+                ><a href="/profile" id="editCancel">Cancel</a>
+              </div>
+              <button id="deleteAccount" type="button">Delete Account</button>
+            </div>
+          </form>
+          <p id="editLoading" role="status">Loading profile…</p>
+        </div>
+      </section>
+      <section id="createPage" hidden aria-labelledby="composerTitle">
+        <form id="postForm">
+          <header class="create-title">
+            <button type="button" data-exit aria-label="Back">←</button>
+            <h1 id="composerTitle">Create Post</h1>
+            <button type="button" data-exit aria-label="Close composer">
+              ×
+            </button>
+          </header>
+          <div class="create-body">
+            <div class="post-identity">
+              <img class="avatar" id="postAvatar" alt="" />
+              <div>
+                <strong id="postName"></strong><small id="postHandle"></small>
+              </div>
+              <select id="postAudience" aria-label="Post audience">
+                <option value="everyone">Everyone</option>
+                <option value="followers">Followers</option>
+              </select>
+            </div>
+            <div class="post-writing">
+              <textarea
+                id="postText"
+                aria-label="Post text"
+                maxlength="500"
+                placeholder="What's on your mind?"
+              ></textarea
+              ><small id="postCounter">0 / 500</small>
+            </div>
+            <div class="post-tools" aria-label="Post options">
+              <button data-pick="photo" type="button">
+                <img alt="" src="/assets/compose/photo.webp" />Add Photo</button
+              ><button data-pick="video" type="button">
+                <img alt="" src="/assets/compose/video.webp" />Add Video</button
+              ><button data-pick="gif" type="button">
+                <img alt="" src="/assets/compose/gif.webp" />Add GIF</button
+              ><button
+                data-extra="pollPanel"
+                type="button"
+                aria-expanded="false"
+              >
+                <img alt="" src="/assets/compose/poll.webp" />Add Poll</button
+              ><button
+                data-extra="feelingPanel"
+                type="button"
+                aria-expanded="false"
+              >
+                <img alt="" src="/assets/compose/feeling.webp" />Feeling</button
+              ><button
+                data-extra="placePanel"
+                type="button"
+                aria-expanded="false"
+              >
+                <img alt="" src="/assets/compose/location.webp" />Location
+              </button>
+            </div>
+            <div class="post-extras">
+              <fieldset id="pollPanel" hidden>
+                <legend>Poll answers</legend>
+                <small>Use the post text for your question.</small
+                ><input
+                  aria-label="First answer"
+                  maxlength="80"
+                  placeholder="First answer"
+                /><input
+                  aria-label="Second answer"
+                  maxlength="80"
+                  placeholder="Second answer"
+                />
+              </fieldset>
+              <label id="feelingPanel" hidden
+                >Feeling<select id="postFeeling">
+                  <option value="">Choose a feeling</option>
+                  <option>Happy</option>
+                  <option>Excited</option>
+                  <option>Grateful</option>
+                  <option>Curious</option>
+                  <option>Thoughtful</option>
+                </select></label
+              ><label id="placePanel" hidden
+                >Location<input
+                  id="postLocation"
+                  maxlength="100"
+                  placeholder="Enter a place"
+              /></label>
+            </div>
+            <input type="file" hidden multiple id="postFiles" />
+            <div id="postDrop">
+              <button id="browsePost" type="button">
+                <svg class="fi" aria-hidden="true"><use href="#icPhoto" /></svg
+                ><span>Drag photos or videos here or <b>Browse Files</b></span
+                ><small>Add up to 10 photos or 1 video · 8 MB total</small>
+              </button>
+              <div id="postPreviews" aria-label="Attachments"></div>
+            </div>
+            <p id="postError" role="alert"></p>
+          </div>
+          <footer class="create-footer">
+            <button type="button" id="openDrafts">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path d="M5 2h9l5 5v15H5z M14 2v6h5 M8 13h8 M8 17h6" />
+              </svg>
+              Drafts</button
+            ><button type="button" data-exit id="cancelPost">Cancel</button
+            ><button id="publishPost" disabled>Publish</button>
+          </footer>
+        </form>
+      </section>
     </main>
-    <dialog id="composer" aria-labelledby="composerTitle">
-      <form id="postForm">
-        <h2 id="composerTitle">Create a post</h2>
-        <label for="postText">What's on your mind?</label
-        ><textarea id="postText" maxlength="500" rows="5" required></textarea
-        ><small>Public text post · Up to 500 characters</small>
-        <p role="alert" id="postError"></p>
-        <div>
-          <button id="cancelPost" type="button">Cancel</button
-          ><button class="pill" id="publishPost">Publish</button>
+    <template id="emptyIcon"
+      ><svg aria-hidden="true" viewBox="0 0 24 24">
+        <rect
+          x="2"
+          y="3"
+          width="20"
+          height="18"
+          rx="3"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+        <circle cx="8" cy="9" r="2" fill="currentColor" />
+        <path fill="currentColor" d="m3 18 6-6 4 3 3-4 5 6v3H3z" /></svg
+    ></template>
+    <dialog id="deleteDialog" aria-labelledby="deleteTitle">
+      <form id="deleteForm">
+        <h2 id="deleteTitle">Delete your account?</h2>
+        <p>
+          Your profile, posts and saved items will be permanently deleted. This
+          cannot be undone.
+        </p>
+        <label
+          >Type DELETE to confirm<input
+            id="deleteText"
+            pattern="DELETE"
+            required
+            autocomplete="off"
+        /></label>
+        <p role="alert" id="deleteError"></p>
+        <div class="editor-actions">
+          <button type="button" id="keepAccount">Keep account</button
+          ><button id="confirmDelete">Delete permanently</button>
         </div>
       </form>
+    </dialog>
+    <dialog id="shareMember" aria-labelledby="shareTitle">
+      <h2 id="shareTitle">Share Profile</h2>
+      <label>Profile link<input id="shareUrl" readonly /></label>
+      <p>Other AfterLink members can open this link.</p>
+      <p role="status" id="copyStatus"></p>
+      <div class="editor-actions">
+        <button id="shareClose">Close</button
+        ><button id="copyLink" class="pill">Copy link</button>
+      </div>
+    </dialog>
+    <dialog id="draftDialog" aria-labelledby="draftTitle">
+      <h2 id="draftTitle">Your draft</h2>
+      <p id="draftInfo" role="status"></p>
+      <div class="draft-actions">
+        <button id="restoreDraft">Open saved draft</button
+        ><button id="storeDraft">Save current draft</button
+        ><button id="removeDraft">Delete saved draft</button
+        ><button id="closeDraft">Close</button>
+      </div>
     </dialog>
     <dialog
       id="dialog"

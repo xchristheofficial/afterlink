@@ -149,7 +149,7 @@ try {
     .locator("#profileName")
     .getByRole("img", { name: "Verified account" })
     .waitFor();
-  assert.equal(await page.locator(".topbar nav").count(), 0);
+  assert.equal(await page.locator(".topbar nav:visible").count(), 0);
   const toggle = page.locator("#railToggle");
   const menu = page.locator("#profileRail");
   const expandedWidth = (await menu.boundingBox()).width;
@@ -174,14 +174,103 @@ try {
     ),
   );
   await page.setViewportSize({ width: 1568, height: 721 });
-  const radarBadge = page.locator('#profileName .verified-mark');
-  assert.equal(await radarBadge.getAttribute('src'), '/assets/radar-gold-badge.webp');
-  await radarBadge.evaluate(img => img.decode());
+  const radarBadge = page.locator("#profileName .verified-mark");
+  assert.equal(
+    await radarBadge.getAttribute("src"),
+    "/assets/radar-gold-badge.webp",
+  );
+  await radarBadge.evaluate((img) => img.decode());
   if (process.env.FEED_SCREENSHOT)
     await page.screenshot({ path: process.env.FEED_SCREENSHOT });
-  await page.click("#openComposer");
+  await page.getByRole("link", { name: "Open your profile" }).click();
+  await page.locator("#memberName .verified-mark").waitFor();
+  assert.equal(await page.innerText("#memberName"), "RADAR");
+  assert.equal(await page.innerText("#postCount"), "0");
+  await page.getByRole("button", { name: "Edit Profile" }).click();
+  await page.locator("#editForm").waitFor();
+  assert.equal(new URL(page.url()).pathname, "/profile/edit");
+  assert.equal(await page.inputValue("#editEmail"), email);
+  assert.ok(await page.locator("#badgeNote").isVisible());
+  await page.setViewportSize({ width: 320, height: 650 });
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth === innerWidth,
+    ),
+  );
+  await page.setViewportSize({ width: 1568, height: 1045 });
+  await page.fill("#editUsername", "ui_updated");
+  await page.waitForFunction(() =>
+    document.querySelector("#handleState").textContent.includes("Available"),
+  );
+  await page
+    .locator("#photoFile")
+    .setInputFiles("public/assets/editor-avatar.webp");
+  await page.waitForFunction(() =>
+    document.querySelector("#editAvatar").src.startsWith("data:image/jpeg;"),
+  );
+  await page.fill("#editBio", "Building AfterLink");
+  await page.click("#editSave");
+  await page.getByText("Building AfterLink", { exact: true }).waitFor();
+  await page.click("#shareProfile");
+  const shared = await page.inputValue("#shareUrl");
+  assert.ok(shared.startsWith(url + "/profile/"));
+  await page.click("#shareClose");
+  await page.getByRole("button", { name: "Create Your First Post" }).click();
+  await page.locator("#postName .verified-mark").waitFor();
+  assert.equal(new URL(page.url()).pathname, "/create");
+  if (process.env.COMPOSER_SCREENSHOT)
+    await page.screenshot({
+      path: process.env.COMPOSER_SCREENSHOT,
+      animations: "disabled",
+    });
+  await page.setViewportSize({ width: 320, height: 600 });
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth === innerWidth,
+    ),
+  );
   await page.fill("#postText", "My first real post.");
+  assert.equal(await page.textContent("#postCounter"), "19 / 500");
+  await page.selectOption("#postAudience", "followers");
+  await page.click("[data-extra=pollPanel]");
+  await page.getByLabel("First answer").fill("Morning");
+  await page.getByLabel("Second answer").fill("Evening");
+  await page
+    .locator("#postFiles")
+    .setInputFiles("public/assets/editor-avatar.webp");
+  await page.locator("#postPreviews img").waitFor();
+  await page.click("#openDrafts");
+  await page.click("#storeDraft");
+  await page.reload();
+  await page.click("#openDrafts");
+  await page.click("#restoreDraft");
+  assert.equal(await page.inputValue("#postText"), "My first real post.");
+  await page.locator("#postPreviews img").waitFor();
   await page.click("#publishPost");
+  await page.locator("#memberGrid").getByText("My first real post.").waitFor();
+  assert.equal(await page.innerText("#postCount"), "1");
+  await page.reload();
+  await page.getByText("Building AfterLink", { exact: true }).waitFor();
+  await page.click('[data-tab="Reels"]');
+  await page.getByText("No reels yet", { exact: true }).waitFor();
+  await page.click('[data-tab="Saved"]');
+  await page.getByText("No saved posts yet", { exact: true }).waitFor();
+  await page.click('[data-tab="Tagged"]');
+  await page.getByText("No tagged posts yet", { exact: true }).waitFor();
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth === innerWidth,
+    ),
+  );
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  assert.equal(
+    await page
+      .locator(".member-empty")
+      .evaluate((el) => getComputedStyle(el).animationName),
+    "none",
+  );
+  await page.getByRole("link", { name: "Home", exact: true }).click();
   await page.locator("#feedRows").getByText("My first real post.").waitFor();
   await page.locator("#feedRows .verified-mark").waitFor();
   await page.getByRole("button", { name: "Save post", exact: true }).click();
@@ -214,12 +303,46 @@ try {
   ).json();
   assert.equal(people.length, 1);
   assert.ok(!("email" in people[0]));
+  const ownPost = (await (await page.request.get("/api/feed")).json()).posts[0];
+  const mediaUrl = "/api/feed/media/" + ownPost.media[0].id;
+  assert.deepEqual(
+    (
+      await (
+        await second.request.get("/api/feed/profile?id=" + people[0].id)
+      ).json()
+    ).posts,
+    [],
+  );
+  assert.equal((await second.request.get(mediaUrl)).status(), 404);
+  assert.equal(
+    (
+      await second.request.post("/api/feed/vote", {
+        headers,
+        data: { id: ownPost.id, choice: 0 },
+      })
+    ).status(),
+    404,
+  );
+  assert.equal(
+    (await (await page.request.get("/api/feed/draft")).json()).draft,
+    null,
+  );
   await second.request.post("/api/feed/follow", {
     headers,
     data: { id: people[0].id, on: true },
   });
   assert.equal((await secondFeed()).posts[0].body, "My first real post.");
   assert.equal((await secondFeed()).profile.following, 1);
+  const slice = await second.request.get(mediaUrl, {
+    headers: { Range: "bytes=0-3" },
+  });
+  assert.equal(slice.status(), 206);
+  assert.equal((await slice.body()).toString(), "RIFF");
+  const voted = await second.request.post("/api/feed/vote", {
+    headers,
+    data: { id: ownPost.id, choice: 1 },
+  });
+  assert.equal((await voted.json()).choice, 1);
   const otherPage = await second.newPage();
   await otherPage.goto(url + "/home");
   await otherPage.locator("#feedRows .verified-mark").waitFor();
@@ -229,8 +352,83 @@ try {
   );
   await otherPage.locator('.side-nav [data-view="Explore"]').click();
   await otherPage.locator("#feedRows .verified-mark").waitFor();
+  await otherPage.locator("#feedRows .author-link").first().click();
+  await otherPage
+    .getByRole("button", { name: "Unfollow", exact: true })
+    .waitFor();
+  assert.equal(otherPage.url(), shared);
+  assert.equal(
+    await otherPage.locator('[data-tab="Saved"]').isVisible(),
+    false,
+  );
+  assert.equal(
+    await otherPage.getByRole("button", { name: "Edit Profile" }).count(),
+    0,
+  );
+  assert.equal(await otherPage.innerText("#followerCount"), "1");
+  const founder = people[0].id;
+  const profileAPI = "/api/feed/profile";
+  const details = await (
+    await second.request.get(profileAPI + "?id=" + founder)
+  ).json();
+  assert.equal(details.contact, undefined);
+  const update = await page.request.post(profileAPI, {
+    headers,
+    data: { name: "RADAR", bio: "Building AfterLink", private: true },
+  });
+  assert.ok(update.ok());
+  assert.equal((await secondFeed()).posts.length, 1);
+  await second.request.post("/api/feed/save", {
+    headers,
+    data: { id: details.posts[0].id, on: true },
+  });
+  await second.request.post("/api/feed/follow", {
+    headers,
+    data: { id: founder, on: false },
+  });
+  assert.deepEqual(
+    (await (await second.request.get(profileAPI + "?id=" + founder)).json())
+      .posts,
+    [],
+  );
+  assert.deepEqual(
+    (await (await second.request.get("/api/feed?view=saved")).json()).posts,
+    [],
+  );
+  assert.equal(
+    (
+      await second.request.post("/api/feed/follow", {
+        headers,
+        data: { id: founder, on: true },
+      })
+    ).status(),
+    403,
+  );
+  await otherPage.goto(url + "/profile/edit");
+  await otherPage.locator("#editForm").waitFor();
+  assert.equal(await otherPage.locator("#badgeNote").isVisible(), false);
+  await otherPage.fill("#editUsername", "ui_updated");
+  await otherPage.getByText("Taken", { exact: true }).waitFor();
+  await otherPage.click("#editCancel");
+  await otherPage
+    .getByText("@second_member", { exact: true })
+    .first()
+    .waitFor();
+  await otherPage.click("#memberAction");
+  await otherPage.click("#deleteAccount");
+  await otherPage.fill("#deleteText", "DELETE");
+  await otherPage.click("#confirmDelete");
+  await otherPage.waitForURL(url + "/");
+  assert.equal((await second.request.get(profileAPI)).status(), 401);
+  assert.equal(
+    (await page.request.get(profileAPI + "?id=" + initial.profile.id)).status(),
+    404,
+  );
   await second.close();
   await page.click("#logout");
+  await page.waitForURL(url + "/");
+  await page.goto(shared);
+  await page.locator("#form").waitFor();
   await page.fill("#email", email);
   await page.fill("#password", "incorrect");
   await page.click("#submit");
@@ -238,8 +436,13 @@ try {
   await page.fill("#password", password);
   await page.click("#submit");
   await page.locator("#account").waitFor();
-  assert.equal(new URL(page.url()).pathname, "/home");
+  await page.locator("#memberContent").waitFor();
+  assert.equal(page.url(), shared);
+  await page.click('[data-tab="Saved"]');
+  await page.locator("#memberGrid").getByText("My first real post.").waitFor();
+  await page.getByRole("link", { name: "Home", exact: true }).click();
   await page.click("#logout");
+  await page.waitForURL(url + "/");
   await page.locator("#form").waitFor();
   // Exercise the real reset route with a token issued only in the test database.
   const token = randomBytes(32).toString("hex");
@@ -286,7 +489,7 @@ try {
   assert.equal(new URL(page.url()).pathname, "/home");
   assert.deepEqual(errors, []);
   console.log(
-    "Browser checks passed: stationary artwork, form switching, responsive bounds, favicon, Google fallback, validation and account lifecycle.",
+    "Browser checks passed: auth and recovery, responsive layout, profiles, composer, drafts, voting, protected media and account lifecycle.",
   );
 } finally {
   await browser?.close();
