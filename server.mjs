@@ -16,6 +16,18 @@ const db = new DatabaseSync(dbFile);
 db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
  CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,email TEXT UNIQUE NOT NULL,phone TEXT,hash TEXT,google_sub TEXT UNIQUE);
  CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id),expires INTEGER NOT NULL);`);
+// Existing accounts (including Google users) do not need invented profile values.
+const columns = db
+  .prepare("PRAGMA table_info(users)")
+  .all()
+  .map((row) => row.name);
+if (!columns.includes("full_name"))
+  db.exec("ALTER TABLE users ADD COLUMN full_name TEXT");
+if (!columns.includes("username"))
+  db.exec("ALTER TABLE users ADD COLUMN username TEXT COLLATE NOCASE");
+db.exec(
+  "CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username COLLATE NOCASE)",
+);
 const app = express(),
   derive = promisify(scrypt),
   sha = (s) => createHash("sha256").update(s).digest("hex");
@@ -130,17 +142,29 @@ app.post(["/api/signup", "/api/signin"], limit, async (req, res) => {
   )
     return bad(res, "Use a password between 12 and 128 characters.");
   if (signup) {
+    const { fullName, username } = req.body;
+    if (
+      typeof fullName !== "string" ||
+      !fullName.trim() ||
+      fullName.trim().length > 100
+    )
+      return bad(res, "Enter your full name (up to 100 characters).");
+    if (typeof username !== "string" || !/^[a-zA-Z0-9_]{3,30}$/.test(username))
+      return bad(
+        res,
+        "Choose a username with 3–30 letters, numbers, or underscores.",
+      );
     const salt = token(),
       hash = (await derive(password, salt, 64)).toString("hex");
     const row = db
       .prepare(
-        "INSERT INTO users(email,phone,hash) VALUES(?,?,?) ON CONFLICT(email) DO NOTHING RETURNING id",
+        "INSERT INTO users(email,phone,hash,full_name,username) VALUES(?,?,?,?,?) ON CONFLICT DO NOTHING RETURNING id",
       )
-      .get(email, phone || null, `${salt}:${hash}`);
+      .get(email, phone || null, `${salt}:${hash}`, fullName.trim(), username);
     if (!row)
       return bad(
         res,
-        "Unable to create this account. Try signing in instead.",
+        "That email or username is already in use. Try signing in or choose another username.",
         409,
       );
     login(req, res, row.id);

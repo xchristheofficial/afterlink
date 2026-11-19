@@ -1,13 +1,12 @@
 const $ = (id) => document.getElementById(id);
 let mode = "signin",
-  step = 1,
   busy = false;
 const messages = {
   Privacy:
     "AfterLink stores your email, an optional phone number, and a salted password hash for password accounts. Google accounts use a Google account identifier. An HTTP-only cookie keeps you signed in for up to seven days. Signing out revokes that session.",
   Terms:
     "Use an account you control and keep your sign-in details private. Do not impersonate someone else or access another person’s account.",
-  Help: "Choose Create Account, enter an email and optionally a phone number, then choose a password. To sign in, use the same email and password. You can leave Phone blank. Google sign-in requires Kodra to enable its Google connection.",
+  Help: "Choose Sign up and enter your full name, username, email, and a password of at least 12 characters. To sign in, use the same email and password. You can leave Phone blank. Google sign-in requires Kodra to enable its Google connection.",
   More: "AfterLink is a product of Kodra. Connect After. Link Forever. The colorful panel is a design illustration, not a live feed.",
 };
 function info(title, text) {
@@ -21,47 +20,50 @@ function error(text = "") {
 }
 for (const b of document.querySelectorAll("[data-info]"))
   b.onclick = () => info(b.dataset.info, messages[b.dataset.info]);
+const registration = document.querySelectorAll("[data-registration]");
+function showPassword(show) {
+  $("password").type = show ? "text" : "password";
+  $("reveal").setAttribute("aria-pressed", String(show));
+  $("reveal").setAttribute(
+    "aria-label",
+    show ? "Hide password" : "Show password",
+  );
+}
 function update() {
-  const second = step === 2;
-  $("identity").hidden = second;
-  $("secret").hidden = !second;
-  $("password").disabled = !second;
-  $("password").required = second;
-  $("email").disabled = second;
-  $("phone").disabled = second;
-  for (const m of ["signin", "signup"])
-    $(m).setAttribute("aria-pressed", String(mode === m));
-  $("password").autocomplete =
-    mode === "signup" ? "new-password" : "current-password";
-  $("password").minLength = mode === "signup" ? 12 : 1;
-  $("hint").textContent =
-    mode === "signup"
-      ? "Use at least 12 characters."
-      : "Enter your AfterLink password.";
-  $("summary").textContent = $("email").value.trim();
-  $("submit").textContent = second
-    ? mode === "signup"
-      ? "Create Account"
-      : "Sign In"
-    : mode === "signup"
-      ? "Continue to create account"
-      : "Continue to sign in";
+  const signup = mode === "signup";
+  document.querySelector(".inside").dataset.mode = mode;
+  for (const field of registration) {
+    field.hidden = !signup;
+    field.querySelector("input").disabled = !signup;
+  }
+  $("heading").textContent = $("submit").textContent = signup
+    ? "Create Account"
+    : "Sign In";
+  $("switchPrompt").textContent = signup
+    ? "Already have an account?"
+    : "Don’t have an account?";
+  $("switchMode").textContent = signup ? "Sign In" : "Sign up";
+  $("password").autocomplete = signup ? "new-password" : "current-password";
+  $("password").placeholder = signup ? "Create a password" : "••••••••••••";
+  $("password").minLength = signup ? 12 : 1;
+  $("password").value = "";
+  showPassword(false);
+  $("forgot").hidden = signup;
   error();
 }
-for (const m of ["signin", "signup"])
-  $(m).onclick = () => {
-    if (busy || mode === m) return;
-    mode = m;
-    step = 1;
-    $("password").value = "";
-    update();
-  };
-$("back").onclick = () => {
+$("switchMode").onclick = () => {
   if (busy) return;
-  step = 1;
+  mode = mode === "signin" ? "signup" : "signin";
   update();
-  $("email").focus();
+  document.querySelector(".card").scrollTop = 0;
+  $("heading").focus({ preventScroll: true });
 };
+$("reveal").onclick = () => showPassword($("password").type === "password");
+$("forgot").onclick = () =>
+  info(
+    "Forgot password?",
+    "Password reset by email is not available yet. If you registered with Google, use Continue with Google to sign in.",
+  );
 async function post(path, data) {
   const res = await fetch(path, {
     method: "POST",
@@ -78,7 +80,6 @@ function account(user) {
   $("accountEmail").textContent = user?.email || "";
   if (user) {
     $("form").reset();
-    step = 1;
     update();
   }
 }
@@ -86,24 +87,16 @@ $("form").onsubmit = async (event) => {
   event.preventDefault();
   if (busy) return;
   error();
-  if (step === 1) {
-    const phone = $("phone").value.replace(/[ ()-]/g, "");
-    if (phone && !/^\+?[0-9]{7,15}$/.test(phone)) {
-      error("Enter a valid phone number or leave it blank.");
-      $("phone").focus();
-      return;
-    }
-    step = 2;
-    update();
-    $("password").focus();
-    return;
-  }
   busy = true;
   $("submit").disabled = true;
   try {
     const { user } = await post("/api/" + mode, {
       email: $("email").value,
-      phone: $("phone").value,
+      ...(mode === "signup" && {
+        fullName: $("fullName").value,
+        username: $("username").value,
+        phone: $("phone").value,
+      }),
       password: $("password").value,
     });
     account(user);
@@ -118,7 +111,6 @@ $("logout").onclick = async () => {
   try {
     await post("/api/logout", {});
     mode = "signin";
-    step = 1;
     update();
     account(null);
   } catch {

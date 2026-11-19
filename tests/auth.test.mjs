@@ -40,6 +40,8 @@ test(
     });
     await start();
     const payload = {
+      fullName: "Account lifecycle test",
+      username: "lifecycle_test",
       email: `${randomUUID()}@example.test`,
       phone: "+1 (555) 010-1234",
       password: randomUUID(),
@@ -74,6 +76,11 @@ test(
       ).status,
       403,
     );
+    for (const invalid of [{ fullName: " " }, { username: "x" }])
+      assert.equal(
+        (await post("/api/signup", { ...payload, ...invalid })).status,
+        400,
+      );
     const signup = await post("/api/signup", payload);
     assert.equal(signup.status, 201);
     const c = signup.headers.get("set-cookie");
@@ -81,6 +88,16 @@ test(
     const cookie = c.split(";")[0];
     assert.deepEqual(await current(cookie), { email: payload.email });
     assert.equal((await post("/api/signup", payload)).status, 409);
+    assert.equal(
+      (
+        await post("/api/signup", {
+          ...payload,
+          email: "other@example.test",
+          username: payload.username.toUpperCase(),
+        })
+      ).status,
+      409,
+    );
     await stop();
     await start();
     assert.deepEqual(await current(cookie), { email: payload.email });
