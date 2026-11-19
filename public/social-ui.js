@@ -70,7 +70,16 @@ export function ago(ms) {
         : new Date(ms).toLocaleDateString();
 }
 export function error(e) {
-  const alert = $("#alert");
+  const dialog = $("#socialDialog[open]");
+  let alert = $("#alert");
+  if (dialog) {
+    alert = dialog.querySelector(".dialog-error");
+    if (!alert) {
+      alert = n("p", "dialog-error");
+      alert.setAttribute("role", "alert");
+      $("#sheet").append(alert);
+    }
+  }
   alert.hidden = false;
   alert.textContent = e.message || e;
 }
@@ -99,28 +108,20 @@ export async function api(path, data) {
   if (!r.ok) throw Error(j.error || "Unable to complete request.");
   return j;
 }
-export const icons = {
-  home: "M2 11 12 2l10 9 M5 10v11h5v-7h4v7h5V10",
-  messages:
-    "M4 3h16q2 0 2 2v11q0 2-2 2h-9l-6 5v-5H4q-2 0-2-2V5q0-2 2-2z M7 10h.1m4.9 0h.1m4.9 0h.1",
-  reels: "M4 3h16q2 0 2 2v14q0 2-2 2H4q-2 0-2-2V5q0-2 2-2z M10 8l6 4-6 4z",
-  notifications: "M3 18h18l-3-5V9a6 6 0 0 0-12 0v4z M10 21q2 3 4 0",
-  search: "M14 6q-5-6-10 0t4 10q8 1 6-10z M14 15l7 7",
-  heart: "M12 21 3 12C-2 5 7-1 12 6c5-7 14-1 9 6z",
-  share: "M12 15V2m-5 5 5-5 5 5 M6 10H3v12h18V10h-3",
-  save: "M5 2h14v20l-7-5-7 5z",
-  settings:
-    "M12 3v3m0 12v3m9-9h-3M6 12H3m3-6 2 2m8 8 2 2M6 18l2-2m8-8 2-2 M19 12a7 7 0 1 1-14 0 7 7 0 1 1 14 0z M14 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0z",
-  explore: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
-};
 export function icon(key) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"),
-    path = document.createElementNS(svg.namespaceURI, "path");
+    use = document.createElementNS(svg.namespaceURI, "use");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("aria-hidden", "true");
-  path.setAttribute("d", icons[key]);
-  svg.append(path);
+  use.setAttribute("href", "/assets/icons.svg#" + key);
+  svg.append(use);
   return svg;
+}
+export function withIcon(element, key, label) {
+  element.replaceChildren(icon(key));
+  element.setAttribute("aria-label", label);
+  element.title = label;
+  return element;
 }
 export function empty(title, detail, link) {
   return box(
@@ -133,11 +134,11 @@ export function empty(title, detail, link) {
 export function follow(p) {
   if (p.private && !p.following) return n("span", "subtle", "Private account");
   const b = button(
-    p.following ? "Following" : "＋ Follow",
+    p.following ? "Following" : "Follow",
     async () => {
       await api("/follow", { id: p.id, on: !p.following });
       p.following = !p.following;
-      b.textContent = p.following ? "Following" : "＋ Follow";
+      b.textContent = p.following ? "Following" : "Follow";
     },
     "gradient",
   );

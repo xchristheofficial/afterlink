@@ -1,3 +1,4 @@
+import { installAuthenticator } from "./authenticator.mjs";
 import { installFeed } from "./feed.mjs";
 import { installRecovery, recoveryMailer } from "./recovery.mjs";
 import express from "express";
@@ -43,7 +44,8 @@ app.use(
     xFrameOptions: production ? undefined : false,
     contentSecurityPolicy: {
       directives: {
-        "media-src": ["'self'", "data:"],
+        "media-src": ["'self'", "data:", "blob:"],
+        "img-src": ["'self'", "data:", "blob:"],
         "frame-ancestors": production ? ["'self'"] : null,
         "upgrade-insecure-requests": production ? [] : null,
       },
@@ -65,7 +67,7 @@ app.use("/api", (req, res, next) => {
 app.use("/api/feed/profile", express.json({ limit: "100kb" }));
 const smallJson = express.json({ limit: "4kb" });
 app.use((req, res, next) =>
-  /^\/api\/feed\/(posts|draft|thread\/[1-9]\d*)\/?$/.test(req.path)
+  /^\/api\/feed\/(posts|stories|draft|thread\/[1-9]\d*)\/?$/.test(req.path)
     ? next()
     : smallJson(req, res, next),
 );
@@ -112,6 +114,20 @@ function login(req, res, id) {
     id,
     Date.now() + sessionLifetime,
   );
+  const ua = req.get("user-agent") || "",
+    browser = /Edg\//.test(ua)
+      ? "Edge"
+      : /Firefox\//.test(ua)
+        ? "Firefox"
+        : /Chrome\//.test(ua)
+          ? "Chrome"
+          : /Safari\//.test(ua)
+            ? "Safari"
+            : "Browser";
+  db.prepare("INSERT INTO session_devices VALUES(?,?)").run(
+    sha(raw),
+    browser + (/Mobile|Android|iPhone/.test(ua) ? " on mobile" : " on desktop"),
+  );
   res.cookie("afterlink_session", raw, {
     ...sessionFlags(req),
     maxAge: sessionLifetime,
@@ -138,6 +154,78 @@ async function hashPassword(password) {
   const salt = token();
   return `${salt}:${(await derive(password, salt, 64)).toString("hex")}`;
 }
+const factor = installAuthenticator(app, db, {
+  limit,
+  session,
+  derive,
+  sessionToken: (req) => sha(cookie(req, "afterlink_session")),
+});
+db.exec(`CREATE TABLE IF NOT EXISTS session_devices(token TEXT PRIMARY KEY REFERENCES sessions(token) ON DELETE CASCADE,label TEXT NOT NULL);CREATE TABLE IF NOT EXISTS password_changes(owner INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,changed INTEGER NOT NULL);
+ CREATE TRIGGER IF NOT EXISTS password_updated AFTER UPDATE OF hash ON users WHEN new.hash IS NOT old.hash BEGIN INSERT OR REPLACE INTO password_changes VALUES(new.id,unixepoch('subsec')*1000);END;`);
+app.get("/api/feed/security", (req, res) => {
+  const uid = res.locals.uid,
+    user = db
+      .prepare(
+        "SELECT email,google_sub IS NOT NULL verified, hash IS NOT NULL password FROM users WHERE id=?",
+      )
+      .get(uid);
+  const devices = db
+    .prepare(
+      "SELECT expires,s.token=? current,d.label FROM sessions s LEFT JOIN session_devices d ON d.token=s.token WHERE user_id=? AND expires>? ORDER BY current DESC,expires DESC",
+    )
+    .all(sha(cookie(req, "afterlink_session")), uid, Date.now());
+  res.json({
+    user,
+    devices,
+    changed: db
+      .prepare("SELECT changed FROM password_changes WHERE owner=?")
+      .get(uid)?.changed,
+    factor: factor.active(uid),
+    factorAvailable: factor.available && !!user.password,
+  });
+});
+app.post("/api/feed/security/logout-others", limit, (req, res) => {
+  db.prepare("DELETE FROM sessions WHERE user_id=? AND token<>?").run(
+    res.locals.uid,
+    sha(cookie(req, "afterlink_session")),
+  );
+  res.json({ ok: true });
+});
+app.post("/api/feed/security/password", limit, async (req, res) => {
+  const { current, password } = req.body || {},
+    uid = res.locals.uid;
+  if (
+    typeof current !== "string" ||
+    current.length > 128 ||
+    typeof password !== "string" ||
+    password.length < 12 ||
+    password.length > 128
+  )
+    return bad(res, "Use a password of 12–128 characters.");
+  const old = db.prepare("SELECT hash FROM users WHERE id=?").get(uid).hash;
+  if (!old)
+    return bad(res, "Manage your password through your sign-in provider.");
+  const [salt, digest] = old.split(":");
+  if (
+    !timingSafeEqual(
+      await derive(current, salt, 64),
+      Buffer.from(digest, "hex"),
+    )
+  )
+    return bad(res, "Current password did not match.", 403);
+  const hash = await hashPassword(password);
+  if (
+    !session(req) ||
+    !db
+      .prepare("UPDATE users SET hash=? WHERE id=? AND hash=?")
+      .run(hash, uid, old).changes
+  )
+    return bad(res, "Sign in again.", 403);
+  db.prepare("DELETE FROM sessions WHERE user_id=?").run(uid);
+  db.prepare("DELETE FROM password_resets WHERE user_id=?").run(uid);
+  login(req, res, uid);
+  res.json({ ok: true });
+});
 installRecovery(app, db, limit, recoveryMailer(process.env), hashPassword);
 // Never recycle a deleted profile link or transfer the founder identity.
 db.exec(
@@ -209,6 +297,11 @@ app.post(["/api/signup", "/api/signin"], limit, async (req, res) => {
     (phone && phone !== row.phone)
   )
     return bad(res, invalid, 401);
+  if (factor.active(row.id)) {
+    if (!req.body.code) return res.json({ requiresCode: true });
+    if (!factor.verify(row.id, req.body.code))
+      return bad(res, "Invalid or previously used code.", 403);
+  }
   login(req, res, row.id);
   res.json({ user: { email } });
 });
@@ -278,6 +371,13 @@ app.get("/auth/google/callback", limit, async (req, res) => {
 });
 app.get(
   [
+    "/settings",
+    "/settings/:section",
+    "/saved",
+    "/connections",
+    "/stories",
+    "/stories/create",
+    "/safety",
     "/messages",
     "/messages/:peer",
     "/notifications",

@@ -14,6 +14,7 @@ import {
   share,
   media,
   icon,
+  withIcon,
 } from "./social-ui.js";
 export async function postDetail(root, id) {
   let data = await api("/post/" + id),
@@ -46,15 +47,23 @@ export async function postDetail(root, id) {
         stage.append(
           box(
             "slide-controls",
-            button("‹", () => {
-              index = (index + p.media.length - 1) % p.media.length;
-              slide();
-            }),
+            withIcon(
+              button("", () => {
+                index = (index + p.media.length - 1) % p.media.length;
+                slide();
+              }),
+              "back",
+              "Previous attachment",
+            ),
             n("span", "", `${index + 1} / ${p.media.length}`),
-            button("›", () => {
-              index = (index + 1) % p.media.length;
-              slide();
-            }),
+            withIcon(
+              button("", () => {
+                index = (index + 1) % p.media.length;
+                slide();
+              }),
+              "next",
+              "Next attachment",
+            ),
           ),
         );
     } else stage.append(n("blockquote", "", p.body));
@@ -93,10 +102,19 @@ export async function postDetail(root, id) {
   form.append(
     avatar("me"),
     field,
-    button("☺", () => {
-      field.setRangeText("😊", field.selectionStart, field.selectionEnd, "end");
-      field.focus();
-    }),
+    withIcon(
+      button("", () => {
+        field.setRangeText(
+          "😊",
+          field.selectionStart,
+          field.selectionEnd,
+          "end",
+        );
+        field.focus();
+      }),
+      "smile",
+      "Add emoji",
+    ),
     submit,
   );
   right.append(
@@ -108,6 +126,23 @@ export async function postDetail(root, id) {
     target,
     form,
   );
+  if (data.downloadable && p.media.length)
+    left.append(
+      ...p.media.map((m, i) =>
+        a(
+          "/api/feed/media/" + m.id + "?download=1",
+          "Download media" + (p.media.length > 1 ? " " + (i + 1) : ""),
+        ),
+      ),
+    );
+  if (!data.own)
+    right.append(
+      a(
+        "/safety?id=" + p.author + "&post=" + id,
+        "Report or Block",
+        "moderate",
+      ),
+    );
   root.append(left, right);
   function cancel() {
     reply = null;
@@ -126,7 +161,7 @@ export async function postDetail(root, id) {
       "outline",
     );
     function paint() {
-      react.textContent = `♡ Like ${c.likes}`;
+      react.replaceChildren(icon("heart"), ` Like ${c.likes}`);
       react.setAttribute("aria-pressed", String(!!c.liked));
     }
     paint();

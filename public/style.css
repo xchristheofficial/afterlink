@@ -9,8 +9,8 @@
 }
 body {
   margin: 0;
-  color: #101010;
-  background: white;
+  color: var(--ink);
+  background: var(--panel);
   font-family: DM, Arial, sans-serif;
 }
 button,
@@ -29,7 +29,7 @@ button:disabled {
 }
 button:focus-visible,
 input:focus-visible {
-  outline: 3px solid #8659c6;
+  outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
 }
 .layout {
@@ -88,11 +88,11 @@ h2:focus {
   min-width: 0;
   height: clamp(45px, 13.3cqw, 84px);
   padding: 0 0.85em;
-  border: 1px solid #bbb;
-  background: #fff;
+  border: 1px solid var(--edge);
+  background: var(--panel);
   border-radius: 99px;
   font: inherit;
-  color: #151515;
+  color: var(--ink);
 }
 [data-mode="signin"] #form label {
   position: absolute;
@@ -115,7 +115,7 @@ h2:focus {
   width: 1.9em;
   min-width: 40px;
   border: 0;
-  color: #666;
+  color: var(--dim);
   background: none;
 }
 #reveal svg {
@@ -126,7 +126,7 @@ h2:focus {
   background: none;
   border: 0;
   padding: 0;
-  color: #423071;
+  color: var(--accent-ink);
   font-weight: 650;
 }
 .link:hover {
@@ -150,7 +150,7 @@ h2:focus {
 }
 .primary {
   border: 0;
-  background: linear-gradient(102deg, #6b38bb, #14ada9);
+  background: var(--accent);
   color: white;
   font-size: clamp(19px, 6.7cqw, 43px);
   font-weight: 700;
@@ -158,8 +158,8 @@ h2:focus {
 .google {
   margin-top: 5cqw;
   gap: 0.6em;
-  background: white;
-  border: 1px solid #b9b9b9;
+  background: var(--panel);
+  border: 1px solid var(--edge);
   font-weight: 650;
   font-size: clamp(16px, 5.3cqw, 31px);
 }
@@ -171,7 +171,7 @@ h2:focus {
 .recovery-links {
   text-align: center;
   margin: 6cqw 0 0;
-  color: #474747;
+  color: var(--dim);
   font-size: clamp(14px, 4.3cqw, 27px);
 }
 [data-mode="signup"] h2 {
@@ -187,7 +187,7 @@ h2:focus {
 [data-mode="signup"] .field input {
   height: clamp(40px, 9.1cqw, 58px);
   border-radius: 2.2cqw;
-  background: #fafafa;
+  background: var(--soft);
 }
 [data-mode="signup"] .primary,
 [data-mode="signup"] .google {
@@ -217,7 +217,7 @@ h2:focus {
 .recovery-heading .back {
   width: 7cqw;
   min-width: 32px;
-  color: #333;
+  color: var(--ink);
 }
 .back svg {
   width: 100%;
@@ -225,7 +225,7 @@ h2:focus {
 }
 #recoveryIntro {
   margin: 4.5cqw 0 6.4cqw;
-  color: #555;
+  color: var(--dim);
   font-size: clamp(17px, 5.5cqw, 35px);
   line-height: 1.3;
 }
@@ -234,7 +234,7 @@ h2:focus {
   margin-bottom: 7cqw;
 }
 #recovery .field input {
-  background: #fafafa;
+  background: var(--soft);
 }
 .recovery-links {
   margin-top: 16cqw;
@@ -262,12 +262,12 @@ footer button {
   background: none;
   border: 0;
   text-decoration: underline;
-  color: #483172;
+  color: var(--accent-ink);
 }
 .eyebrow {
   font-size: 0.75rem;
   letter-spacing: 0.1em;
-  color: #613c84;
+  color: var(--accent-ink);
   font-weight: bold;
 }
 dialog {
@@ -342,7 +342,7 @@ dialog .primary {
   font-size: clamp(16px, 4.5cqw, 28px);
 }
 #resetField input {
-  background: #f9f9fa;
+  background: var(--soft);
   padding-right: 2.9em;
 }
 .reset-eye {
@@ -354,14 +354,14 @@ dialog .primary {
   width: 2.5em;
   background: none;
   border: 0;
-  color: #666;
+  color: var(--dim);
 }
 .reset-eye svg {
   width: 65%;
   vertical-align: middle;
 }
 .reset-eye[aria-pressed="true"] {
-  color: #503099;
+  color: var(--accent-ink);
 }
 .strength {
   display: flex;
@@ -378,22 +378,22 @@ dialog .primary {
   min-width: 0;
   height: 3cqw;
   border: 0;
-  background: #e9e7ed;
+  background: var(--soft);
   border-radius: 99px;
   overflow: hidden;
 }
 .strength meter::-webkit-meter-bar {
   height: 100%;
   border: none;
-  background: #e9e7ed;
+  background: var(--soft);
   border-radius: 99px;
 }
 .strength meter::-webkit-meter-optimum-value {
-  background: linear-gradient(90deg, #763cd4, #1fa998);
+  background: var(--accent);
   border-radius: 99px;
 }
 .strength meter::-moz-meter-bar {
-  background: linear-gradient(90deg, #763cd4, #1fa998);
+  background: var(--accent);
 }
 #passwordRules {
   list-style: none;
@@ -414,9 +414,9 @@ dialog .primary {
   place-items: center;
   width: 1.55em;
   height: 1.55em;
-  background: #eeedf2;
+  background: var(--soft);
   border-radius: 50%;
-  color: #686372;
+  color: var(--dim);
   font-size: 0.95em;
 }
 #passwordRules li[data-met="true"]::before {

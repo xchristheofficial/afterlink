@@ -1,3 +1,4 @@
+import { separated, muted } from "./visibility.mjs";
 import { installSocial } from "./social.mjs";
 import { installComposer, visiblePost } from "./composer.mjs";
 // Public identities are separate from login emails. RADAR is cosmetic, never a role.
@@ -12,6 +13,9 @@ export function installFeed(app, db, session, limit) {
     const user = session(req);
     if (!user) return res.status(401).json({ error: "Please sign in again." });
     res.locals.uid = user.id;
+    db.prepare(
+      "INSERT INTO last_activity SELECT owner,? FROM preferences WHERE owner=? AND json_extract(data,'$.activity')=1 ON CONFLICT(owner) DO UPDATE SET seen=excluded.seen WHERE seen<excluded.seen-30000",
+    ).run(Date.now(), user.id);
     db.exec(
       "INSERT OR IGNORE INTO feed_founder SELECT 1,id FROM users WHERE NOT EXISTS (SELECT 1 FROM retired_profiles WHERE founder=1) ORDER BY id LIMIT 1",
     );
@@ -30,7 +34,7 @@ export function installFeed(app, db, session, limit) {
     const view = req.query.view === "saved" ? "saved" : "feed";
     const posts = db
       .prepare(
-        `SELECT t.id,t.details,t.audience,t.body,t.created,t.author,p.name,p.username,p.founder, s.post_id IS NOT NULL AS saved FROM posts t JOIN feed_profiles p ON p.id=t.author LEFT JOIN saved_posts s ON s.post_id=t.id AND s.user_id=? WHERE ${visiblePost("t", ":viewer")} AND ${view === "saved" ? "s.user_id=?" : "(t.author=? OR t.author IN (SELECT followed FROM follows WHERE follower=?))"} ORDER BY t.id DESC LIMIT 50`,
+        `SELECT t.id,t.details,t.audience,t.body,t.created,t.author,p.name,p.username,p.founder, s.post_id IS NOT NULL AS saved FROM posts t JOIN feed_profiles p ON p.id=t.author LEFT JOIN saved_posts s ON s.post_id=t.id AND s.user_id=? WHERE ${visiblePost("t", ":viewer")} AND ${view === "saved" ? "1" : "NOT " + muted(":viewer", "t.author")} AND ${view === "saved" ? "s.user_id=?" : "(t.author=? OR t.author IN (SELECT followed FROM follows WHERE follower=?))"} ORDER BY t.id DESC LIMIT 50`,
       )
       .all(
         { viewer: uid },
@@ -53,7 +57,13 @@ export function installFeed(app, db, session, limit) {
       FROM feed_profiles p JOIN users u ON u.id=p.id WHERE p.id=?`,
       )
       .get(viewer, id);
-    if (!profile) return res.status(404).json({ error: "Profile not found." });
+    if (
+      !profile ||
+      db
+        .prepare(`SELECT ${separated(":viewer", ":id")} hidden`)
+        .get({ viewer, id }).hidden
+    )
+      return res.status(404).json({ error: "Profile not found." });
     const posts =
       viewer !== id && profile.private && !profile.isFollowing
         ? []
@@ -200,9 +210,9 @@ export function installFeed(app, db, session, limit) {
     res.json({
       people: db
         .prepare(
-          `SELECT p.*,coalesce((SELECT private FROM profile_settings WHERE user_id=p.id),0) AS private,f.follower IS NOT NULL AS following FROM feed_profiles p LEFT JOIN follows f ON f.followed=p.id AND f.follower=? WHERE p.id<>? AND (instr(lower(p.name),?) OR instr(lower(ifnull(p.username,'')),?) OR ?='') ORDER BY p.id LIMIT 50`,
+          `SELECT p.*,coalesce((SELECT private FROM profile_settings WHERE user_id=p.id),0) AS private,f.follower IS NOT NULL AS following FROM feed_profiles p LEFT JOIN follows f ON f.followed=p.id AND f.follower=? WHERE NOT ${separated(":viewer", "p.id")} AND p.id<>? AND (instr(lower(p.name),?) OR instr(lower(ifnull(p.username,'')),?) OR ?='') ORDER BY p.id LIMIT 50`,
         )
-        .all(uid, uid, q, q, q),
+        .all({ viewer: uid }, uid, uid, q, q, q),
     });
   });
   app.post("/api/feed/follow", limit, (req, res) => {
@@ -217,8 +227,11 @@ export function installFeed(app, db, session, limit) {
       return res.status(400).json({ error: "Choose another account." });
     if (
       on &&
-      db.prepare("SELECT private FROM profile_settings WHERE user_id=?").get(id)
-        ?.private
+      (db.prepare(`SELECT ${separated(":uid", ":id")} hidden`).get({ uid, id })
+        .hidden ||
+        db
+          .prepare("SELECT private FROM profile_settings WHERE user_id=?")
+          .get(id)?.private)
     )
       return res.status(403).json({
         error: "This private account is not accepting new followers.",

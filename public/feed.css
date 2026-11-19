@@ -1,11 +1,7 @@
 /* Signed-in layout: all three columns share the same baseline below the toolbar. */
-.home {
-  --brand: linear-gradient(108deg, #7728dc, #147cb2 72%, #16adab);
-  --rule: #dedde1;
-}
 .home#account {
   min-height: 100svh;
-  color: #15131a;
+  color: var(--ink);
   text-align: left;
   font-size: 1rem;
 }
@@ -28,7 +24,7 @@
   height: 1.65em;
   flex: none;
   fill: none;
-  stroke: url(#fg);
+  stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -53,7 +49,7 @@
   justify-content: flex-start;
   gap: 1rem;
   padding: 0.625rem max(1rem, calc((100% - 79rem) / 2));
-  background: #fff;
+  background: var(--panel);
   box-shadow: 0 5px 12px #25253d26;
 }
 .topbar button,
@@ -71,7 +67,7 @@
   margin-inline: auto;
   max-width: 25rem;
   gap: 0.6em;
-  border: 1px solid #8669a6;
+  border: 1px solid var(--edge);
   border-radius: 99px;
   padding: 0.45em 0.85em;
 }
@@ -83,7 +79,7 @@
   color: inherit;
 }
 #peopleSearch:focus-within {
-  outline: 2px solid #8963bb;
+  outline: 2px solid var(--accent-ink);
 }
 #railToggle {
   display: grid;
@@ -135,7 +131,7 @@
 .who small {
   font-size: 0.68em;
   font-weight: 700;
-  color: #644399;
+  color: var(--accent-ink);
   letter-spacing: 0.02em;
 }
 .side-nav {
@@ -177,13 +173,13 @@
 .story-strip {
   display: flex;
   align-items: center;
-  justify-content: space-around;
+  justify-content: flex-start;
   gap: 0.4em;
   padding: 1rem;
   border-bottom: 1px solid var(--rule);
 }
 .story-strip button {
-  flex: 1;
+  flex: none;
   min-width: 0;
   text-align: center;
 }
@@ -216,7 +212,7 @@
   border-bottom: 2px solid var(--rule);
 }
 .compose-box {
-  border: 1px solid #aaa;
+  border: 1px solid var(--edge);
   border-radius: 1.3em;
   flex: 1;
   min-width: 0;
@@ -233,16 +229,14 @@
   flex: 1;
   min-width: 0;
   text-align: left;
-  color: #58565a;
+  color: var(--dim);
 }
 .banner {
   border-radius: 1rem;
   margin: 0.75rem 1rem 0;
   text-align: center;
   padding: 0.7em;
-  background:
-    radial-gradient(ellipse at bottom left, #b76ddd99, transparent 50%),
-    var(--brand);
+  background: var(--brand);
   color: #fff;
   box-shadow: 0 4px 10px #36265628;
 }
@@ -300,12 +294,12 @@
   font-size: 1.35em;
 }
 .welcome-card h3 span {
-  color: #7b46bd;
+  color: var(--accent-ink);
 }
 .welcome-card p,
 .welcome-card li {
   font-size: 0.92em;
-  color: #49474c;
+  color: var(--dim);
 }
 .welcome-card li {
   margin-bottom: 1em;
@@ -329,7 +323,7 @@
 .feed-row small,
 .feed-row time {
   font-size: 0.8em;
-  color: #656168;
+  color: var(--dim);
 }
 .feed-row small {
   display: block;
@@ -340,11 +334,11 @@
 .home .mini-action,
 #settingsLinks button,
 #cancelPost {
-  border: 1px solid #cabedf;
+  border: 1px solid var(--edge);
   border-radius: 1.3em;
   padding: 0.35em 0.9em;
-  background: #faf8fc;
-  color: #573782;
+  background: var(--soft);
+  color: var(--accent-ink);
 }
 .home #settingsLinks nav {
   display: flex;
@@ -520,7 +514,7 @@
     transform: scale(0.97);
   }
   .home button:not(:disabled):hover {
-    background-color: #ede8f566;
+    background-color: var(--wash);
   }
   .side-nav button:hover {
     transform: translateX(2px);
@@ -549,11 +543,17 @@
   padding: 0.35em 0.75em;
   margin: 0.3em 0.5em 0.3em 0;
   border-radius: 1em;
-  background: #f5f2fa;
-  color: #573584;
+  background: var(--wash);
+  color: var(--accent-ink);
   text-decoration: none;
   font-size: 0.92em;
 }
 .home .post-detail-link:hover {
   text-decoration: underline;
+}
+
+.story-strip a {
+  color: var(--accent-ink);
+  font-weight: 650;
+  margin-inline-start: 0.75rem;
 }

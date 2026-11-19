@@ -13,6 +13,7 @@ import {
   media,
   tabs,
   icon,
+  withIcon,
 } from "./social-ui.js";
 export async function search(root, q) {
   const groups = box("result-groups"),
@@ -60,7 +61,7 @@ export async function search(root, q) {
           } else hero.append(n("p", "", p.body));
           if (reel)
             hero.append(
-              n("b", "play-icon", "▶"),
+              box("play-icon", icon("play")),
               n("small", "view-count", p.views + " views"),
             );
           link.append(
@@ -110,6 +111,8 @@ export async function notifications(root, q) {
     groups,
   );
   const labels = {
+    message: "sent you a message",
+    reel: "published a reel",
     follow: "started following you",
     mention: "mentioned you",
     comment: "commented on your post",
@@ -144,7 +147,11 @@ export async function notifications(root, q) {
       groups.append(n("h2", "subtle", seen ? "Earlier" : "New"));
       for (const i of list) {
         const view = a(
-          i.post_id ? "/post/" + i.post_id : "/profile/" + i.actor,
+          i.kind === "message"
+            ? "/messages/" + i.actor
+            : i.post_id
+              ? "/post/" + i.post_id
+              : "/profile/" + i.actor,
           "",
           "notice-link",
         );
@@ -238,8 +245,19 @@ export async function reels(root, q, id) {
       n("p", "", post.body),
       n("small", "subtle", post.views + " views"),
     );
-    const overlay = button("▶", () => player.play(), "big-play");
-    overlay.setAttribute("aria-label", "Play reel");
+    if (!own)
+      caption.append(
+        a(
+          "/safety?id=" + author.id + "&post=" + p.id,
+          "Report or Block",
+          "moderate",
+        ),
+      );
+    const overlay = withIcon(
+      button("", () => player.play(), "big-play"),
+      "play",
+      "Play reel",
+    );
     player.addEventListener("play", () => (overlay.hidden = true));
     player.addEventListener("pause", () => (overlay.hidden = false));
     center.replaceChildren(box("player", player, overlay), caption);
@@ -289,7 +307,7 @@ export async function reels(root, q, id) {
     thumbnail.preload = "metadata";
     thumbnail.src += "#t=0.1";
     b.append(
-      box("reel-thumb", thumbnail, n("b", "", "▶")),
+      box("reel-thumb", thumbnail),
       n("strong", "", p.body || "Video by " + p.name),
       n("small", "", p.name),
     );

@@ -284,7 +284,10 @@ try {
   await page.getByRole("button", { name: "Save post", exact: true }).click();
   await page.getByRole("button", { name: "Unsave", exact: true }).waitFor();
   await page.locator('.side-nav [data-view="Saved"]').click();
-  await page.locator("#feedRows").getByText("My first real post.").waitFor();
+  await page
+    .locator(".library-item")
+    .getByText("My first real post.")
+    .waitFor();
   await page.getByRole("link", { name: "AfterLink home" }).click();
   await page.locator("#feedPanel").waitFor();
   await page.locator("#feedRows").getByText("My first real post.").waitFor();

@@ -1,10 +1,6 @@
 .social {
-  --accent: linear-gradient(110deg, #526de4, #7423cc);
-  --line: #dedee5;
-  --muted: #666571;
-  --paper: #fff;
-  background: #f5f5f8;
-  color: #16151c;
+  background: var(--soft);
+  color: var(--ink);
   font-size: clamp(16px, 1.38vw, 22px);
   min-height: 100svh;
   overflow-wrap: anywhere;
@@ -23,7 +19,7 @@
   text-decoration: underline;
 }
 .social button {
-  background: #fff;
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 0.85em;
   padding: 0.45em 0.85em;
@@ -86,13 +82,13 @@
 }
 .social input {
   min-width: 0;
-  border: 1px solid #cfced7;
-  background: #f2f2f6;
+  border: 1px solid var(--edge);
+  background: var(--soft);
   border-radius: 1.8em;
   padding: 0.65em 1em;
 }
 .social :focus-visible {
-  outline: 3px solid #7468dd;
+  outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
 }
 #socialBar {
@@ -116,11 +112,11 @@
   align-items: center;
   gap: 0.6em;
   flex: 1;
-  background: #f0f0f5;
-  border: 1px solid #dedde3;
+  background: var(--soft);
+  border: 1px solid var(--edge);
   padding: 0.15em 0.9em;
   border-radius: 3em;
-  color: #696975;
+  color: var(--dim);
 }
 #socialSearch input {
   width: 100%;
@@ -139,7 +135,7 @@
   justify-items: center;
   align-items: center;
   font-size: 0.85em;
-  color: #5934b6;
+  color: var(--accent-ink);
   font-weight: 650;
 }
 #socialNav svg {
@@ -186,17 +182,17 @@
 }
 .social .count {
   display: inline-block;
-  background: #7061bb;
+  background: var(--tone);
   color: white;
   border-radius: 1em;
   padding: 0.1em 0.55em;
   font-size: 0.8em;
 }
 .social [aria-pressed="true"] {
-  color: #6925b7;
+  color: var(--accent-ink);
 }
 .social .outline {
-  border-color: #c6c3ce;
+  border-color: var(--edge);
   border-radius: 2em;
   background: transparent;
 }
@@ -207,11 +203,11 @@
 .inbox-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  height: calc(100svh - clamp(84px, 15vh, 160px));
+  height: calc(100svh - 64px);
 }
 .chat-list {
   padding: clamp(16px, 2.5vw, 42px);
-  background: white;
+  background: var(--panel);
   border-right: 1px solid var(--line);
   overflow: auto;
 }
@@ -253,7 +249,7 @@
 .thread-row:hover,
 .thread-row.current,
 .thread-row:has(.count) {
-  background: #ebe1fc;
+  background: var(--wash);
 }
 .stamp {
   margin-left: auto;
@@ -264,7 +260,7 @@
   white-space: nowrap;
 }
 .chat-right {
-  background: #f5f4fa;
+  background: var(--soft);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -276,15 +272,21 @@
   justify-items: center;
   height: 100%;
   gap: 0.6em;
-  color: #484650;
+  color: var(--dim);
 }
-.chat-illustration {
-  width: 66%;
-  margin-bottom: 5vh;
+.chat-prompt-mark {
+  display: grid;
+  place-items: center;
+  width: 3.2em;
+  height: 3.2em;
+  border-radius: 50%;
+  margin-bottom: 0.6em;
+  background: var(--wash);
+  color: var(--accent-ink);
 }
 .social[data-screen="thread"] {
   padding: 1vw;
-  background: #edeef4;
+  background: var(--soft);
 }
 .social[data-screen="thread"] #socialBar {
   border-radius: 1em;
@@ -292,18 +294,18 @@
   margin-bottom: 1vw;
 }
 .social[data-screen="thread"] .inbox-layout {
-  height: calc(100svh - clamp(84px, 15vh, 160px) - 3vw);
+  height: calc(100svh - 64px - 3vw);
   grid-template-columns: 37% 63%;
   border-radius: 1em;
   overflow: hidden;
 }
 .social[data-screen="thread"] .chat-list {
-  background: #eeeff5;
+  background: var(--soft);
 }
 .thread-head,
 .send-bar {
   padding: 0.85em 1.1em;
-  background: white;
+  background: var(--panel);
 }
 .thread-head .info-link {
   margin-left: auto;
@@ -320,7 +322,7 @@
   align-items: flex-start;
   gap: 0.65em;
   padding: 1.2em;
-  background: #f5f6f9;
+  background: var(--soft);
 }
 .chat-log .empty-state {
   align-self: center;
@@ -329,7 +331,7 @@
 .bubble {
   max-width: 85%;
   padding: 0.85em 1.1em;
-  background: white;
+  background: var(--panel);
   border-radius: 1.3em;
   box-shadow: 0 4px 15px #3026490c;
 }
@@ -345,7 +347,7 @@
 .bubble.mine {
   align-self: flex-end;
   color: white;
-  background: linear-gradient(110deg, #7733e3, #257eae, #189e99);
+  background: var(--accent);
 }
 .bubble.mine small {
   color: #f4eaff;
@@ -392,17 +394,13 @@
   border-radius: 1.4em;
   padding: 0.4em 1.3em;
 }
-.social[data-screen="search"] #socialBar {
-  background: #1a1933;
-  color: white;
-}
 .social[data-screen="search"] #surface {
-  background: white;
+  background: var(--panel);
   min-height: 82vh;
 }
 .social[data-screen="search"] .tabs {
   padding: 0.65em 3vw;
-  background: #f4f4f7;
+  background: var(--soft);
 }
 .result-groups,
 .social[data-screen="notifications"] #surface {
@@ -427,7 +425,7 @@
 .person-card {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fafafa;
+  background: var(--soft);
   display: grid;
   justify-items: center;
   gap: 0.5em;
@@ -450,7 +448,7 @@
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-  background: #efebfa;
+  background: var(--wash);
   aspect-ratio: 2.6;
   padding: 0;
 }
@@ -476,7 +474,7 @@
 }
 .no-results {
   grid-column: 1/-1;
-  background: #f8f8fa;
+  background: var(--soft);
   padding: 1em;
   border-radius: 12px;
   color: var(--muted);
@@ -494,7 +492,7 @@
 .social .mark-all {
   border: 0;
   background: transparent;
-  color: #5929a1;
+  color: var(--accent-ink);
 }
 .notice-groups h2 {
   font-weight: 450;
@@ -506,13 +504,13 @@
   align-items: center;
   gap: 0.5em;
   padding: 0.7em 0.85em;
-  background: white;
+  background: var(--panel);
   border-radius: 0.6em;
   margin-bottom: 0.6em;
 }
 .notice.unread {
-  background: #e5d7fa;
-  border-left: 5px solid #7442c5;
+  background: var(--wash);
+  border-left: 5px solid var(--tone);
 }
 .notice-link {
   flex: 1;
@@ -539,7 +537,7 @@
   border-right: 1px solid var(--line);
 }
 .media-frame {
-  background: #e9e7f1;
+  background: var(--soft);
   border-radius: 1em;
   display: grid;
   place-items: center;
@@ -556,12 +554,12 @@
 .media-frame blockquote {
   font-size: clamp(19px, 2.4vw, 38px);
   line-height: 1.4;
-  color: #393249;
+  color: var(--ink);
 }
 .slide-controls {
   position: absolute;
   bottom: 0.4em;
-  background: #fff9;
+  background: var(--panel);
   border-radius: 1em;
   display: flex;
   align-items: center;
@@ -633,22 +631,9 @@
   justify-content: space-between;
 }
 .social .published-poll button[aria-pressed="true"] {
-  background: #ebe0ff;
+  background: var(--wash);
 }
-/* Dark screening room. The only playable footage is a member's uploaded video. */
-.social[data-screen="reels"] {
-  --paper: #0a0c14;
-  --line: #282a33;
-  --muted: #abaabb;
-  background: #0a0c14;
-  color: #fafafa;
-}
-.social[data-screen="reels"] #socialSearch,
-.social[data-screen="reels"] button {
-  background: #151721;
-  border-color: #2a2c38;
-  color: #ddd;
-}
+/* Reel panels follow the site palette; only the video canvas is black. */
 .social[data-screen="reels"] #surface {
   padding: 2vw 2.8vw;
   display: grid;
@@ -659,8 +644,8 @@
 .player,
 .reel-caption,
 .reel-center > .empty-state {
-  background: #11131d;
-  border: 1px solid #272a34;
+  background: var(--panel);
+  border: 1px solid var(--edge);
   border-radius: 1em;
   padding: 1em;
 }
@@ -672,7 +657,7 @@
   gap: 0.8em;
 }
 .reel-list .eyebrow {
-  color: #abaabb;
+  color: var(--dim);
 }
 .reel-list button {
   display: grid;
@@ -687,7 +672,7 @@
   white-space: nowrap;
 }
 .social .reel-list [aria-pressed="true"] {
-  border: 2px solid #5dc7d0;
+  border: 2px solid var(--accent-ink);
 }
 .reel-thumb {
   position: relative;
@@ -732,17 +717,17 @@
 .reel-actions :is(a, button) {
   flex-direction: column;
   border: 1px solid var(--line);
-  background: #11131a;
+  background: var(--panel);
   border-radius: 50%;
   width: clamp(55px, 8vw, 114px);
   aspect-ratio: 1;
   font-size: 0.88em;
 }
 .reel-actions svg {
-  color: #70c3e3;
+  color: var(--dim);
 }
-.reel-actions button:first-child svg {
-  color: #ec77ae;
+.reel-actions [aria-pressed="true"] svg {
+  color: var(--accent-ink);
 }
 .reel-actions [aria-pressed="true"] svg,
 .post-actions [aria-pressed="true"] svg {
@@ -753,8 +738,8 @@
   display: grid;
   align-content: center;
   justify-items: center;
-  background: radial-gradient(ellipse at bottom right, #19223a, #11131d);
-  color: #dedee8;
+  background: var(--panel);
+  color: var(--dim);
 }
 @media (max-width: 760px) {
   #socialBar {
@@ -925,7 +910,7 @@
   display: flex;
   align-items: center;
   gap: 1em;
-  background: #fff;
+  background: var(--panel);
   padding: 0.45em 0.8em;
 }
 .attachment img {
@@ -966,7 +951,7 @@
   aspect-ratio: 1;
   border-radius: 50%;
   border: 0;
-  background: linear-gradient(110deg, #455cdb, #169dbc);
+  background: var(--accent);
   color: white;
   font-size: clamp(22px, 3vw, 48px);
   padding: 0;
@@ -974,12 +959,6 @@
 .social .reel-actions svg {
   width: 2.4em;
   height: 2.4em;
-}
-.social[data-screen="reels"] #socialNav a {
-  color: #a38aea;
-}
-.social[data-screen="search"] #socialNav a {
-  color: #967bea;
 }
 .select-chat h2 {
   font-size: clamp(25px, 3vw, 46px);
@@ -997,4 +976,14 @@
   .social[data-screen="post"] .nav-glyph {
     width: 26px;
   }
+}
+
+.social .play-icon,
+.social .player .big-play {
+  display: grid;
+  place-items: center;
+}
+.social :is(.big-play, .play-icon) svg {
+  width: 1em;
+  height: 1em;
 }

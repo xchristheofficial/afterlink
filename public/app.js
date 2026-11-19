@@ -30,6 +30,8 @@ function showPassword(show) {
   );
 }
 function update() {
+  $("factorField").hidden = true;
+  $("factorCode").value = "";
   const signup = mode === "signup";
   document.querySelector(".inside").dataset.mode = mode;
   for (const field of registration) {
@@ -211,7 +213,8 @@ $("form").onsubmit = async (event) => {
   busy = true;
   $("submit").disabled = true;
   try {
-    await post("/api/" + mode, {
+    const result = await post("/api/" + mode, {
+      code: $("factorCode").value,
       email: $("email").value,
       ...(mode === "signup" && {
         fullName: $("fullName").value,
@@ -220,6 +223,11 @@ $("form").onsubmit = async (event) => {
       }),
       password: $("password").value,
     });
+    if (result.requiresCode) {
+      $("factorField").hidden = false;
+      $("factorCode").focus();
+      return;
+    }
     location.replace("/home");
   } catch (e) {
     error(e.message);
@@ -254,7 +262,7 @@ $("google").onclick = async () => {
 const target = new URLSearchParams(location.search).get("profile");
 const allowedSocial = (s) =>
   typeof s === "string" &&
-  /^\/(?:messages(?:\/[1-9]\d*)?|notifications|search|reels|post\/[1-9]\d*)(?:\?[^\s\\#]*)?$/.test(
+  /^\/(?:messages(?:\/[1-9]\d*)?|notifications|settings(?:\/(?:privacy|notifications|appearance|security))?|connections|saved|safety|stories(?:\/create)?|search|reels|post\/[1-9]\d*)(?:\?[^\s\\#]*)?$/.test(
     s,
   );
 const nextPage = new URLSearchParams(location.search).get("next");

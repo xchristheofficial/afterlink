@@ -1,0 +1,94 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg">
+  <symbol id="home" viewBox="0 0 24 24">
+    <path d="M2 11 12 2l10 9v10h-7v-7H9v7H2z"/>
+  </symbol>
+  <symbol id="explore" viewBox="0 0 24 24">
+    <path d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z M16 8l-3 6-5 2 3-6z"/>
+  </symbol>
+  <symbol id="reels" viewBox="0 0 24 24">
+    <path d="M2 5h14v14H2z M17 10l5-4v12l-5-4z"/>
+  </symbol>
+  <symbol id="messages" viewBox="0 0 24 24">
+    <path d="M2 4h20v13H9l-5 4v-4H2z M7 10h.1m4.9 0h.1m4.9 0h.1"/>
+  </symbol>
+  <symbol id="save" viewBox="0 0 24 24">
+    <path d="M5 3h14v19l-7-5-7 5z"/>
+  </symbol>
+  <symbol id="settings" viewBox="0 0 24 24">
+    <path d="M5 6h16M3 12h18M3 18h16 M8 3v6m8 0v6m-9 0v6"/>
+  </symbol>
+  <symbol id="notifications" viewBox="0 0 24 24">
+    <path d="M3 17h18l-2-4V9a7 7 0 1 0-14 0v4z M10 21h4"/>
+  </symbol>
+  <symbol id="search" viewBox="0 0 24 24">
+    <path d="M16 9a7 7 0 1 1-14 0 7 7 0 1 1 14 0z M14 15l8 7"/>
+  </symbol>
+  <symbol id="photo" viewBox="0 0 24 24">
+    <path d="M2 3h20v18H2z M2 18l7-8 5 5 3-3 5 5"/>
+  </symbol>
+  <symbol id="smile" viewBox="0 0 24 24">
+    <path d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z M7 14q5 7 10 0 M8 8h.1m7.9 0h.1"/>
+  </symbol>
+  <symbol id="heart" viewBox="0 0 24 24">
+    <path d="M12 21 3 12C-2 5 7-1 12 6c5-7 14-1 9 6z"/>
+  </symbol>
+  <symbol id="share" viewBox="0 0 24 24">
+    <path d="M12 15V2m-5 5 5-5 5 5 M6 10H3v12h18V10h-3"/>
+  </symbol>
+  <symbol id="shield" viewBox="0 0 24 24">
+    <path d="M12 2 3 6v6c0 5 5 8 9 10 4-2 9-5 9-10V6z M8 12l3 3 5-6"/>
+  </symbol>
+  <symbol id="block" viewBox="0 0 24 24">
+    <path d="M21 12a9 9 0 1 1-18 0 9 9 0 1 1 18 0z M6 6l12 12"/>
+  </symbol>
+  <symbol id="user" viewBox="0 0 24 24">
+    <path d="M16 7a4 4 0 1 1-8 0 4 4 0 1 1 8 0z M3 21c0-9 18-9 18 0z"/>
+  </symbol>
+  <symbol id="flag" viewBox="0 0 24 24">
+    <path d="M5 22V3q4-2 8 0t8 0v10q-4 2-8 0t-8 0"/>
+  </symbol>
+  <symbol id="palette" viewBox="0 0 24 24">
+    <path d="M12 2a10 10 0 1 0 0 20q4 0 2-4t3-3q5 0 5-5c0-4-5-8-10-8z M7 9h.1M12 6h.1M17 9h.1"/>
+  </symbol>
+  <symbol id="lock" viewBox="0 0 24 24">
+    <path d="M4 10h16v12H4z M7 10V7a5 5 0 0 1 10 0v3 M12 15v3"/>
+  </symbol>
+  <symbol id="mail" viewBox="0 0 24 24">
+    <path d="M2 4h20v16H2z M2 5l10 8L22 5"/>
+  </symbol>
+  <symbol id="info" viewBox="0 0 24 24">
+    <path d="M22 12a10 10 0 1 1-20 0 10 10 0 1 1 20 0z M12 11v6 M12 7h.1"/>
+  </symbol>
+  <symbol id="plus" viewBox="0 0 24 24">
+    <path d="M12 3v18 M3 12h18"/>
+  </symbol>
+  <symbol id="back" viewBox="0 0 24 24">
+    <path d="m15 4-8 8 8 8"/>
+  </symbol>
+  <symbol id="next" viewBox="0 0 24 24">
+    <path d="m9 4 8 8-8 8"/>
+  </symbol>
+  <symbol id="poll" viewBox="0 0 24 24">
+    <path d="M4 20v-9h3v9z M10 20V3h3v17z M16 20V8h3v12z"/>
+  </symbol>
+  <symbol id="location" viewBox="0 0 24 24">
+    <path d="M12 22S4 13 4 9a8 8 0 0 1 16 0c0 4-8 13-8 13z M15 9a3 3 0 1 1-6 0 3 3 0 1 1 6 0z"/>
+  </symbol>
+  <symbol id="gif" viewBox="0 0 24 24">
+    <path d="M2 4h20v16H2z M9 9H5v6h4v-3H7 M12 9v6 M15 15V9h4m-4 3h3"/>
+  </symbol>
+  <symbol id="mute" viewBox="0 0 24 24">
+    <path d="M3 9h4l5-5v16l-5-5H3z M16 9l6 6m0-6-6 6"/>
+  </symbol>
+  <symbol id="more" viewBox="0 0 24 24">
+    <path d="M4 12h.1M12 12h.1M20 12h.1"/>
+  </symbol>
+  <symbol id="close" viewBox="0 0 24 24">
+    <path d="M5 5l14 14M19 5 5 19"/>
+  </symbol>
+  <symbol id="eye" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Zm11 4.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0-2a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"/>
+  </symbol>
+  <symbol id="play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8z" fill="currentColor"/></symbol>
+</svg>

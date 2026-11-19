@@ -106,6 +106,16 @@ const memberPage = (() => {
       el("memberHandle").textContent = p.username ? "@" + p.username : "";
       el("memberBio").textContent =
         p.bio || "Just joined AfterLink. Connect After. Link Forever.";
+      for (const key of ["Followers", "Following"]) {
+        el("list" + key).href =
+          "/connections?id=" + p.id + "&tab=" + key.toLowerCase();
+        const count = el(
+          key === "Followers" ? "followerCount" : "followingCount",
+        );
+        count.onclick = () => location.assign(el("list" + key).href);
+      }
+      el("profileSafety").hidden = own;
+      el("profileSafety").href = "/safety?id=" + p.id;
       el("postCount").textContent = p.postCount;
       el("followerCount").textContent = p.followers;
       el("followingCount").textContent = p.following;

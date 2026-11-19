@@ -5,7 +5,7 @@
   min-height: 0;
   height: calc(100dvh - 2 * var(--shell));
   border-radius: 24px;
-  background: #f4f5f7;
+  background: var(--soft);
   box-shadow: 0 12px 46px #22232c26;
   display: flex;
   flex-direction: column;
@@ -34,7 +34,7 @@
   flex-direction: column;
   width: min(100%, 76.5vw, 1230px);
   overflow: hidden;
-  background: white;
+  background: var(--panel);
   border-radius: clamp(15px, 1.6vw, 26px);
   box-shadow: 0 10px 32px #23232d27;
   font-size: clamp(15px, 1.5vw, 23px);
@@ -65,12 +65,12 @@
   margin: 0;
   line-height: 1.18;
   letter-spacing: -0.04em;
-  color: #333;
+  color: var(--ink);
 }
 .create-title button {
-  background: #f1f1f3;
+  background: var(--soft);
   border-radius: 0.35em;
-  color: #68686e;
+  color: var(--dim);
   font-size: 1.65em;
   min-width: 1.85em;
   line-height: 1.12;
@@ -102,22 +102,22 @@
 }
 .post-identity small {
   display: block;
-  color: #6c6972;
+  color: var(--dim);
 }
 .post-identity select {
   margin-left: clamp(4px, 2vw, 32px);
   font: inherit;
-  border: 1px solid #a6a6aa;
+  border: 1px solid var(--edge);
   border-radius: 0.65em;
   padding: 0.42em;
-  background: #f3f3f4;
+  background: var(--soft);
 }
 .post-writing {
   display: grid;
   border-radius: 0.8em;
   padding: 0.75em 0.85em 0.45em;
-  background: #f6f6f8;
-  border: 1px solid #d2d2d4;
+  background: var(--soft);
+  border: 1px solid var(--edge);
 }
 #postText {
   resize: vertical;
@@ -131,7 +131,7 @@
 }
 .post-writing small {
   text-align: right;
-  color: #686871;
+  color: var(--dim);
 }
 .post-tools {
   display: flex;
@@ -146,8 +146,8 @@
   flex: 1 1 auto;
   gap: 0.3em;
   padding: 0.38em;
-  border: 1px solid #96959a;
-  background: #f1f1f2;
+  border: 1px solid var(--edge);
+  background: var(--soft);
   border-radius: 0.7em;
   font-weight: 650;
   font-size: 0.96em;
@@ -160,8 +160,8 @@
   mix-blend-mode: multiply;
 }
 .post-tools [aria-expanded="true"] {
-  background: #ece3fc;
-  border-color: #854ab9;
+  background: var(--wash);
+  border-color: var(--edge);
 }
 .post-extras label,
 .post-extras fieldset {
@@ -170,7 +170,7 @@
   margin: 0 0 0.8em;
 }
 .post-extras fieldset {
-  border: 1px solid #d6cbea;
+  border: 1px solid var(--edge);
   border-radius: 12px;
 }
 .post-extras input,
@@ -178,18 +178,18 @@
   font: inherit;
   padding: 0.5em;
   border-radius: 8px;
-  border: 1px solid #bbb6c1;
-  background: white;
+  border: 1px solid var(--edge);
+  background: var(--panel);
 }
 #postDrop {
-  border: 2px dashed #a187bb;
+  border: 2px dashed var(--edge);
   border-radius: 1em;
-  background: #f1ebfa;
+  background: var(--wash);
   padding: 1em 0.9em 0.35em;
 }
 #postDrop.dragging {
-  background: #e0d1f2;
-  border-color: #702fb0;
+  background: var(--wash);
+  border-color: var(--edge);
 }
 #browsePost {
   display: grid;
@@ -199,14 +199,14 @@
   font-size: 1.13em;
 }
 #browsePost .fi {
-  color: #7129ad;
+  color: var(--accent-ink);
   stroke: currentColor;
 }
 #browsePost b {
   font-weight: 600;
 }
 #browsePost small {
-  color: #635c6a;
+  color: var(--dim);
   font-size: 0.79em;
 }
 #postPreviews,
@@ -222,8 +222,8 @@
   display: block;
   height: clamp(40px, 7.8vh, 84px);
   border-radius: 0.7em;
-  border: 1px dashed #aaa6ac;
-  background: #f4f3f5;
+  border: 1px dashed var(--edge);
+  background: var(--soft);
 }
 #postPreviews > div {
   position: relative;
@@ -234,14 +234,14 @@
   width: 100%;
   max-height: 320px;
   object-fit: contain;
-  background: #eee;
+  background: var(--soft);
   border-radius: 10px;
 }
 #postPreviews button {
   position: absolute;
   right: 0.3em;
   top: 0.3em;
-  background: white;
+  background: var(--panel);
   border-radius: 50%;
   width: 1.6em;
   height: 1.6em;
@@ -252,14 +252,14 @@
   margin: 0.65em 0;
 }
 .published-poll button {
-  border: 1px solid #cfc8d6;
+  border: 1px solid var(--edge);
   border-radius: 9px;
   padding: 0.5em;
   text-align: left;
 }
 .published-poll [aria-pressed="true"] {
-  background: #eee3ff;
-  color: #582d89;
+  background: var(--wash);
+  color: var(--accent-ink);
 }
 .published-extra:empty,
 #postError:empty {
@@ -270,8 +270,8 @@
   align-items: center;
   gap: 0.7em;
   margin: 0;
-  background: #f2f2f4;
-  border-top: 1px solid #c4c4c9;
+  background: var(--soft);
+  border-top: 1px solid var(--edge);
   padding-block: clamp(9px, 1.5vh, 16px);
 }
 .create-footer button {
@@ -284,7 +284,7 @@
   align-items: center;
   gap: 0.6em;
   margin-right: auto;
-  color: #55545b;
+  color: var(--dim);
 }
 .create-footer svg {
   width: 1.5em;
@@ -293,13 +293,13 @@
 .create-footer #cancelPost,
 .create-footer #publishPost {
   border-radius: 0.65em;
-  border: 1px solid #666;
+  border: 1px solid var(--edge);
   padding: 0.36em 1.1em;
-  color: #17141a;
+  color: var(--ink);
   font-weight: 650;
 }
 .create-footer #publishPost {
-  background: linear-gradient(106deg, #751bda, #128fb0 85%, #18a6a5);
+  background: var(--accent);
   color: white;
   border-color: transparent;
 }
@@ -313,8 +313,8 @@
 }
 .draft-actions button {
   font: inherit;
-  border: 1px solid #c8bfd0;
-  background: #f7f4fb;
+  border: 1px solid var(--edge);
+  background: var(--soft);
   border-radius: 9px;
   padding: 0.6em;
 }
