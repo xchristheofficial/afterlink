@@ -65,7 +65,7 @@ app.use("/api", (req, res, next) => {
 app.use("/api/feed/profile", express.json({ limit: "100kb" }));
 const smallJson = express.json({ limit: "4kb" });
 app.use((req, res, next) =>
-  /^\/api\/feed\/(posts|draft)\/?$/.test(req.path)
+  /^\/api\/feed\/(posts|draft|thread\/[1-9]\d*)\/?$/.test(req.path)
     ? next()
     : smallJson(req, res, next),
 );
@@ -276,6 +276,24 @@ app.get("/auth/google/callback", limit, async (req, res) => {
     return res.redirect("/?auth=failed");
   }
 });
+app.get(
+  [
+    "/messages",
+    "/messages/:peer",
+    "/notifications",
+    "/search",
+    "/reels",
+    "/post/:id",
+  ],
+  (req, res) => {
+    res.set("Cache-Control", "no-store");
+    if (!session(req))
+      return res.redirect(
+        "/?auth=session&next=" + encodeURIComponent(req.originalUrl),
+      );
+    res.sendFile(resolve(dir, "public/social.html"));
+  },
+);
 app.get(["/home", "/create", "/profile", "/profile/:id"], (req, res) => {
   res.set("Cache-Control", "no-store");
   if (!session(req)) {

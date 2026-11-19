@@ -252,7 +252,15 @@ $("google").onclick = async () => {
 };
 // Remember only an internal numeric profile destination across sign-in, including OAuth.
 const target = new URLSearchParams(location.search).get("profile");
+const allowedSocial = (s) =>
+  typeof s === "string" &&
+  /^\/(?:messages(?:\/[1-9]\d*)?|notifications|search|reels|post\/[1-9]\d*)(?:\?[^\s\\#]*)?$/.test(
+    s,
+  );
+const nextPage = new URLSearchParams(location.search).get("next");
 try {
+  if (location.pathname === "/" && allowedSocial(nextPage))
+    sessionStorage.setItem("afterlink.returnProfile", nextPage);
   if (
     location.pathname === "/" &&
     (target === "edit" || target === "me" || /^[1-9]\d*$/.test(target))
@@ -265,6 +273,7 @@ function returnProfile() {
   try {
     const id = sessionStorage.getItem("afterlink.returnProfile");
     sessionStorage.removeItem("afterlink.returnProfile");
+    if (allowedSocial(id)) return id;
     return id === "edit"
       ? "/profile/edit"
       : id === "me"

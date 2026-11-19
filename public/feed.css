@@ -544,3 +544,16 @@
     }
   }
 }
+.home .post-detail-link {
+  display: inline-block;
+  padding: 0.35em 0.75em;
+  margin: 0.3em 0.5em 0.3em 0;
+  border-radius: 1em;
+  background: #f5f2fa;
+  color: #573584;
+  text-decoration: none;
+  font-size: 0.92em;
+}
+.home .post-detail-link:hover {
+  text-decoration: underline;
+}

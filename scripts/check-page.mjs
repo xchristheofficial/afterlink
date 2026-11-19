@@ -1,3 +1,4 @@
+import { checkSocial } from "./check-social.mjs";
 // Run with npm run test:ui after installing Playwright Chromium. Never uses the live DB.
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
@@ -28,7 +29,8 @@ try {
   browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH,
   });
-  const page = await browser.newPage({ baseURL: url });
+  const owner = await browser.newContext({ baseURL: url });
+  const page = await owner.newPage();
   const errors = [];
   page.on("pageerror", (err) => errors.push(err.message));
   await page.goto(url + "/home");
@@ -157,8 +159,10 @@ try {
   assert.equal(await toggle.getAttribute("aria-expanded"), "false");
   assert.ok((await menu.boundingBox()).width < expandedWidth);
   await menu.getByRole("button", { name: "Notifications" }).click();
-  await page.getByRole("dialog", { name: "Notifications" }).waitFor();
-  await page.keyboard.press("Escape");
+  await page
+    .getByRole("heading", { name: "Notifications", exact: true })
+    .waitFor();
+  await page.getByRole("link", { name: "AfterLink home" }).click();
   await page.reload();
   await toggle.waitFor();
   assert.equal(await toggle.getAttribute("aria-label"), "Expand sidebar");
@@ -189,6 +193,10 @@ try {
   await page.getByRole("button", { name: "Edit Profile" }).click();
   await page.locator("#editForm").waitFor();
   assert.equal(new URL(page.url()).pathname, "/profile/edit");
+  assert.equal(await page.locator(".profile-nav > :visible").count(), 1);
+  assert.ok(await page.getByRole("link", { name: "My profile" }).isVisible());
+  const editCard = await page.locator(".edit-card").boundingBox();
+  assert.ok(editCard.width <= 800 && editCard.y + editCard.height <= 721);
   assert.equal(await page.inputValue("#editEmail"), email);
   assert.ok(await page.locator("#badgeNote").isVisible());
   await page.setViewportSize({ width: 320, height: 650 });
@@ -351,8 +359,8 @@ try {
     0,
   );
   await otherPage.locator('.side-nav [data-view="Explore"]').click();
-  await otherPage.locator("#feedRows .verified-mark").waitFor();
-  await otherPage.locator("#feedRows .author-link").first().click();
+  await otherPage.locator(".person-card .verified-mark").waitFor();
+  await otherPage.locator(".person-card .person-link").first().click();
   await otherPage
     .getByRole("button", { name: "Unfollow", exact: true })
     .waitFor();
@@ -372,12 +380,21 @@ try {
     await second.request.get(profileAPI + "?id=" + founder)
   ).json();
   assert.equal(details.contact, undefined);
+  await checkSocial({
+    page,
+    second,
+    url,
+    peer: initial.profile.id,
+    author: founder,
+    postId: ownPost.id,
+    browser,
+  });
   const update = await page.request.post(profileAPI, {
     headers,
     data: { name: "RADAR", bio: "Building AfterLink", private: true },
   });
   assert.ok(update.ok());
-  assert.equal((await secondFeed()).posts.length, 1);
+  assert.ok((await secondFeed()).posts.some((p) => p.id === ownPost.id));
   await second.request.post("/api/feed/save", {
     headers,
     data: { id: details.posts[0].id, on: true },
@@ -489,7 +506,7 @@ try {
   assert.equal(new URL(page.url()).pathname, "/home");
   assert.deepEqual(errors, []);
   console.log(
-    "Browser checks passed: auth and recovery, responsive layout, profiles, composer, drafts, voting, protected media and account lifecycle.",
+    "Browser checks passed: auth and recovery, responsive layout, profiles, composer, drafts, voting, protected media, messaging, notifications, discovery, reels, comments and account lifecycle.",
   );
 } finally {
   await browser?.close();

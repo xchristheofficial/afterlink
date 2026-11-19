@@ -114,7 +114,7 @@ const profileEditor = (() => {
     async open(service) {
       api = service;
       document.title = "Edit Profile · AfterLink";
-      el("account").classList.add("editor-screen");
+      el("account").classList.add("compact-editor");
       document.querySelector(".feed-brand").src = "/assets/editor-brand.webp";
       el("memberPage").hidden = true;
       el("editMember").hidden = false;

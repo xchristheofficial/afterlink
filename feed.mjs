@@ -1,3 +1,4 @@
+import { installSocial } from "./social.mjs";
 import { installComposer, visiblePost } from "./composer.mjs";
 // Public identities are separate from login emails. RADAR is cosmetic, never a role.
 export function installFeed(app, db, session, limit) {
@@ -16,7 +17,9 @@ export function installFeed(app, db, session, limit) {
     );
     next();
   });
-  const enrich = installComposer(app, db, limit);
+  let mention;
+  const enrich = installComposer(app, db, limit, (...args) => mention(...args));
+  mention = installSocial(app, db, enrich);
   app.get("/api/feed", (req, res) => {
     const uid = res.locals.uid;
     const profile = db

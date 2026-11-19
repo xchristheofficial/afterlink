@@ -16,7 +16,7 @@ Accounts and revocable, seven-day sessions are stored in `data/afterlink.sqlite`
 
 ## Home feed
 
-Signing in opens `/home`, the bookmarkable, session-protected Home Feed. Opening `/home` while signed out returns you to sign-in. The responsive feed opens with a post composer, people search, follow/unfollow, follower counts and saved posts. The latest 50 posts by the viewer or accounts they follow are shown newest first. All records and counts start empty. Story, messaging, and notification surfaces are reserved for future pages and do not simulate activity.
+Signing in opens `/home`, the bookmarkable, session-protected Home Feed. Opening `/home` while signed out returns you to sign-in. The responsive feed opens with a post composer, people search, follow/unfollow, follower counts and saved posts. The latest 50 posts by the viewer or accounts they follow are shown newest first. All records and counts start empty. Stories remain unavailable; the inbox and activity center use real member data.
 
 The first account in this SQLite database (lowest user ID) is bound once to the **RADAR** public display name and developer badge. This changes neither its credentials nor its username, and grants no permissions. Other accounts use their own profile details; public directory and feed responses exclude emails and phone numbers. Keep the database on persistent storage to retain this association. Site transitions are opt-in via the browser’s no-reduced-motion preference.
 
@@ -26,11 +26,20 @@ Open `/create` from the Home Feed or your empty profile. Write up to 500 charact
 
 ## Profiles
 
-Open **Profile** from the home sidebar, or select a name in a post or Explore People. `/profile` shows your account; `/profile/<id>` is a stable link you can share with other members. Bios and display-name edits are persisted for the signed-in owner. RADAR’s public founder name and badge cannot be changed through this form. The profile grid lists the latest 50 posts while the count covers all posts. Saved posts are only available to their owner. Reels and Tagged have empty states until those features exist. Motion enhancements respect reduced-motion preferences.
+Open **Profile** from the home sidebar, or select a name in a post or Explore People. `/profile` shows your account; `/profile/<id>` is a stable link you can share with other members. Bios and display-name edits are persisted for the signed-in owner. RADAR’s public founder name and badge cannot be changed through this form. The profile grid lists the latest 50 posts while the count covers all posts. Saved posts are only available to their owner. The Reels tab shows video posts. Tagged has an empty state until tagging is implemented. Motion enhancements respect reduced-motion preferences.
 
 ### Edit Profile
 
 `/profile/edit` edits the signed-in account. Photos are center-cropped on the device before saving. Usernames are checked case-insensitively and the sign-in email is read-only. Email and phone are not sent in other members’ profiles. Enabling Private Account limits posts to existing followers and pauses new follows; it does not hide the directory listing. Deleting an account requires typing `DELETE`, removes its posts, saves, follows, recovery tokens and sessions, and retires its profile ID and founder designation.
+
+## Social pages
+
+- **Messages** (`/messages`, `/messages/<member-id>`): choose a real member to start a conversation. Search the inbox by name or message, send text or a compressed photo, and see unread counts and read receipts. Open threads refresh every 4.5 seconds while visible. Earlier messages can be loaded in batches. Only the sender and recipient can fetch a message photo. Messages are stored in SQLite, not end-to-end encrypted; no simulated support accounts, online status, or voice/video calls.
+- **Explore** (`/search?q=…`): People, Posts, and Reels filters search member names, handles, captions and post locations. Results respect current post visibility. No placeholder posts or view counts are inserted.
+- **Reels** (`/reels`): real video posts, with play/pause, seeking, volume, fullscreen (browser permitting), unique member views, likes, comments, shares and saves. Publish a video in Create Post to appear here. The share count counts distinct members who copied or shared a link through the share control, not recipients.
+- **Post detail** (`/post/<id>`): open from the feed, search results, a profile, notification or reel. Read comments, reply, like, or share the stable link; the link does not grant access. Text-only posts display their text instead of a stock photograph.
+- **Notifications** (`/notifications`): follows, post likes, comments, replies and visible `@username` mentions. Filter activity, follow back, open the referenced item or mark all read. Profile visits and individual saves are not disclosed.
+- Motion uses short entry/interaction transitions and respects the device’s reduced-motion setting. `npm run test:ui` exercises these screens with isolated accounts, including a third-party privacy check and a real short WebM generated at test time. Optional `SOCIAL_SCREENSHOTS` names a directory for review images.
 
 ## Settings
 
@@ -47,4 +56,4 @@ Links expire in 15 minutes, contain a random single-use token in the URL fragmen
 
 ## Launch checklist
 
-Before public launch, configure production storage/TLS, recovery delivery and email verification, operational monitoring, and Kodra-approved legal and support information. The brief information dialogs describe this implementation, not a comprehensive production policy. Moderation controls are needed before opening public posting broadly. Messaging is not implemented.
+Before public launch, configure production storage/TLS, recovery delivery and email verification, operational monitoring, and Kodra-approved legal and support information. The brief information dialogs describe this implementation, not a comprehensive production policy. Moderation controls are needed before opening public posting broadly. Add reporting and blocking before opening direct messaging broadly.

@@ -93,7 +93,7 @@ function parse(input, draft) {
     size,
   };
 }
-export function installComposer(app, db, limit) {
+export function installComposer(app, db, limit, mention) {
   const cols = db.prepare("PRAGMA table_info(posts)").all();
   if (!cols.some((c) => c.name === "audience"))
     db.exec(
@@ -101,7 +101,11 @@ export function installComposer(app, db, limit) {
     );
   if (!cols.some((c) => c.name === "details"))
     db.exec("ALTER TABLE posts ADD COLUMN details TEXT NOT NULL DEFAULT '{}'");
-  db.exec(`CREATE TABLE IF NOT EXISTS post_media(id INTEGER PRIMARY KEY, post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,type TEXT NOT NULL,bytes BLOB NOT NULL);
+  // Shared post URLs must never point to a new post after an author deletes their account.
+  db.exec(`CREATE TABLE IF NOT EXISTS post_ids(slot INTEGER PRIMARY KEY CHECK(slot=1),last_id INTEGER NOT NULL);
+  INSERT OR IGNORE INTO post_ids SELECT 1,coalesce(max(id),0) FROM posts;
+  CREATE TRIGGER IF NOT EXISTS remember_post_id AFTER INSERT ON posts BEGIN UPDATE post_ids SET last_id=max(last_id,new.id) WHERE slot=1; END;
+  CREATE TABLE IF NOT EXISTS post_media(id INTEGER PRIMARY KEY, post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,type TEXT NOT NULL,bytes BLOB NOT NULL);
   CREATE INDEX IF NOT EXISTS post_media_post ON post_media(post_id);
   CREATE TABLE IF NOT EXISTS post_votes(post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,choice INTEGER NOT NULL,PRIMARY KEY(post_id,user_id));
   CREATE TABLE IF NOT EXISTS post_drafts(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,payload TEXT NOT NULL);`);
@@ -190,13 +194,14 @@ export function installComposer(app, db, limit) {
       try {
         const { lastInsertRowid: id } = db
           .prepare(
-            "INSERT INTO posts(author,body,created,audience,details) VALUES(?,?,?,?,?)",
+            "INSERT INTO posts(id,author,body,created,audience,details) VALUES((SELECT last_id+1 FROM post_ids WHERE slot=1),?,?,?,?,?)",
           )
           .run(uid, p.body, Date.now(), p.audience, JSON.stringify(p.details));
         for (const f of p.files)
           db.prepare(
             "INSERT INTO post_media(post_id,type,bytes) VALUES(?,?,?)",
           ).run(id, f.type, f.bytes);
+        mention(Number(id), uid, p.body);
         if (req.body.fromDraft === true)
           db.prepare("DELETE FROM post_drafts WHERE user_id=?").run(uid);
         db.exec("COMMIT");

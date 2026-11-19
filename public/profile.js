@@ -26,6 +26,13 @@ const memberPage = (() => {
       text("p", post.body),
       postComposer.content(post, api),
     );
+    const link = text(
+      "a",
+      selected === "Reels" ? "Watch reel" : "Open post & comments",
+    );
+    link.className = "post-detail-link";
+    link.href = (selected === "Reels" ? "/reels?id=" : "/post/") + post.id;
+    article.append(link);
     return article;
   }
   async function tab(name) {
@@ -39,7 +46,14 @@ const memberPage = (() => {
     grid.replaceChildren();
     grid.classList.remove("is-empty");
     try {
-      let items = name === "Posts" ? data.posts : [];
+      let items =
+        name === "Posts"
+          ? data.posts
+          : name === "Reels"
+            ? data.posts.filter((p) =>
+                p.media.some((m) => m.type.startsWith("video/")),
+              )
+            : [];
       if (name === "Saved") {
         grid.textContent = "Loading saved posts…";
         items = (await api("?view=saved")).posts;
