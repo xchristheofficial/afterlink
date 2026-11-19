@@ -6,6 +6,8 @@ Reference-led account access page. The left panel is noninteractive artwork from
 
 Node 22.13 or newer (built-in SQLite), `npm ci`, then `npm start`. The app serves the page and API from one origin on port 3000. Run `npm test` for the isolated authentication integration test; it never touches the live database.
 
+For browser checks, install Chromium with `npx playwright install --with-deps chromium`, then run `npm run test:ui`. The script starts a separate service with a temporary database, exercises the actual page, and removes the database afterward.
+
 ## Accounts
 
 Select **Create Account**, enter an email and optional phone, then **Continue** to choose a password of at least 12 characters. Sign in with email and password. If a phone is entered at sign-in, it must also match. Phone is an optional contact field, not SMS verification. Email/password accounts do not claim the address has been verified. The signed-in state shows the account email and a sign-out action, not a simulated social feed.

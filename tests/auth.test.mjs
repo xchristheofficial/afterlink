@@ -13,13 +13,14 @@ test(
   async (t) => {
     const temp = await mkdtemp(join(tmpdir(), "afterlink-test-"));
     let server, url;
-    async function start() {
+    async function start(config = {}) {
       server = spawn(process.execPath, ["server.mjs"], {
         env: {
           ...process.env,
           PORT: "0",
           DB_FILE: join(temp, "test.sqlite"),
           GOOGLE_CLIENT_ID: "",
+          ...config,
         },
         stdio: ["ignore", "pipe", "inherit"],
       });
@@ -113,5 +114,36 @@ test(
       ),
       "/?auth=unavailable",
     );
+
+    // Exercise the configured provider handoff locally without contacting Google.
+    await stop();
+    const callback = "https://afterlink.example/auth/google/callback";
+    await start({
+      GOOGLE_CLIENT_ID: "test-client-id",
+      GOOGLE_CLIENT_SECRET: "test-only",
+      GOOGLE_REDIRECT_URI: callback,
+    });
+    assert.deepEqual(await (await fetch(url + "/api/providers")).json(), {
+      google: true,
+    });
+    const handoff = await fetch(url + "/auth/google", { redirect: "manual" });
+    assert.equal(handoff.status, 302);
+    const consent = new URL(handoff.headers.get("location"));
+    assert.equal(consent.origin, "https://accounts.google.com");
+    assert.equal(consent.searchParams.get("redirect_uri"), callback);
+    assert.equal(consent.searchParams.get("code_challenge_method"), "S256");
+    assert.ok(consent.searchParams.get("code_challenge"));
+    const state = consent.searchParams.get("state");
+    assert.ok(
+      state &&
+        handoff.headers
+          .get("set-cookie")
+          .startsWith(`afterlink_oauth=${state}.`),
+    );
+    const cancelled = await fetch(
+      url + "/auth/google/callback?error=access_denied",
+      { redirect: "manual" },
+    );
+    assert.equal(cancelled.headers.get("location"), "/?auth=failed");
   },
 );

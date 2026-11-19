@@ -13,9 +13,6 @@ body {
   color: #171716;
   font-family: DM, "Helvetica Neue", Arial, sans-serif;
   min-height: 100svh;
-  display: grid;
-  place-items: center;
-  padding: 4.9vh 0 5.1vh;
 }
 button,
 input {
@@ -38,16 +35,11 @@ button:disabled {
   display: none !important;
 }
 .layout {
-  width: min(90vw, 136vh, 1510px);
+  width: 100%;
+  min-height: 100svh;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3.24%;
   align-items: stretch;
-}
-.art,
-.card {
-  border-radius: 6.2% / 4.5%;
-  box-shadow: 15px 21px 35px #513d262c;
 }
 .art {
   overflow: hidden;
@@ -61,13 +53,14 @@ button:disabled {
   inset: 0;
 }
 .card {
-  container-type: inline-size;
+  display: grid;
+  place-items: center;
   background: #fff;
   min-width: 0;
 }
 .inside {
-  min-height: 136.7cqw;
-  padding: 10.1cqw 10.8cqw 4.1cqw 9.8cqw;
+  width: min(100%, 42rem);
+  padding: clamp(24px, 4vh, 64px) clamp(24px, 4vw, 76px);
   display: flex;
   flex-direction: column;
 }
@@ -79,28 +72,28 @@ h1 {
   line-height: 0;
 }
 h1 img {
-  width: 97%;
+  width: min(97%, 43vh, 30rem);
   height: auto;
 }
 header p {
-  font-size: 4.42cqw;
+  font-size: clamp(18px, 2.9vh, 31px);
   line-height: 1.2;
-  letter-spacing: -0.14cqw;
-  margin: 1.9cqw 0 5.05cqw;
+  letter-spacing: -0.035em;
+  margin: clamp(10px, 1.7vh, 20px) 0 clamp(20px, 3.2vh, 38px);
 }
 .switch {
   display: flex;
   border-radius: 99px;
   background: #eae9e8;
   overflow: hidden;
-  height: 8cqw;
+  height: clamp(44px, 5.8vh, 58px);
 }
 .switch button {
   border: 0;
   background: none;
   color: #646362;
-  font-size: 3.75cqw;
-  letter-spacing: -0.12cqw;
+  font-size: clamp(16px, 2.4vh, 25px);
+  letter-spacing: -0.025em;
   flex: 1;
   font-weight: 500;
 }
@@ -117,22 +110,22 @@ header p {
   outline-offset: -4px;
 }
 form#form {
-  margin-top: 4.1cqw;
+  margin-top: clamp(18px, 2.8vh, 32px);
 }
 label {
   display: block;
-  font-size: 3.23cqw;
-  letter-spacing: -0.08cqw;
-  margin: 0 0 1.05cqw;
+  font-size: clamp(16px, 2.1vh, 22px);
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
 }
 .input {
   display: flex;
   align-items: center;
-  height: 8.25cqw;
+  height: clamp(44px, 5.8vh, 60px);
   border: 1px solid #a9a8a6;
-  border-radius: 2.15cqw;
-  padding: 0 2.8cqw;
-  gap: 3.3cqw;
+  border-radius: 12px;
+  padding: 0 16px;
+  gap: clamp(16px, 2vh, 22px);
   box-shadow: 0 1px 2px #00000008;
 }
 .input:focus-within {
@@ -140,7 +133,7 @@ label {
   box-shadow: 0 0 0 2px #8225d922;
 }
 .input svg {
-  width: 4cqw;
+  width: 22px;
   flex: none;
   fill: none;
   stroke: #818181;
@@ -154,15 +147,15 @@ label {
   background: transparent;
   min-width: 0;
   width: 100%;
-  font-size: 3.35cqw;
+  font-size: clamp(16px, 2.2vh, 23px);
   color: inherit;
-  letter-spacing: -0.05cqw;
+  letter-spacing: -0.015em;
 }
 .input input::placeholder {
   color: #838381;
 }
 .input + label {
-  margin-top: 2.45cqw;
+  margin-top: clamp(12px, 1.8vh, 22px);
 }
 .primary,
 .google {
@@ -175,13 +168,13 @@ label {
   background: linear-gradient(105deg, #7024e3, #da52ac);
   border: 1px solid #0000000e;
   color: white;
-  font-size: 4.05cqw;
+  font-size: clamp(18px, 2.5vh, 26px);
   font-weight: 650;
-  letter-spacing: -0.09cqw;
-  border-radius: 1.8cqw;
-  min-height: 11cqw;
-  margin-top: 4.1cqw;
-  box-shadow: 0 1.6cqw 3.4cqw #6838781c;
+  letter-spacing: -0.025em;
+  border-radius: 12px;
+  min-height: clamp(48px, 6.6vh, 70px);
+  margin-top: clamp(18px, 2.8vh, 32px);
+  box-shadow: 0 10px 22px #6838781c;
   text-shadow: 0 1px 3px #51205b80;
 }
 .primary:hover,
@@ -191,11 +184,11 @@ label {
 .divider {
   display: flex;
   align-items: center;
-  gap: 2.2cqw;
-  font-size: 2.85cqw;
+  gap: 14px;
+  font-size: clamp(14px, 1.8vh, 19px);
   font-weight: 500;
-  letter-spacing: -0.07cqw;
-  margin: 4.65cqw 0 2.5cqw;
+  letter-spacing: -0.02em;
+  margin: clamp(16px, 2.8vh, 32px) 0 clamp(12px, 1.8vh, 20px);
 }
 .divider:before,
 .divider:after {
@@ -205,33 +198,36 @@ label {
   background: #b9b8b7;
 }
 .google {
-  min-height: 9.9cqw;
-  gap: 1.5cqw;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  min-height: 44px;
+  padding: 10px 22px;
+  gap: 10px;
   background: #fff;
   border: 1px solid #aaa8a6;
-  border-radius: 1.6cqw;
-  box-shadow: 0 0.85cqw 1.8cqw #352a2426;
-  font-size: 5.35cqw;
-  font-weight: 550;
-  letter-spacing: -0.21cqw;
-  color: #474b4d;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px #352a2416;
+  font-size: 16px;
+  font-weight: 700;
+  color: #35383a;
 }
 .google svg {
-  width: 6.3cqw;
-  height: 6.3cqw;
+  width: 20px;
+  height: 20px;
+  flex: none;
 }
 footer {
-  margin-top: auto;
-  padding-top: 6.55cqw;
+  padding-top: clamp(24px, 4.4vh, 54px);
   text-align: center;
 }
 footer nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.45cqw;
+  gap: 10px;
   color: #444;
-  font-size: 2.86cqw;
+  font-size: clamp(14px, 1.9vh, 20px);
 }
 footer button,
 .back {
@@ -248,27 +244,27 @@ i {
 }
 footer small {
   display: block;
-  font-size: 2.24cqw;
-  letter-spacing: -0.045cqw;
-  margin-top: 2.1cqw;
+  font-size: clamp(12px, 1.5vh, 16px);
+  letter-spacing: -0.01em;
+  margin-top: 10px;
 }
 .back {
   color: #7224bd;
-  font-size: 3cqw;
+  font-size: 16px;
 }
 #summary,
 #accountEmail {
   overflow-wrap: anywhere;
 }
 #summary {
-  font-size: 3.3cqw;
+  font-size: clamp(16px, 2vh, 22px);
 }
 #hint {
-  font-size: 2.6cqw;
+  font-size: 14px;
   color: #666;
 }
 #error {
-  font-size: max(14px, 2.6cqw);
+  font-size: 14px;
   color: #9c1d3d;
 }
 .eyebrow {
@@ -302,48 +298,26 @@ dialog .primary {
 dialog h2 {
   margin: 12px 0 6px;
 }
-@media (max-width: 760px), (max-height: 540px) {
-  body {
-    padding: 24px 0;
-  }
+
+.optional {
+  font-size: 0.82em;
+  color: #646362;
+}
+footer small button {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+footer nav {
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
   .layout {
-    width: min(92vw, 480px);
-    display: block;
+    grid-template-columns: minmax(0, 1fr);
   }
   .art {
     display: none;
   }
-  .card {
-    border-radius: 26px;
-  }
   .inside {
-    padding: 10cqw 7cqw 6cqw;
-    min-height: 142cqw;
-  }
-  .input,
-  .switch,
-  .google {
-    min-height: 44px;
-  }
-  .input input,
-  label {
-    font-size: max(16px, 3.35cqw);
-  }
-  .switch button {
-    font-size: max(16px, 3.75cqw);
-  }
-  .divider,
-  footer nav {
-    font-size: max(14px, 2.85cqw);
-  }
-  footer small,
-  #hint {
-    font-size: max(11px, 2.25cqw);
-  }
-  .primary {
-    min-height: 46px;
-  }
-  .input + label {
-    margin-top: 3.5cqw;
+    max-width: 32rem;
   }
 }
