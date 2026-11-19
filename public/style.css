@@ -38,7 +38,7 @@ input:focus-visible {
   height: 100svh;
 }
 .art {
-  background: #3b1e61;
+  background: #270856;
 }
 .art img {
   display: block;
@@ -55,12 +55,9 @@ input:focus-visible {
 }
 .inside {
   container-type: inline-size;
-  width: min(72%, 74svh, 660px);
+  width: min(77%, 60svh, 680px);
   margin: auto 0;
-  padding: clamp(20px, 4svh, 48px) 0;
-}
-.inside[data-mode="signup"] {
-  width: min(67%, 56svh, 590px);
+  padding: clamp(20px, 4svh, 50px) 0;
 }
 h1 {
   margin: 0;
@@ -70,86 +67,66 @@ h1 img {
   width: 100%;
   height: auto;
 }
-.inside[data-mode="signup"] h1 img {
-  width: 113%;
-  max-width: calc(100vw - 40px);
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-}
 h2 {
-  text-align: center;
-  font-size: clamp(26px, 7.2cqw, 44px);
-  line-height: 1.15;
-  margin: 6.6cqw 0 5.8cqw;
-  font-weight: 700;
+  font-size: clamp(30px, 13.5cqw, 85px);
+  line-height: 1.08;
+  margin: 6.5cqw 0 4cqw;
+  letter-spacing: -0.045em;
 }
 h2:focus {
   outline: none;
 }
-.inside[data-mode="signup"] h2 {
-  margin: 7cqw 0 11cqw;
-}
 .field {
   display: grid;
-  grid-template-columns: 19% minmax(0, 1fr);
   align-items: center;
-  margin-bottom: 5cqw;
-  font-size: clamp(15px, 3.65cqw, 22px);
-}
-label {
-  font-weight: 600;
+  gap: 1cqw;
+  margin-bottom: 4.5cqw;
+  font-size: clamp(16px, 5cqw, 32px);
 }
 .field input {
   width: 100%;
-  height: clamp(44px, 9.8cqw, 60px);
-  border: 1px solid #b7b7b7;
-  border-radius: 6px;
-  background: white;
-  padding: 0 0.8em;
-  color: #202020;
+  min-width: 0;
+  height: clamp(45px, 13.3cqw, 84px);
+  padding: 0 0.85em;
+  border: 1px solid #bbb;
+  background: #fff;
+  border-radius: 99px;
+  font: inherit;
+  color: #151515;
 }
-.field input::placeholder {
-  color: #686868;
-  opacity: 1;
+[data-mode="signin"] #form label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 .password-wrap {
   position: relative;
 }
 .password-wrap input {
-  padding-right: 48px;
+  padding-right: 2.6em;
 }
 #reveal {
   position: absolute;
-  right: 2px;
+  right: 0.35em;
   top: 0;
   height: 100%;
-  width: 44px;
-  color: #555;
+  width: 1.9em;
+  min-width: 40px;
   border: 0;
+  color: #666;
   background: none;
 }
 #reveal svg {
-  width: 24px;
+  width: 70%;
   vertical-align: middle;
 }
-[data-mode="signup"] .field {
-  grid-template-columns: 100%;
-  gap: 2px;
-  margin-bottom: 2.3cqw;
-  font-size: clamp(15px, 3.6cqw, 21px);
-}
-[data-mode="signup"] .field input {
-  height: clamp(40px, 8.2cqw, 48px);
-}
-[data-mode="signup"] label {
-  font-weight: 700;
-}
 .link {
+  background: none;
   border: 0;
   padding: 0;
-  background: none;
-  color: #483172;
+  color: #423071;
   font-weight: 650;
 }
 .link:hover {
@@ -157,61 +134,119 @@ label {
 }
 .forgot {
   display: block;
-  margin: -1.5cqw 0 3.5cqw auto;
-  font-size: clamp(15px, 3.6cqw, 20px);
+  margin: -2.2cqw 0 5cqw auto;
+  font-size: clamp(16px, 4.5cqw, 27px);
+  font-weight: 500;
 }
 .primary,
 .google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 44px;
-  border-radius: 6px;
+  border-radius: 99px;
+  height: clamp(52px, 20cqw, 125px);
 }
 .primary {
-  background: linear-gradient(105deg, #7340c5, #1eafa6);
   border: 0;
+  background: linear-gradient(102deg, #6b38bb, #14ada9);
   color: white;
-  padding: 0.6em;
-  font-size: clamp(18px, 4.3cqw, 26px);
+  font-size: clamp(19px, 6.7cqw, 43px);
   font-weight: 700;
 }
-.inside[data-mode="signup"] #submit {
-  margin-top: 3cqw;
-}
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 0.8em;
-  margin: 2.5cqw 0;
-  font-size: clamp(14px, 3.5cqw, 20px);
-  color: #555;
-}
-.divider::before,
-.divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: #bcbcbc;
-}
 .google {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.55em;
-  border: 1px solid #b5b5b5;
-  background: #fff;
-  color: #181818;
-  padding: 0.5em;
-  font-size: clamp(16px, 3.7cqw, 22px);
+  margin-top: 5cqw;
+  gap: 0.6em;
+  background: white;
+  border: 1px solid #b9b9b9;
   font-weight: 650;
+  font-size: clamp(16px, 5.3cqw, 31px);
 }
 .google svg {
-  width: 1.7em;
-  height: 1.7em;
+  width: 1.8em;
+  height: 1.8em;
 }
-.switch {
+.switch,
+.recovery-links {
   text-align: center;
-  font-size: clamp(14px, 3.4cqw, 20px);
-  margin: 3cqw 0 0;
+  margin: 6cqw 0 0;
+  color: #474747;
+  font-size: clamp(14px, 4.3cqw, 27px);
+}
+[data-mode="signup"] h2 {
+  font-size: clamp(28px, 10.4cqw, 68px);
+  margin: 6cqw 0;
+}
+[data-mode="signup"] .field {
+  grid-template-columns: 25% minmax(0, 1fr);
+  gap: 1.5%;
+  margin-bottom: 3.6cqw;
+  font-size: clamp(14px, 3.55cqw, 23px);
+}
+[data-mode="signup"] .field input {
+  height: clamp(40px, 9.1cqw, 58px);
+  border-radius: 2.2cqw;
+  background: #fafafa;
+}
+[data-mode="signup"] .primary,
+[data-mode="signup"] .google {
+  height: clamp(48px, 14cqw, 86px);
+  font-size: clamp(18px, 4.6cqw, 30px);
+}
+[data-mode="signup"] .google {
+  margin-top: 4cqw;
+}
+[data-mode="signup"] .switch {
+  margin-top: 4cqw;
+}
+[data-mode="signup"] #switchMode {
+  display: block;
+  margin: 0.2em auto;
+}
+.recovery-heading {
+  display: flex;
+  align-items: center;
+  gap: 9cqw;
+  margin-top: 13cqw;
+}
+.recovery-heading h2 {
+  margin: 0;
+  font-size: clamp(25px, 9.5cqw, 63px);
+}
+.recovery-heading .back {
+  width: 7cqw;
+  min-width: 32px;
+  color: #333;
+}
+.back svg {
+  width: 100%;
+  vertical-align: middle;
+}
+#recoveryIntro {
+  margin: 4.5cqw 0 6.4cqw;
+  color: #555;
+  font-size: clamp(17px, 5.5cqw, 35px);
+  line-height: 1.3;
+}
+#recovery .field {
+  gap: 2cqw;
+  margin-bottom: 7cqw;
+}
+#recovery .field input {
+  background: #fafafa;
+}
+.recovery-links {
+  margin-top: 16cqw;
+}
+#resend {
+  text-decoration: underline;
+}
+#recoveryStatus:empty {
+  display: none;
+}
+#recoveryStatus {
+  line-height: 1.45;
 }
 #error {
   color: #9d2236;
@@ -261,29 +296,18 @@ dialog .primary {
   .art {
     display: none;
   }
-  .inside,
-  .inside[data-mode="signup"] {
-    width: min(86%, 440px);
+  .inside {
+    width: min(88%, 480px);
+    padding: 24px 0;
   }
-  .inside[data-mode="signup"] h1 img {
-    width: 100%;
+  [data-mode="signup"] .field {
+    grid-template-columns: 1fr;
+    gap: 3px;
   }
-  .field {
-    grid-template-columns: 100%;
-    gap: 4px;
-    margin-bottom: 16px;
-  }
-  .field input,
   [data-mode="signup"] .field input {
     font-size: 16px;
   }
-  .forgot {
-    margin-top: 0;
-  }
-  .inside[data-mode="signup"] h2 {
-    margin: 6cqw 0;
-  }
-  .inside {
-    padding: 28px 0;
+  .recovery-links {
+    margin-top: 10cqw;
   }
 }

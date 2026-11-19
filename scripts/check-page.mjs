@@ -16,6 +16,7 @@ const server = spawn(process.execPath, ["server.mjs"], {
     NODE_ENV: "test",
     DB_FILE: join(dir, "ui.sqlite"),
     GOOGLE_CLIENT_ID: "",
+    RESEND_API_KEY: "",
   },
   stdio: ["ignore", "pipe", "inherit"],
 });
@@ -94,10 +95,18 @@ try {
     assert.deepEqual(await art.boundingBox(), rect);
     assert.equal(await imageRequests(), initialRequests);
   }
-  await page.setViewportSize({ width: 390, height: 844 });
   await page.click("#forgot");
-  await page.getByRole("dialog", { name: "Forgot password?" }).waitFor();
-  await page.keyboard.press("Escape");
+  await page.getByRole("heading", { name: "Forgot Password?" }).waitFor();
+  assert.deepEqual(await art.boundingBox(), rect);
+  assert.equal(await imageRequests(), initialRequests);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.fill("#recoveryEmail", "owner@example.test");
+  await page.click("#sendReset");
+  await page.getByText(/No link was sent/).waitFor();
+  await page.click("#resend");
+  await page.getByText(/No link was sent/).waitFor();
+  await page.locator(".recovery-links .back").click();
+  assert.equal(await page.inputValue("#email"), "owner@example.test");
   await page.click("#google");
   await page.getByRole("dialog", { name: "Google sign-in" }).waitFor();
   await page.keyboard.press("Escape");

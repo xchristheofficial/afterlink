@@ -44,7 +44,8 @@ function update() {
     : "Don’t have an account?";
   $("switchMode").textContent = signup ? "Sign In" : "Sign up";
   $("password").autocomplete = signup ? "new-password" : "current-password";
-  $("password").placeholder = signup ? "Create a password" : "••••••••••••";
+  $("password").placeholder = signup ? "Create a password" : "Password";
+  $("email").placeholder = signup ? "Enter your email" : "Email";
   $("password").minLength = signup ? 12 : 1;
   $("password").value = "";
   showPassword(false);
@@ -59,11 +60,75 @@ $("switchMode").onclick = () => {
   $("heading").focus({ preventScroll: true });
 };
 $("reveal").onclick = () => showPassword($("password").type === "password");
-$("forgot").onclick = () =>
-  info(
-    "Forgot password?",
-    "Password reset by email is not available yet. If you registered with Google, use Continue with Google to sign in.",
-  );
+let resetToken = new URLSearchParams(location.hash.slice(1)).get("reset");
+function openRecovery() {
+  const reset = !!resetToken;
+  $("auth").hidden = true;
+  $("recovery").hidden = false;
+  document.querySelector(".inside").dataset.mode = "recovery";
+  $("password").value = "";
+  $("recoveryEmail").value = $("email").value;
+  $("requestField").hidden = $("recoveryEmail").disabled = reset;
+  $("resetField").hidden = $("newPassword").disabled = !reset;
+  $("newPassword").value = "";
+  $("resendGroup").hidden = reset;
+  $("recoveryHeading").textContent = reset
+    ? "Reset Password"
+    : "Forgot Password?";
+  $("recoveryIntro").textContent = reset
+    ? "Choose a new password of at least 12 characters."
+    : "No worries. Enter your email and we will send you a reset link.";
+  $("sendReset").textContent = reset ? "Save Password" : "Send Reset Link";
+  $("recoveryStatus").textContent = "";
+  document.querySelector(".card").scrollTop = 0;
+  $("recoveryHeading").focus({ preventScroll: true });
+}
+function closeRecovery() {
+  resetToken = null;
+  $("newPassword").value = "";
+  $("recovery").hidden = true;
+  $("auth").hidden = false;
+  $("email").value = $("recoveryEmail").value;
+  mode = "signin";
+  update();
+  $("heading").focus();
+}
+$("forgot").onclick = () => {
+  if (!busy) openRecovery();
+};
+for (const button of document.querySelectorAll(".back"))
+  button.onclick = () => {
+    if (!busy) closeRecovery();
+  };
+$("resend").onclick = () => $("recoveryForm").requestSubmit();
+$("recoveryForm").onsubmit = async (event) => {
+  event.preventDefault();
+  if (busy) return;
+  busy = $("sendReset").disabled = $("resend").disabled = true;
+  $("recoveryStatus").textContent = "";
+  try {
+    if (resetToken) {
+      await post("/api/reset-password", {
+        token: resetToken,
+        password: $("newPassword").value,
+      });
+      closeRecovery();
+      info("Password updated", "You can now sign in with your new password.");
+    } else {
+      await post("/api/forgot-password", { email: $("recoveryEmail").value });
+      $("recoveryStatus").textContent =
+        "If this address has a password account, check your inbox for a reset link. Allow a minute before resending.";
+    }
+  } catch (err) {
+    $("recoveryStatus").textContent = err.message;
+  } finally {
+    busy = $("sendReset").disabled = $("resend").disabled = false;
+  }
+};
+if (resetToken) {
+  history.replaceState(null, "", location.pathname);
+  openRecovery();
+}
 async function post(path, data) {
   const res = await fetch(path, {
     method: "POST",
@@ -79,6 +144,7 @@ function account(user) {
   $("account").hidden = !user;
   $("accountEmail").textContent = user?.email || "";
   if (user) {
+    $("recovery").hidden = true;
     $("form").reset();
     update();
   }
@@ -141,9 +207,10 @@ if (auth) {
   );
   history.replaceState(null, "", "/");
 }
-fetch("/api/session")
-  .then((r) => r.json())
-  .then(({ user }) => {
-    if (user) account(user);
-  })
-  .catch(() => error("Could not reach AfterLink. Please refresh to retry."));
+if (!resetToken)
+  fetch("/api/session")
+    .then((r) => r.json())
+    .then(({ user }) => {
+      if (user) account(user);
+    })
+    .catch(() => error("Could not reach AfterLink. Please refresh to retry."));
