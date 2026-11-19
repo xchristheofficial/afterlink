@@ -211,7 +211,7 @@ $("form").onsubmit = async (event) => {
   busy = true;
   $("submit").disabled = true;
   try {
-    const { user } = await post("/api/" + mode, {
+    await post("/api/" + mode, {
       email: $("email").value,
       ...(mode === "signup" && {
         fullName: $("fullName").value,
@@ -220,7 +220,7 @@ $("form").onsubmit = async (event) => {
       }),
       password: $("password").value,
     });
-    account(user);
+    location.replace("/home");
   } catch (e) {
     error(e.message);
   } finally {
@@ -231,9 +231,8 @@ $("form").onsubmit = async (event) => {
 $("logout").onclick = async () => {
   try {
     await post("/api/logout", {});
-    mode = "signin";
-    update();
     account(null);
+    location.replace("/");
   } catch {
     info("Sign out", "Could not reach AfterLink. Please try again.");
   }
@@ -254,18 +253,34 @@ $("google").onclick = async () => {
 const auth = new URLSearchParams(location.search).get("auth");
 if (auth) {
   error(
-    auth === "existing"
-      ? "That email already has an account. Sign in with your password."
-      : auth === "unavailable"
-        ? "Google sign-in is not configured."
-        : "Google sign-in was not completed. Please try again.",
+    auth === "session"
+      ? "Sign in to open your Home Feed. If you just signed in, check that cookies are enabled for this site."
+      : auth === "existing"
+        ? "That email already has an account. Sign in with your password."
+        : auth === "unavailable"
+          ? "Google sign-in is not configured."
+          : "Google sign-in was not completed. Please try again.",
   );
   history.replaceState(null, "", "/");
 }
-if (!resetToken)
+if (!resetToken) {
+  const atHome = location.pathname.replace(/\/$/, "") === "/home";
+  if (atHome) {
+    document.title = "Home Feed · AfterLink";
+    document.querySelector(".layout").hidden = true;
+  }
   fetch("/api/session")
-    .then((r) => r.json())
-    .then(({ user }) => {
-      if (user) account(user);
+    .then((r) => {
+      if (!r.ok) throw Error();
+      return r.json();
     })
-    .catch(() => error("Could not reach AfterLink. Please refresh to retry."));
+    .then(({ user }) => {
+      if (user && atHome) account(user);
+      else if (user) location.replace("/home");
+      else if (atHome) location.replace("/?auth=session");
+    })
+    .catch(() => {
+      document.querySelector(".layout").hidden = false;
+      error("Could not reach AfterLink. Please refresh to retry.");
+    });
+}

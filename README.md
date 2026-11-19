@@ -16,7 +16,7 @@ Accounts and revocable, seven-day sessions are stored in `data/afterlink.sqlite`
 
 ## Home feed
 
-Signing in opens the responsive feed with a public text composer, people search, follow/unfollow, follower counts and saved posts. The latest 50 posts by the viewer or accounts they follow are shown newest first. All records and counts start empty. Media, story, messaging, and notification surfaces are reserved for future pages and do not simulate activity.
+Signing in opens `/home`, the bookmarkable, session-protected Home Feed. Opening `/home` while signed out returns you to sign-in. The responsive feed opens with a public text composer, people search, follow/unfollow, follower counts and saved posts. The latest 50 posts by the viewer or accounts they follow are shown newest first. All records and counts start empty. Media, story, messaging, and notification surfaces are reserved for future pages and do not simulate activity.
 
 The first account in this SQLite database (lowest user ID) is bound once to the **RADAR** public display name and developer badge. This changes neither its credentials nor its username, and grants no permissions. Other accounts use their own profile details; public directory and feed responses exclude emails and phone numbers. Keep the database on persistent storage to retain this association. Site transitions are opt-in via the browser’s no-reduced-motion preference.
 
