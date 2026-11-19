@@ -79,7 +79,7 @@ const homeFeed = (() => {
     if (!profile.founder) return;
     const badge = document.createElement("img");
     badge.className = "verified-mark";
-    badge.src = "/assets/verified.svg";
+    badge.src = "/assets/radar-gold-badge.webp";
     badge.alt = badge.title = "Verified account";
     node.append(badge);
   }

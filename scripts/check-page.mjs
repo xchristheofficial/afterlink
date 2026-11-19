@@ -174,6 +174,9 @@ try {
     ),
   );
   await page.setViewportSize({ width: 1568, height: 721 });
+  const radarBadge = page.locator('#profileName .verified-mark');
+  assert.equal(await radarBadge.getAttribute('src'), '/assets/radar-gold-badge.webp');
+  await radarBadge.evaluate(img => img.decode());
   if (process.env.FEED_SCREENSHOT)
     await page.screenshot({ path: process.env.FEED_SCREENSHOT });
   await page.click("#openComposer");

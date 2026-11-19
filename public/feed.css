@@ -126,10 +126,10 @@
 }
 .verified-mark {
   display: inline-block;
-  width: 1em;
-  height: 1em;
+  width: auto;
+  height: 1.45em;
   margin-inline-start: 0.25em;
-  vertical-align: -0.1em;
+  vertical-align: -0.32em;
 }
 .who p {
   margin: 0.25em 0;
@@ -472,13 +472,6 @@
   }
   .who h2 {
     font-size: 1.2em;
-  }
-  .verified-mark {
-    display: inline-block;
-    width: 1em;
-    height: 1em;
-    margin-inline-start: 0.25em;
-    vertical-align: -0.1em;
   }
   .who p {
     font-size: 0.8em;
