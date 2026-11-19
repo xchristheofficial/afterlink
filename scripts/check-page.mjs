@@ -32,6 +32,7 @@ try {
   await page.goto(url);
   await page.evaluate(() => document.fonts.ready);
   for (const [width, height] of [
+    [1568, 730],
     [1440, 900],
     [1024, 768],
     [390, 844],
@@ -40,6 +41,12 @@ try {
   ]) {
     await page.setViewportSize({ width, height });
     const bounds = await page.locator(".layout").boundingBox();
+    if (width > 760) {
+      const image = page.locator(".art img");
+      const box = await image.boundingBox();
+      assert.ok(box && box.y >= 0 && box.y + box.height <= height);
+      assert.equal(await image.evaluate(el => getComputedStyle(el).objectFit), "contain");
+    }
     assert.equal(bounds.x, 0);
     assert.equal(bounds.y, 0);
     assert.equal(bounds.width, width);
@@ -80,6 +87,21 @@ try {
   await page.locator("#error").waitFor();
   await page.fill("#phone", "");
   await page.click("#submit");
+  for (const [mode, other, finalLabel, autocomplete] of [
+    ["signin", "signup", "Sign In", "current-password"],
+    ["signup", "signin", "Create Account", "new-password"],
+  ]) {
+    await page.fill("#password", password);
+    await page.click(`#${mode}`);
+    assert.equal(await page.getAttribute(`#${mode}`, "aria-pressed"), "true");
+    assert.equal(await page.getAttribute(`#${other}`, "aria-pressed"), "false");
+    assert.equal(await page.inputValue("#password"), "");
+    assert.equal(await page.inputValue("#email"), email);
+    assert.equal(await page.innerText("#submit"), `Continue to ${finalLabel.toLowerCase()}`);
+    await page.click("#submit");
+    assert.equal(await page.innerText("#submit"), finalLabel);
+    assert.equal(await page.getAttribute("#password", "autocomplete"), autocomplete);
+  }
   await page.click("#back");
   assert.equal(await page.inputValue("#email"), email);
   await page.click("#submit");

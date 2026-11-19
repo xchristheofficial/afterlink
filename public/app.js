@@ -43,12 +43,14 @@ function update() {
     ? mode === "signup"
       ? "Create Account"
       : "Sign In"
-    : "Continue";
+    : mode === "signup"
+      ? "Continue to create account"
+      : "Continue to sign in";
   error();
 }
 for (const m of ["signin", "signup"])
   $(m).onclick = () => {
-    if (busy) return;
+    if (busy || mode === m) return;
     mode = m;
     step = 1;
     $("password").value = "";
