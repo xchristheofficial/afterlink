@@ -5,7 +5,7 @@ const rules = {
   messages: ["everyone", "followers", "none"],
   mentions: ["everyone", "followers"],
   stories: ["everyone", "followers"],
-  theme: ["system", "light", "dark"],
+  theme: ["light", "dark", "system"],
   accent: ["purple", "blue", "green", "orange", "rose"],
   activity: [false, true],
   downloads: [false, true],

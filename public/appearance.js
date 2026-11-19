@@ -5,8 +5,7 @@
   function paint() {
     const r = document.documentElement;
     r.dataset.color =
-      prefs.theme === "dark" ||
-      ((prefs.theme || "system") === "system" && scheme.matches)
+      prefs.theme === "dark" || (prefs.theme === "system" && scheme.matches)
         ? "dark"
         : "light";
     r.dataset.accent = prefs.accent || "purple";

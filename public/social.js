@@ -30,7 +30,7 @@ document.title =
     post: "Post",
     reels: "Reels",
   }[theme] || "AfterLink") + " · AfterLink";
-$("#wordmark").src = "/assets/profile-wordmark.webp";
+
 const field = $("#socialSearch input");
 field.value = q;
 field.placeholder =

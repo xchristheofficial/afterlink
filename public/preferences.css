@@ -570,10 +570,27 @@
   border-bottom: 1px solid var(--edge);
   box-shadow: none;
 }
-.social #wordmark,
-.home .topbar .feed-brand {
-  width: clamp(108px, 15vw, 190px);
-  height: auto;
+.member-brand,
+.social .member-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: clamp(1.25rem, 2vw, 1.62rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.member-brand svg,
+.social .member-brand svg {
+  width: 1.18em;
+  height: 1.18em;
+  color: var(--accent-ink);
+}
+.social .member-brand:hover {
+  text-decoration: none;
 }
 :is(.social #socialNav, .home .profile-nav) {
   display: flex;
@@ -607,14 +624,13 @@
 .home.compact-editor .profile-nav > :not([href="/profile"]) {
   display: none;
 }
-.home .side-nav [aria-current="page"] .fi,
-.home :is(.pill, .banner button) .fi {
+.home .pill .fi {
   color: white;
 }
 .home#account {
   background: var(--soft);
 }
-.home :is(.stream, .profile-rail, .welcome-card) {
+.home .profile-rail {
   background: var(--panel);
 }
 .social .reel-actions a,
@@ -631,7 +647,7 @@
   outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
 }
-:root[data-color="dark"] :is(#wordmark, .feed-brand, .inside h1 img) {
+:root[data-color="dark"] .inside h1 img {
   background: white;
   border-radius: 6px;
 }
@@ -647,5 +663,17 @@
   :is(.social #socialNav, .home .profile-nav) a {
     width: 36px;
     height: 40px;
+  }
+}
+
+@media (min-width: 761px) {
+  #account:not(.profile-screen) .topbar {
+    padding-inline: max(32px, calc((100% - 64rem) / 2));
+    gap: 12px;
+  }
+  #account:not(.profile-screen) #peopleSearch {
+    margin-inline: auto 0;
+    border-color: var(--edge);
+    background: var(--soft);
   }
 }

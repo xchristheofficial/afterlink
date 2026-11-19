@@ -31,9 +31,6 @@
   background: var(--panel);
   border-bottom: 1px solid var(--edge);
 }
-.profile-screen .feed-brand {
-  width: clamp(145px, 17vw, 240px);
-}
 .profile-screen #peopleSearch {
   margin: 0;
   background: var(--soft);
@@ -245,9 +242,6 @@
     flex-wrap: wrap;
     gap: 0.6rem;
     padding: 0.65rem 0.85rem;
-  }
-  .profile-screen .feed-brand {
-    width: 130px;
   }
   .profile-screen #peopleSearch {
     order: 3;
