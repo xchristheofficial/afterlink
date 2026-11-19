@@ -140,8 +140,8 @@
   width: clamp(34px, 5.5vw, 80px);
 }
 #alert {
-  background: #ffeff4;
-  color: #872c48;
+  background: var(--danger-panel);
+  color: var(--danger-ink);
   padding: 0.8em 5%;
 }
 .social #surface {

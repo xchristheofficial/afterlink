@@ -63,9 +63,30 @@ h1 {
   margin: 0;
   line-height: 0;
 }
-h1 img {
-  width: 100%;
-  height: auto;
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.14em;
+  color: var(--ink);
+  font-size: clamp(2.25rem, 17cqw, 7rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+.auth-brand svg {
+  width: 1.22em;
+  height: 1.22em;
+  flex: none;
+  color: var(--accent-ink);
+}
+.auth-brand small {
+  display: block;
+  margin-top: 0.22em;
+  color: var(--dim);
+  font-size: 0.29em;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.2;
 }
 h2 {
   font-size: clamp(30px, 13.5cqw, 85px);
@@ -249,7 +270,7 @@ h2:focus {
   line-height: 1.45;
 }
 #error {
-  color: #9d2236;
+  color: var(--danger-ink);
 }
 #account {
   text-align: center;
@@ -271,6 +292,8 @@ footer button {
   font-weight: bold;
 }
 dialog {
+  background: var(--panel);
+  color: var(--ink);
   width: min(400px, 90vw);
   border: 0;
   border-radius: 14px;
@@ -368,7 +391,7 @@ dialog .primary {
   align-items: center;
   gap: 2.4cqw;
   margin: 4cqw 0;
-  color: #247f79;
+  color: var(--success-ink);
   font-weight: 700;
   font-size: clamp(16px, 4.6cqw, 29px);
 }

@@ -228,7 +228,7 @@
   resize: vertical;
 }
 #editError {
-  color: #93263e;
+  color: var(--danger-ink);
 }
 .editor-actions {
   justify-content: flex-end;

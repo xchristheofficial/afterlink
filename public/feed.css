@@ -319,7 +319,7 @@
 }
 #feedError,
 #postError {
-  color: #902940;
+  color: var(--danger-ink);
   padding: 0 1em;
 }
 .logout {
