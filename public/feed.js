@@ -21,6 +21,10 @@ const homeFeed = (() => {
             body: JSON.stringify(body),
           },
     );
+    if (r.status === 401) {
+      location.replace("/?auth=session");
+      throw Error("Your session ended. Please sign in again.");
+    }
     const data = await r.json();
     if (!r.ok) throw Error(data.error || "Unable to load the feed.");
     return data;

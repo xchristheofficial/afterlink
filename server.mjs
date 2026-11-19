@@ -256,10 +256,15 @@ app.get("/auth/google/callback", limit, async (req, res) => {
         .get(p.email.toLowerCase(), p.sub);
     if (!row) return res.redirect("/?auth=existing");
     login(req, res, row.id);
-    res.redirect("/");
+    res.redirect("/home");
   } catch {
     return res.redirect("/?auth=failed");
   }
+});
+app.get("/home", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!session(req)) return res.redirect("/?auth=session");
+  res.sendFile(resolve(dir, "public/index.html"));
 });
 app.use(express.static(resolve(dir, "public")));
 app.use((err, req, res, next) => {

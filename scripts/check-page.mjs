@@ -31,6 +31,9 @@ try {
   const page = await browser.newPage({ baseURL: url });
   const errors = [];
   page.on("pageerror", (err) => errors.push(err.message));
+  await page.goto(url + "/home");
+  await page.getByText(/Sign in to open your Home Feed/).waitFor();
+  assert.equal(new URL(page.url()).pathname, "/");
   await page.goto(url);
   await page.evaluate(() => document.fonts.ready);
   for (const [width, height] of [
@@ -125,8 +128,10 @@ try {
   await page.fill("#password", password);
   await page.click("#submit");
   await page.locator("#account").waitFor();
+  assert.equal(new URL(page.url()).pathname, "/home");
   await page.reload();
   await page.locator("#account").waitFor();
+  assert.equal(new URL(page.url()).pathname, "/home");
   assert.equal(await page.innerText("#accountEmail"), email);
   await page.locator("#emptyFeed").waitFor();
   assert.equal(await page.innerText("#profileName"), "RADAR");
@@ -146,6 +151,9 @@ try {
   await page.getByRole("button", { name: "Save post", exact: true }).click();
   await page.getByRole("button", { name: "Unsave", exact: true }).waitFor();
   await page.locator('.side-nav [data-view="Saved"]').click();
+  await page.locator("#feedRows").getByText("My first real post.").waitFor();
+  await page.getByRole("link", { name: "AfterLink home" }).click();
+  await page.locator("#feedPanel").waitFor();
   await page.locator("#feedRows").getByText("My first real post.").waitFor();
   // Another authenticated user in the same isolated test database must not inherit RADAR.
   const second = await browser.newContext({ baseURL: url });
@@ -185,6 +193,7 @@ try {
   await page.fill("#password", password);
   await page.click("#submit");
   await page.locator("#account").waitFor();
+  assert.equal(new URL(page.url()).pathname, "/home");
   await page.click("#logout");
   await page.locator("#form").waitFor();
   // Exercise the real reset route with a token issued only in the test database.
@@ -229,6 +238,7 @@ try {
   await page.fill("#password", replacement);
   await page.click("#submit");
   await page.locator("#account").waitFor();
+  assert.equal(new URL(page.url()).pathname, "/home");
   assert.deepEqual(errors, []);
   console.log(
     "Browser checks passed: stationary artwork, form switching, responsive bounds, favicon, Google fallback, validation and account lifecycle.",
