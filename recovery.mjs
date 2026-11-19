@@ -43,12 +43,10 @@ export function installRecovery(app, db, limit, sendMail, hashPassword) {
     )
       return res.status(400).json({ error: "Enter a valid email address." });
     if (!sendMail)
-      return res
-        .status(503)
-        .json({
-          error:
-            "Reset email delivery hasn’t been configured yet. No link was sent.",
-        });
+      return res.status(503).json({
+        error:
+          "Reset email delivery hasn’t been configured yet. No link was sent.",
+      });
     const user = db
       .prepare("SELECT id FROM users WHERE email=? AND hash IS NOT NULL")
       .get(email);
@@ -76,21 +74,24 @@ export function installRecovery(app, db, limit, sendMail, hashPassword) {
   app.post("/api/reset-password", limit, async (req, res) => {
     const { token, password } = req.body || {};
     const invalid = () =>
-      res
-        .status(400)
-        .json({
-          error: "This reset link is invalid or expired. Request a new one.",
-        });
+      res.status(400).json({
+        error: "This reset link is invalid or expired. Request a new one.",
+      });
     if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token))
       return invalid();
     if (
       typeof password !== "string" ||
       password.length < 12 ||
-      password.length > 128
+      password.length > 128 ||
+      !/[A-Z]/.test(password) ||
+      !/[0-9]/.test(password)
     )
       return res
         .status(400)
-        .json({ error: "Choose a password between 12 and 128 characters." });
+        .json({
+          error:
+            "Use 12–128 characters, including an uppercase letter and a number.",
+        });
     const hashed = digest(token);
     if (
       !db

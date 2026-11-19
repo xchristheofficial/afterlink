@@ -34,7 +34,7 @@ test("recovery requests, resend, expiration, single use and session revocation",
       body: JSON.stringify(data),
     });
   const request = (email) => post("forgot-password", { email });
-  const change = (token, password = "new long password") =>
+  const change = (token, password = "New long password 1") =>
     post("reset-password", { token, password });
   for (const email of [
     "absent@example.test",
@@ -62,11 +62,13 @@ test("recovery requests, resend, expiration, single use and session revocation",
   await request("owner@example.test");
   const third = outbox[2].token;
   assert.equal((await change(third, "short")).status, 400);
+  for (const invalid of ["lowercase only 12", "Uppercase only without digits"])
+    assert.equal((await change(third, invalid)).status, 400);
   assert.equal((await change(third)).status, 200);
   assert.equal((await change(third)).status, 400);
   assert.equal(
     db.prepare("SELECT hash FROM users WHERE id=1").get().hash,
-    "test-hash:new long password",
+    "test-hash:New long password 1",
   );
   assert.deepEqual(
     db

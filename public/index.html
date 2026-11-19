@@ -15,6 +15,8 @@
       sizes="any"
     />
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/feed.css" />
+    <script defer src="/feed.js"></script>
     <script defer src="/app.js"></script>
   </head>
   <body>
@@ -186,19 +188,76 @@
                   required
                 />
               </div>
-              <div class="field" id="resetField" hidden>
-                <label for="newPassword">New password</label
-                ><input
-                  id="newPassword"
-                  type="password"
-                  minlength="12"
-                  maxlength="128"
-                  autocomplete="new-password"
-                  placeholder="At least 12 characters"
-                  required
-                  disabled
-                />
-              </div>
+              <fieldset id="resetField" hidden disabled>
+                <legend class="sr-only">Choose a new password</legend>
+                <div class="field password-wrap">
+                  <input
+                    id="newPassword"
+                    type="password"
+                    aria-label="New Password"
+                    placeholder="New Password"
+                    autocomplete="new-password"
+                    aria-describedby="passwordRules"
+                    minlength="12"
+                    maxlength="128"
+                    required
+                  /><button
+                    type="button"
+                    class="reset-eye"
+                    aria-label="Show new password"
+                    aria-controls="newPassword"
+                    aria-pressed="false"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        fill="currentColor"
+                        d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Zm11 4.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0-2a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div class="field password-wrap">
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    aria-label="Confirm New Password"
+                    placeholder="Confirm New Password"
+                    autocomplete="new-password"
+                    aria-describedby="passwordRules"
+                    minlength="12"
+                    maxlength="128"
+                    required
+                  /><button
+                    type="button"
+                    class="reset-eye"
+                    aria-label="Show confirm new password"
+                    aria-controls="confirmPassword"
+                    aria-pressed="false"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        fill="currentColor"
+                        d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Zm11 4.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0-2a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div class="strength">
+                  <meter
+                    id="strengthMeter"
+                    aria-label="Password strength"
+                    min="0"
+                    max="3"
+                    value="0"
+                  ></meter
+                  ><span id="strengthText">Not entered</span>
+                </div>
+                <ul id="passwordRules">
+                  <li data-rule="length">At least 12 characters</li>
+                  <li data-rule="upper">One uppercase letter</li>
+                  <li data-rule="digit">One number</li>
+                </ul>
+              </fieldset>
               <button class="primary" id="sendReset">Send Reset Link</button>
               <p id="recoveryStatus" role="status"></p>
             </form>
@@ -212,31 +271,241 @@
               ><button class="link back" type="button">Back to Sign In</button>
             </div>
           </section>
-          <section id="account" hidden>
-            <span class="eyebrow">AFTERLINK ACCOUNT</span>
-            <h2>You're signed in.</h2>
-            <p id="accountEmail"></p>
-            <button class="primary" id="logout">Sign out</button>
-            <footer>
-              <nav aria-label="Information">
-                <button data-info="Privacy">Privacy</button
-                ><i aria-hidden="true">·</i
-                ><button data-info="Terms">Terms</button
-                ><i aria-hidden="true">·</i
-                ><button data-info="Help">Help</button
-                ><i aria-hidden="true">·</i
-                ><button data-info="More">More</button>
-              </nav>
-              <small
-                >By continuing you agree to AfterLink's
-                <button data-info="Terms">Terms</button> &amp;
-                <button data-info="Privacy">Privacy Policy</button>.</small
-              >
-            </footer>
-          </section>
         </div>
       </section>
     </main>
+    <main id="account" class="home" hidden aria-label="AfterLink home">
+      <svg width="0" height="0" aria-hidden="true" class="feed-sprite">
+        <defs>
+          <linearGradient id="fg">
+            <stop stop-color="#7829d4" />
+            <stop offset="1" stop-color="#18a9ab" />
+          </linearGradient>
+          <symbol id="icFeed" viewBox="0 0 24 24">
+            <path d="M2 11 12 2l10 9v10h-7v-7H9v7H2z" />
+          </symbol>
+          <symbol id="icExplore" viewBox="0 0 24 24">
+            <path
+              d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z M16 8l-3 6-5 2 3-6z"
+            />
+          </symbol>
+          <symbol id="icReels" viewBox="0 0 24 24">
+            <path d="M2 5h14v14H2z M17 10l5-4v12l-5-4z" />
+          </symbol>
+          <symbol id="icMessages" viewBox="0 0 24 24">
+            <path d="M2 4h20v13H9l-5 4v-4H2z M7 10h.1m4.9 0h.1m4.9 0h.1" />
+          </symbol>
+          <symbol id="icSaved" viewBox="0 0 24 24">
+            <path d="M5 3h14v19l-7-5-7 5z" />
+          </symbol>
+          <symbol id="icSettings" viewBox="0 0 24 24">
+            <path d="M5 6h16M3 12h18M3 18h16 M8 3v6m8 0v6m-9 0v6" />
+          </symbol>
+          <symbol id="icNotifications" viewBox="0 0 24 24">
+            <path d="M3 17h18l-2-4V9a7 7 0 1 0-14 0v4z M10 21h4" />
+          </symbol>
+          <symbol id="icSearch" viewBox="0 0 24 24">
+            <path d="M16 9a7 7 0 1 1-14 0 7 7 0 1 1 14 0z M14 15l8 7" />
+          </symbol>
+          <symbol id="icPhoto" viewBox="0 0 24 24">
+            <path d="M2 3h20v18H2z M2 18l7-8 5 5 3-3 5 5" />
+          </symbol>
+          <symbol id="icSmile" viewBox="0 0 24 24">
+            <path
+              d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z M7 14q5 7 10 0 M8 8h.1m7.9 0h.1"
+            />
+          </symbol>
+        </defs>
+      </svg>
+      <header class="topbar">
+        <button data-view="Feed" aria-label="AfterLink home">
+          <img
+            class="feed-brand"
+            src="/assets/feed-brand.webp"
+            alt="AfterLink"
+          />
+        </button>
+        <form id="peopleSearch" role="search">
+          <svg class="fi" aria-hidden="true"><use href="#icSearch" /></svg
+          ><input
+            id="searchPeople"
+            type="search"
+            aria-label="Search people"
+            maxlength="100"
+          />
+        </form>
+        <nav aria-label="Quick access">
+          <button type="button" data-view="Feed" aria-label="Feed">
+            <svg class="fi" aria-hidden="true">
+              <use href="#icFeed" />
+            </svg></button
+          ><button type="button" data-later="Reels" aria-label="Reels">
+            <svg class="fi" aria-hidden="true">
+              <use href="#icReels" />
+            </svg></button
+          ><button type="button" data-later="Messages" aria-label="Messages">
+            <svg class="fi" aria-hidden="true">
+              <use href="#icMessages" />
+            </svg></button
+          ><button
+            type="button"
+            data-later="Notifications"
+            aria-label="Notifications"
+          >
+            <svg class="fi" aria-hidden="true">
+              <use href="#icNotifications" />
+            </svg></button
+          ><button data-view="Settings" aria-label="Account settings">
+            <img class="avatar" src="/assets/avatar-default.webp" alt="" />
+          </button>
+        </nav>
+      </header>
+      <div class="home-grid">
+        <aside class="profile-rail">
+          <section class="who">
+            <img class="avatar" src="/assets/avatar-default.webp" alt="" />
+            <h2 id="profileName"></h2>
+            <p id="profileHandle"></p>
+            <small id="founderBadge" hidden>AfterLink developer</small>
+            <p id="counts"></p>
+          </section>
+          <nav class="side-nav" aria-label="Main navigation">
+            <button type="button" data-view="Feed" aria-label="Feed">
+              <svg class="fi" aria-hidden="true"><use href="#icFeed" /></svg
+              ><span>Feed</span></button
+            ><button type="button" data-view="Explore" aria-label="Explore">
+              <svg class="fi" aria-hidden="true"><use href="#icExplore" /></svg
+              ><span>Explore</span></button
+            ><button type="button" data-later="Reels" aria-label="Reels">
+              <svg class="fi" aria-hidden="true"><use href="#icReels" /></svg
+              ><span>Reels</span></button
+            ><button type="button" data-later="Messages" aria-label="Messages">
+              <svg class="fi" aria-hidden="true"><use href="#icMessages" /></svg
+              ><span>Messages</span></button
+            ><button type="button" data-view="Saved" aria-label="Saved">
+              <svg class="fi" aria-hidden="true"><use href="#icSaved" /></svg
+              ><span>Saved</span></button
+            ><button type="button" data-view="Settings" aria-label="Settings">
+              <svg class="fi" aria-hidden="true"><use href="#icSettings" /></svg
+              ><span>Settings</span>
+            </button>
+          </nav>
+          <button class="logout" id="logout">Sign out</button>
+        </aside>
+        <section class="stream" aria-label="Feed content">
+          <p role="alert" id="feedError" hidden></p>
+          <div id="feedPanel">
+            <div class="story-strip">
+              <button data-later="Your Story">
+                <img
+                  class="avatar"
+                  src="/assets/avatar-default.webp"
+                  alt=""
+                /><strong>Your Story</strong></button
+              ><button data-view="Explore">
+                <span class="story-disc" aria-hidden="true"></span
+                ><strong>Explore</strong></button
+              ><button data-later="Topics">
+                <span class="story-disc" aria-hidden="true"></span
+                ><strong>Topics</strong></button
+              ><button data-later="Events">
+                <span class="story-disc" aria-hidden="true"></span
+                ><strong>Events</strong></button
+              ><button data-later="Guides">
+                <span class="story-disc" aria-hidden="true"></span
+                ><strong>Guides</strong>
+              </button>
+            </div>
+            <div class="compose-row">
+              <img class="avatar" src="/assets/avatar-default.webp" alt="" />
+              <div class="compose-box">
+                <button id="openComposer">What's on your mind?</button
+                ><span class="compose-tools"
+                  ><button data-later="Photos" aria-label="Photo uploads">
+                    <svg class="fi" aria-hidden="true">
+                      <use href="#icPhoto" />
+                    </svg></button
+                  ><button data-later="Video" aria-label="Video uploads">
+                    <svg class="fi" aria-hidden="true">
+                      <use href="#icReels" />
+                    </svg></button
+                  ><button id="composeEmoji" aria-label="Write with emoji">
+                    <svg class="fi" aria-hidden="true">
+                      <use href="#icSmile" />
+                    </svg></button
+                ></span>
+              </div>
+            </div>
+            <div class="banner">
+              <h2>Welcome to AfterLink!</h2>
+              <p>Connect After. Link Forever.</p>
+              <button data-view="Explore">
+                <svg class="fi" aria-hidden="true">
+                  <use href="#icExplore" />
+                </svg>
+                Explore People
+              </button>
+            </div>
+            <div id="emptyFeed" class="empty-feed" hidden>
+              <img src="/assets/feed-mountains.webp" alt="" />
+              <h2>
+                Welcome to AfterLink —<br />Follow people to see their posts
+              </h2>
+              <p>
+                Your feed is empty for now. Discover people<br />
+                to get started.
+              </p>
+              <button data-view="Explore" class="pill">
+                <svg class="fi" aria-hidden="true">
+                  <use href="#icExplore" />
+                </svg>
+                Explore People
+              </button>
+            </div>
+          </div>
+          <section id="otherPanel" hidden>
+            <h2 id="viewTitle"></h2>
+            <p id="viewHint"></p>
+            <div id="settingsLinks" hidden>
+              <p id="accountEmail"></p>
+              <nav>
+                <button data-info="Privacy">Privacy</button
+                ><button data-info="Terms">Terms</button
+                ><button data-info="Help">Help</button
+                ><button data-info="More">More</button>
+              </nav>
+            </div>
+          </section>
+          <div id="feedRows" aria-live="polite"></div>
+        </section>
+        <aside class="welcome-card">
+          <h2>Welcome</h2>
+          <h3><span aria-hidden="true">✦</span> Get started</h3>
+          <ul>
+            <li>Share a little about yourself in your first post</li>
+            <li>Follow people to see their posts in your feed</li>
+            <li>Explore People to find others to connect with</li>
+          </ul>
+          <p>
+            Your activity starts with the people you follow and the posts you
+            share.
+          </p>
+        </aside>
+      </div>
+    </main>
+    <dialog id="composer" aria-labelledby="composerTitle">
+      <form id="postForm">
+        <h2 id="composerTitle">Create a post</h2>
+        <label for="postText">What's on your mind?</label
+        ><textarea id="postText" maxlength="500" rows="5" required></textarea
+        ><small>Public text post · Up to 500 characters</small>
+        <p role="alert" id="postError"></p>
+        <div>
+          <button id="cancelPost" type="button">Cancel</button
+          ><button class="pill" id="publishPost">Publish</button>
+        </div>
+      </form>
+    </dialog>
     <dialog
       id="dialog"
       aria-labelledby="dialogTitle"

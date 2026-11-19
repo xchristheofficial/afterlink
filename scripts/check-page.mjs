@@ -6,7 +6,8 @@ import { once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { randomUUID } from "node:crypto";
+import { DatabaseSync } from "node:sqlite";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 const dir = await mkdtemp(join(tmpdir(), "afterlink-ui-"));
 const server = spawn(process.execPath, ["server.mjs"], {
@@ -127,6 +128,55 @@ try {
   await page.reload();
   await page.locator("#account").waitFor();
   assert.equal(await page.innerText("#accountEmail"), email);
+  await page.locator("#emptyFeed").waitFor();
+  assert.equal(await page.innerText("#profileName"), "RADAR");
+  assert.equal(await page.innerText("#profileHandle"), "@ui_test");
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth === innerWidth,
+    ),
+  );
+  await page.setViewportSize({ width: 1568, height: 1045 });
+  if (process.env.FEED_SCREENSHOT)
+    await page.screenshot({ path: process.env.FEED_SCREENSHOT });
+  await page.click("#openComposer");
+  await page.fill("#postText", "My first real post.");
+  await page.click("#publishPost");
+  await page.locator("#feedRows").getByText("My first real post.").waitFor();
+  await page.getByRole("button", { name: "Save post", exact: true }).click();
+  await page.getByRole("button", { name: "Unsave", exact: true }).waitFor();
+  await page.locator('.side-nav [data-view="Saved"]').click();
+  await page.locator("#feedRows").getByText("My first real post.").waitFor();
+  // Another authenticated user in the same isolated test database must not inherit RADAR.
+  const second = await browser.newContext({ baseURL: url });
+  const headers = { "X-AfterLink-Request": "1" };
+  assert.equal((await second.request.get("/api/feed")).status(), 401);
+  await second.request.post("/api/signup", {
+    headers,
+    data: {
+      fullName: "Second Member",
+      username: "second_member",
+      email: `${randomUUID()}@example.test`,
+      password: randomUUID(),
+    },
+  });
+  const secondFeed = async () => (await second.request.get("/api/feed")).json();
+  const initial = await secondFeed();
+  assert.equal(initial.profile.name, "Second Member");
+  assert.equal(initial.profile.founder, 0);
+  assert.deepEqual(initial.posts, []);
+  const { people } = await (
+    await second.request.get("/api/feed/people?q=radar")
+  ).json();
+  assert.equal(people.length, 1);
+  assert.ok(!("email" in people[0]));
+  await second.request.post("/api/feed/follow", {
+    headers,
+    data: { id: people[0].id, on: true },
+  });
+  assert.equal((await secondFeed()).posts[0].body, "My first real post.");
+  assert.equal((await secondFeed()).profile.following, 1);
+  await second.close();
   await page.click("#logout");
   await page.fill("#email", email);
   await page.fill("#password", "incorrect");
@@ -137,6 +187,48 @@ try {
   await page.locator("#account").waitFor();
   await page.click("#logout");
   await page.locator("#form").waitFor();
+  // Exercise the real reset route with a token issued only in the test database.
+  const token = randomBytes(32).toString("hex");
+  const db = new DatabaseSync(join(dir, "ui.sqlite"));
+  try {
+    db.prepare(
+      "INSERT INTO password_resets(user_id,digest,issued,expires) SELECT id,?,?,? FROM users WHERE email=?",
+    ).run(
+      createHash("sha256").update(token).digest("hex"),
+      Date.now(),
+      Date.now() + 60000,
+      email,
+    );
+  } finally {
+    db.close();
+  }
+  await page.goto("about:blank");
+  await page.goto(`${url}/#reset=${token}`);
+  await page.getByRole("heading", { name: "Reset Password" }).waitFor();
+  assert.equal(await page.innerText("#strengthText"), "Not entered");
+  const replacement = "A1" + randomUUID();
+  await page.fill("#newPassword", replacement);
+  assert.equal(await page.innerText("#strengthText"), "Strong");
+  assert.equal(
+    await page.locator("#passwordRules li[data-met=true]").count(),
+    3,
+  );
+  await page
+    .getByRole("button", { name: "Show new password", exact: true })
+    .click();
+  assert.equal(await page.getAttribute("#newPassword", "type"), "text");
+  assert.equal(await page.getAttribute("#confirmPassword", "type"), "password");
+  await page.fill("#confirmPassword", replacement + "x");
+  await page.click("#sendReset");
+  assert.ok(await page.locator("#confirmPassword:invalid").count());
+  await page.fill("#confirmPassword", replacement);
+  await page.click("#sendReset");
+  await page.getByRole("dialog", { name: "Password updated" }).waitFor();
+  await page.keyboard.press("Escape");
+  await page.fill("#email", email);
+  await page.fill("#password", replacement);
+  await page.click("#submit");
+  await page.locator("#account").waitFor();
   assert.deepEqual(errors, []);
   console.log(
     "Browser checks passed: stationary artwork, form switching, responsive bounds, favicon, Google fallback, validation and account lifecycle.",
