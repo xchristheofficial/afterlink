@@ -23,6 +23,37 @@ const postComposer = (() => {
     }
     return n;
   }
+  let captionId = 0;
+  function caption(value = "") {
+    const p = node("p", value);
+    p.className = "caption";
+    if (value.length <= 180 && value.split("\n").length <= 3) return p;
+    const lines = value.split("\n").slice(0, 3).join("\n");
+    const chars =
+      typeof Intl.Segmenter === "function"
+        ? Array.from(
+            new Intl.Segmenter().segment(lines),
+            (part) => part.segment,
+          )
+        : Array.from(lines);
+    const preview = chars.slice(0, 180).join("");
+    if (preview === value) return p;
+    const toggle = node("button", "Read more"),
+      body = node("span", preview.trimEnd() + "…");
+    toggle.type = "button";
+    toggle.className = "caption-toggle";
+    body.id = "post-caption-" + ++captionId;
+    toggle.setAttribute("aria-controls", body.id);
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.onclick = () => {
+      const expand = toggle.getAttribute("aria-expanded") === "false";
+      body.textContent = expand ? value : preview.trimEnd() + "…";
+      toggle.textContent = expand ? "Show less" : "Read more";
+      toggle.setAttribute("aria-expanded", String(expand));
+    };
+    p.replaceChildren(body, " ", toggle);
+    return p;
+  }
   function content(post, api) {
     const area = node("div");
     area.className = "published-extra";
@@ -340,5 +371,5 @@ const postComposer = (() => {
       err(e.message);
     }
   }
-  return { open, content };
+  return { open, content, caption };
 })();

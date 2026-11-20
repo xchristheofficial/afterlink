@@ -375,3 +375,14 @@
       border-color 0.18s ease;
   }
 }
+
+.caption .caption-toggle {
+  padding: .15em .35em;
+  background: transparent;
+  color: var(--accent-ink);
+  border: 0;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: .15em;
+}

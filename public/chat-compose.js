@@ -32,6 +32,7 @@ export function retryableComposer(form, field, send, deliver, after, report) {
   };
 }
 export function multiline(field, form, send, label) {
+  field.id = "conversation-composer";
   field.rows = 1;
   field.maxLength = 1000;
   field.placeholder = label;
@@ -44,6 +45,36 @@ export function multiline(field, form, send, label) {
     e.preventDefault();
     if (!e.repeat && !send.disabled) form.requestSubmit(send);
   });
+  const vp = window.visualViewport;
+  if (vp) {
+    let frame;
+    function fit() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (document.activeElement !== field || vp.scale !== 1) return;
+        const bottom = vp.offsetTop + vp.height,
+          rect = field.getBoundingClientRect();
+        document.body.style.setProperty(
+          "--composer-inset",
+          `${Math.max(0, innerHeight - bottom)}px`,
+        );
+        if (rect.bottom > bottom - 8)
+          window.scrollBy({
+            top: rect.bottom - bottom + 12,
+            behavior: "instant",
+          });
+      });
+    }
+    field.addEventListener("focus", () => {
+      vp.addEventListener("resize", fit);
+      fit();
+    });
+    field.addEventListener("blur", () => {
+      document.body.style.removeProperty("--composer-inset");
+      vp.removeEventListener("resize", fit);
+      cancelAnimationFrame(frame);
+    });
+  }
   const count = n("small", "composer-limit");
   count.id = "remaining-" + crypto.randomUUID();
   field.setAttribute("aria-describedby", count.id);

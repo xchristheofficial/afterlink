@@ -76,3 +76,17 @@
   right: 0.35rem;
   top: 0.12rem;
 }
+
+/* Let the OS choose the palette. Keep a shape cue independent of fill color. */
+@media (forced-colors: active) {
+  .nav-unread, body.social :is(.thread-row, .lb-card) .count {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+    border: 1px solid HighlightText;
+  }
+  :is(.tabs, .segments, .lb-tabs, .dm-mode) :is([aria-pressed="true"], [aria-current="page"]) {
+    text-decoration: underline double;
+    text-underline-offset: .18em;
+  }
+}

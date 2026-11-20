@@ -607,3 +607,6 @@ dialog .primary {
     transition: none;
   }
 }
+
+.visibility-review-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
+.visibility-review-actions button { font: inherit; padding: .5rem .8rem; border: 1px solid var(--edge); border-radius: .7rem; color: var(--ink); background: var(--soft); }

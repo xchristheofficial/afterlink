@@ -1131,3 +1131,35 @@
   color: var(--dim);
   font-variant-numeric: tabular-nums;
 }
+
+.media-frame:focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+.notice-audience { display: inline-flex; align-items: center; gap: .55em; cursor: pointer; }
+.notice-audience input { width: 1.1em; height: 1.1em; accent-color: var(--accent-ink); }
+
+/* Only expose the first tab stop once the conversation has a composer. */
+.composer-skip { display: none; }
+.social:has(#conversation-composer) .composer-skip {
+  display: block;
+  position: fixed;
+  inset: .5rem auto auto .5rem;
+  z-index: 20;
+  padding: .6em 1em;
+  border-radius: .5em;
+  background: var(--panel);
+}
+.composer-skip:not(:focus) { clip-path: inset(50%); pointer-events: none; }
+
+.view-toolbox { border:1px solid var(--edge); border-radius:.8rem; padding:.6rem .8rem; margin-block:.6rem; }
+.view-toolbox summary { cursor:pointer; font-weight:600; }
+.view-controls { display:flex; align-items:center; flex-wrap:wrap; gap:.6rem 1rem; padding-block:.4rem; }
+.view-choice { display:grid; gap:.25rem; font-size:.9em; }
+.view-check { display:inline-flex; align-items:center; gap:.4rem; }
+.view-choice select { max-width:100%; font:inherit; background:var(--panel); color:var(--ink); border:1px solid var(--edge); padding:.35rem; border-radius:.4rem; }
+.social[data-screen="reels"] #surface.reel-focus {grid-template-columns:minmax(0,1fr) auto;}
+.saved-author { font-size:.85rem; color:var(--accent-ink); }
+@media (max-width:700px) { .social[data-screen="reels"] #surface.reel-focus {grid-template-columns:minmax(0,1fr);} }
+.social:is([data-screen="thread"],[data-screen="groups"],[data-screen="linkbacks"]) {padding-bottom:var(--composer-inset,0px);}

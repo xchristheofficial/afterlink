@@ -1,3 +1,4 @@
+import { choice, check, toolbox } from "./view-controls.js";
 import { postMenu } from "./linkbacks.js";
 import {
   n,
@@ -86,14 +87,69 @@ export async function search(root, q) {
       }
     }
   }
-  root.append(tabs(["All", "People", "Posts", "Reels"], "All", show), groups);
-  show("All");
+  const filters = ["All", "People", "Posts", "Reels"];
+  const initial =
+    filters.find(
+      (f) =>
+        f.toLowerCase() === new URLSearchParams(location.search).get("filter"),
+    ) || "All";
+  const keep = n("input");
+  keep.type = "hidden";
+  keep.name = "filter";
+  document.querySelector("#socialSearch").append(keep);
+  function filterBy(filter) {
+    keep.value = filter.toLowerCase();
+    keep.disabled = filter === "All";
+    const url = new URL(location.href);
+    if (keep.disabled) url.searchParams.delete("filter");
+    else url.searchParams.set("filter", keep.value);
+    if (url.href !== location.href)
+      history.replaceState(history.state, "", url);
+    show(filter);
+  }
+  root.append(tabs(filters, initial, filterBy), groups);
+  filterBy(initial);
 }
 
 export async function notifications(root, q) {
   let items = (await api("/notices")).notices,
     selected = "All";
   const groups = box("notice-groups");
+  const following = n("input"),
+    audience = n("label", "notice-audience");
+  following.type = "checkbox";
+  following.onchange = render;
+  audience.append(following, "Only people I follow");
+  const unread = check("Unread only", render),
+    period = choice(
+      "Time period",
+      [
+        ["all", "Any time"],
+        ["1", "Last 24 hours"],
+        ["7", "Last 7 days"],
+        ["30", "Last 30 days"],
+      ],
+      render,
+    ),
+    summary = n("small", "subtle");
+  summary.setAttribute("role", "status");
+  let visible = [];
+  const scoped = button("Mark shown as read", async () => {
+    const targets = visible.filter((i) => !i.seen);
+    try {
+      for (const i of targets) {
+        await api("/notices/read", { id: i.id });
+        i.seen = 1;
+      }
+    } finally {
+      window.dispatchEvent(new Event("unread-change"));
+      render();
+    }
+  });
+  const refresh = button("Refresh notifications", async () => {
+    items = (await api("/notices")).notices;
+    render();
+  });
   const mark = button(
     "Mark all as read",
     async () => {
@@ -110,6 +166,9 @@ export async function notifications(root, q) {
       selected = v;
       render();
     }),
+    audience,
+    toolbox("Notification tools", unread.root, period.root, refresh, scoped),
+    summary,
     groups,
   );
   const labels = {
@@ -123,9 +182,19 @@ export async function notifications(root, q) {
   };
   function render() {
     groups.replaceChildren();
-    mark.hidden = !items.some((i) => !i.seen);
+    mark.hidden =
+      selected !== "All" ||
+      !!q ||
+      unread.field.checked ||
+      period.field.value !== "all" ||
+      following.checked ||
+      !items.some((i) => !i.seen);
     const filtered = items.filter(
       (i) =>
+        (!unread.field.checked || !i.seen) &&
+        (period.field.value === "all" ||
+          i.created >= Date.now() - Number(period.field.value) * 86400000) &&
+        (!following.checked || i.following) &&
         (selected === "All" ||
           (selected === "Follows"
             ? i.kind === "follow"
@@ -134,11 +203,17 @@ export async function notifications(root, q) {
               : !["follow", "mention"].includes(i.kind))) &&
         (i.name + " " + labels[i.kind]).toLowerCase().includes(q.toLowerCase()),
     );
+    visible = filtered;
+    const pending = visible.filter((i) => !i.seen).length;
+    scoped.hidden = !pending;
+    summary.textContent = `${visible.length} shown · ${pending} unread`;
     if (!filtered.length) {
       groups.append(
         empty(
           "No notifications here yet",
-          "New activity from other members will appear here.",
+          following.checked
+            ? "Turn off the following filter to see other activity."
+            : "New activity from other members will appear here.",
         ),
       );
       return;
@@ -179,12 +254,22 @@ export async function notifications(root, q) {
                 await api("/follow", { id: i.actor, on: true });
                 await api("/notices/read", { id: i.id });
                 window.dispatchEvent(new Event("unread-change"));
-                i.following = 1;
+                for (const notice of items)
+                  if (notice.actor === i.actor) notice.following = 1;
                 i.seen = 1;
                 render();
               },
               "outline",
             ),
+          );
+        if (!seen)
+          row.append(
+            button("Mark read", async () => {
+              await api("/notices/read", { id: i.id });
+              i.seen = 1;
+              window.dispatchEvent(new Event("unread-change"));
+              render();
+            }),
           );
         row.append(n("small", "subtle", ago(i.created)));
         groups.append(row);
@@ -220,6 +305,14 @@ export async function reels(root, q, id) {
     return;
   }
   let version = 0;
+  let currentPlayer,
+    rate = 1,
+    loop = false,
+    mute = null,
+    theater = false;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) currentPlayer?.pause();
+  });
   async function select(p) {
     const v = ++version;
     for (const b of list.querySelectorAll("button"))
@@ -246,7 +339,7 @@ export async function reels(root, q, id) {
         profile(author),
         ...(!own ? [follow(author)] : []),
       ),
-      n("p", "", post.body),
+      postComposer.caption(post.body),
       n("small", "subtle", post.views + " views"),
     );
     if (!own)
@@ -273,7 +366,54 @@ export async function reels(root, q, id) {
     );
     player.addEventListener("play", () => (overlay.hidden = true));
     player.addEventListener("pause", () => (overlay.hidden = false));
-    center.replaceChildren(box("player", player, overlay), caption);
+    currentPlayer?.pause();
+    currentPlayer = player;
+    player.loop = loop;
+    player.defaultPlaybackRate = player.playbackRate = rate;
+    if (mute !== null) player.muted = mute;
+    const speed = choice(
+      "Reel speed",
+      [0.75, 1, 1.25, 1.5, 2].map((x) => [x, x + "×"]),
+      () => {
+        rate = Number(speed.field.value);
+        player.defaultPlaybackRate = player.playbackRate = rate;
+      },
+    );
+    speed.field.value = String(rate);
+    const repeat = check("Loop this reel", () => {
+      player.loop = loop = repeat.field.checked;
+    });
+    repeat.field.checked = loop;
+    const silent = check("Mute reel sound", () => {
+      player.muted = mute = silent.field.checked;
+    });
+    silent.field.checked = player.muted;
+    player.addEventListener("volumechange", () => {
+      if (currentPlayer === player) silent.field.checked = mute = player.muted;
+    });
+    const wide = check("Focus on player", () => {
+      theater = wide.field.checked;
+      root.classList.toggle("reel-focus", theater);
+      list.hidden = theater;
+    });
+    wide.field.checked = theater;
+    const idx = rows.findIndex((x) => x.id === p.id),
+      prev = button("Previous reel", () => select(rows[idx - 1])),
+      next = button("Next reel", () => select(rows[idx + 1]));
+    prev.disabled = idx === 0;
+    next.disabled = idx === rows.length - 1;
+    center.replaceChildren(
+      box("player", player, overlay),
+      box("view-controls", prev, next),
+      toolbox(
+        "Playback settings",
+        speed.root,
+        repeat.root,
+        silent.root,
+        wide.root,
+      ),
+      caption,
+    );
     const heart = button("", async () => {
       await api("/heart", { post: p.id, on: !post.liked });
       post.liked = !post.liked;

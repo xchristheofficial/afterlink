@@ -51,6 +51,7 @@ const homeFeed = (() => {
           },
     );
     if (r.status === 401) {
+      window.clearExpiredSession?.();
       location.replace("/?auth=session");
       throw Error("Your session ended. Please sign in again.");
     }
@@ -105,9 +106,85 @@ const homeFeed = (() => {
     link.className = "post-detail-link";
     return link;
   }
+  // Keep only geometry and IDs on this history entry, never feed content.
+  // The browser handles cached pages. On a cold Back, wait for fresh rows:
+  // restoring a document pixel offset before they arrive lands at the top.
+  const rows = el("feedRows");
+  let owner = null;
+  rows.addEventListener("click", (event) => {
+    const link = event.target.closest(".post-detail-link");
+    if (
+      !link ||
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.altKey ||
+      event.shiftKey ||
+      view !== "Feed" ||
+      !owner
+    )
+      return;
+    const card = link.closest("article");
+    try {
+      history.replaceState(
+        {
+          ...history.state,
+          feedReturn: {
+            owner,
+            id: card.dataset.post,
+            neighbor: (card.nextElementSibling || card.previousElementSibling)
+              ?.dataset.post,
+            top: link.getBoundingClientRect().top,
+            expanded: !!card.querySelector(
+              '.caption-toggle[aria-expanded="true"]',
+            ),
+          },
+        },
+        "",
+      );
+    } catch {
+      /* Navigation still works when history state is unavailable. */
+    }
+  });
+  function takeReturnPoint() {
+    const saved = history.state?.feedReturn;
+    if (!saved) return;
+    const state = { ...history.state };
+    delete state.feedReturn;
+    history.replaceState(state, "");
+    return saved;
+  }
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) takeReturnPoint(); // The original DOM and position survived.
+  });
+  function restoreReadingPosition(member) {
+    const saved = takeReturnPoint();
+    if (!saved) return;
+    if (
+      saved.owner !== member ||
+      performance.getEntriesByType("navigation")[0]?.type !== "back_forward"
+    )
+      return;
+    const card =
+      [...rows.children].find((el) => el.dataset.post === saved.id) ||
+      [...rows.children].find((el) => el.dataset.post === saved.neighbor);
+    if (!card) return;
+    if (saved.expanded && card.dataset.post === saved.id)
+      card.querySelector(".caption-toggle")?.click();
+    const link = card.querySelector(".post-detail-link");
+    link.focus({ preventScroll: true });
+    window.scrollBy({
+      top:
+        link.getBoundingClientRect().top -
+        Math.max(0, Math.min(saved.top, innerHeight - link.offsetHeight)),
+      behavior: "instant",
+    });
+  }
   function row(item, people) {
     const node = document.createElement("article");
     node.className = "feed-row";
+    if (!people) node.dataset.post = String(item.id);
     const head = document.createElement("header");
     head.append(identity(item));
     if (people) {
@@ -138,7 +215,7 @@ const homeFeed = (() => {
       );
       node.append(
         head,
-        text("p", item.body),
+        postComposer.caption(item.body),
         postComposer.content(item, api),
         detailLink(item),
         action(item.saved ? "Unsave" : "Save post", () =>
@@ -174,6 +251,7 @@ const homeFeed = (() => {
       ]);
       if (id !== version) return;
       const p = data.profile;
+      owner = p.id;
       document
         .querySelectorAll(".home-grid .avatar")
         .forEach((img) => (img.src = "/api/feed/avatar/me"));
@@ -192,7 +270,8 @@ const homeFeed = (() => {
         el("viewHint").textContent = people
           ? "No matching accounts yet."
           : "No saved posts yet.";
-      el("feedRows").replaceChildren(...items.map((x) => row(x, people)));
+      rows.replaceChildren(...items.map((x) => row(x, people)));
+      if (feed) restoreReadingPosition(owner);
     } catch (e) {
       if (id === version) fail(e);
     }

@@ -9,7 +9,29 @@ export function installCalls({
   wake,
   nickname,
 }) {
-  const active = new Map();
+  const active = new Map(),
+    outcomes = new Map();
+  // One short-lived receipt per caller; no history, media, or names. A caller
+  // must still have access and ask about the exact invitation they started.
+  function finish(c, outcome) {
+    active.delete(c.id);
+    if (outcome)
+      outcomes.set(c.a, {
+        id: c.id,
+        peer: c.b,
+        outcome,
+        until: Date.now() + 60000,
+      });
+  }
+  function expired(c, now) {
+    return c.state === "ringing"
+      ? now - c.start >= 45000
+      : Math.min(c.pulseA, c.pulseB) < now - 45000;
+  }
+  function expire(c) {
+    finish(c, c.state === "ringing" ? "unanswered" : null);
+  }
+
   const recordElapsed = (c) =>
     c.recording?.state === "active"
       ? Math.max(0, Date.now() - c.recordStart)
@@ -22,14 +44,8 @@ export function installCalls({
   });
   const sweep = () => {
     const now = Date.now();
-    for (const [key, c] of active) {
-      if (
-        c.state === "ringing"
-          ? now - c.start > 45000
-          : Math.min(c.pulseA, c.pulseB) < now - 45000
-      )
-        active.delete(key);
-    }
+    for (const c of active.values()) if (expired(c, now)) expire(c);
+    for (const [uid, o] of outcomes) if (o.until <= now) outcomes.delete(uid);
   };
   setInterval(sweep, 15000).unref();
   function ice(uid) {
@@ -56,6 +72,10 @@ export function installCalls({
         break;
       }
     }
+    if (c && expired(c, Date.now())) {
+      expire(c);
+      return null;
+    }
     if (c && !allowedDM(c.a, c.b)) {
       active.delete(c.id);
       return null;
@@ -64,7 +84,14 @@ export function installCalls({
   };
   endpoint("get", "calls", (uid, q) => {
     const c = current(uid);
-    if (!c) return { call: null };
+    if (!c) {
+      const o = outcomes.get(uid);
+      if (o && q.live === o.id && o.until > Date.now()) {
+        if (allowedDM(uid, o.peer)) return { call: null, outcome: o.outcome };
+        outcomes.delete(uid);
+      }
+      return { call: null };
+    }
     const caller = c.a === uid,
       peer = caller ? c.b : c.a;
     if (q.live === c.id) c[caller ? "pulseA" : "pulseB"] = Date.now();
@@ -105,6 +132,7 @@ export function installCalls({
       if (current(uid) || current(peer)) fail("Member is busy.", 409);
       const key = randomUUID(),
         now = Date.now();
+      outcomes.delete(uid);
       active.set(key, {
         id: key,
         a: uid,
@@ -125,6 +153,13 @@ export function installCalls({
     const c = current(uid);
     if (!c || c.id !== b.id) fail("Call has ended.", 404);
     const peer = uid === c.a ? c.b : c.a;
+    if (b.action === "decline") {
+      if (uid !== c.b || c.state !== "ringing")
+        fail("Invitation is no longer ringing.", 409);
+      finish(c, "declined");
+      wake("call", peer);
+      return;
+    }
     if (b.action === "end") {
       wake("call", peer);
       active.delete(c.id);

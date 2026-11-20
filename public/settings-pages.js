@@ -1,3 +1,4 @@
+import { choice, check, toolbox } from "./view-controls.js";
 import {
   $,
   a,
@@ -41,6 +42,32 @@ const copy = (title, desc = "") =>
     n("strong", "", title),
     ...(desc ? [n("small", "", desc)] : []),
   );
+// Local-only filters: do not send private search terms to the server or URL.
+function localFilter(label, onChange) {
+  const field = input(label);
+  field.type = "search";
+  const clear = n("button", "", "Clear search");
+  clear.type = "button";
+  clear.hidden = true;
+  field.oninput = () => {
+    clear.hidden = !field.value;
+    onChange();
+  };
+  clear.onclick = () => {
+    field.value = "";
+    field.oninput();
+    field.focus();
+  };
+  return { field, bar: box("local-filter", field, clear) };
+}
+function keywordMatch(query) {
+  const fold = (text) => text.normalize("NFKC").toLowerCase();
+  const words = fold(query).trim().split(/\s+/);
+  return (text) => {
+    const haystack = fold(text);
+    return words.every((word) => haystack.includes(word));
+  };
+}
 function row(title, desc, control, key) {
   return box(
     "pref-row",
@@ -195,7 +222,7 @@ export async function settings(root, section) {
   }
   if (!labels[section]) throw Error("Settings page not found.");
   const card = panel(root, labels[section]),
-    { prefs, private: priv, restricted } = await api("/settings");
+    { prefs, private: priv, restricted, id: memberId } = await api("/settings");
   const note = n("p", "pref-status");
   note.setAttribute("role", "status");
   const save = async (b) => {
@@ -209,9 +236,22 @@ export async function settings(root, section) {
         bar = box("segments");
       for (const label of names) {
         const b = button(label, async () => {
-          await save({ [key]: items[label] });
-          for (const c of bar.children)
-            c.setAttribute("aria-pressed", String(c === b));
+          if (items[label] === value) return;
+          for (const c of bar.children) c.disabled = true;
+          try {
+            if (key === "private" && !items[label] && value) {
+              const { confirmPublicProfile } =
+                await import("./privacy-review.js");
+              if (!(await confirmPublicProfile())) return;
+            }
+            await save({ [key]: items[label] });
+            value = items[label];
+            for (const c of bar.children)
+              c.setAttribute("aria-pressed", String(c === b));
+          } finally {
+            for (const c of bar.children) c.disabled = false;
+            b.focus();
+          }
         });
         b.setAttribute("aria-pressed", String(items[label] === value));
         bar.append(b);
@@ -250,13 +290,26 @@ export async function settings(root, section) {
       prefs.stories,
     );
     const area = box("restricted");
-    area.id = "blocked";
-    card.append(n("h2", "", "Blocked & Muted Accounts"), area);
+    const filter = localFilter("Search blocked or muted accounts", draw);
+    const restrictedSection = box(
+      "",
+      n("h2", "", "Blocked & Muted Accounts"),
+      filter.bar,
+      area,
+    );
+    restrictedSection.id = "blocked";
+    card.append(restrictedSection);
     function draw() {
       area.replaceChildren();
       if (!restricted.length)
         area.append(n("p", "subtle", "No blocked or muted accounts."));
-      restricted.forEach((p) =>
+      const matches = keywordMatch(filter.field.value);
+      const results = restricted.filter((p) =>
+        matches(p.name + " " + (p.kind === "block" ? "Blocked" : "Muted")),
+      );
+      if (restricted.length && !results.length)
+        area.append(n("p", "subtle", "No matching accounts."));
+      results.forEach((p) =>
         area.append(
           row(
             p.name,
@@ -294,7 +347,19 @@ export async function settings(root, section) {
         ),
       ),
     );
-    if (location.hash === "#blocked") area.scrollIntoView();
+    card.append(
+      row(
+        "Download your settings",
+        "Save your current privacy, appearance, and notification preferences as JSON. The file excludes contact details, blocked accounts, messages, and sign-in information.",
+        button("Download settings", async () => {
+          const { downloadPreferences } = await import("./settings-export.js");
+          // Recheck the session at click time; never export stale page data.
+          downloadPreferences(await api("/settings"), memberId);
+          note.textContent = "Settings download started.";
+        }),
+      ),
+    );
+    if (location.hash === "#blocked") restrictedSection.scrollIntoView();
   }
   if (section === "notifications") {
     card.append(n("p", "subtle", "Choose what you get notified about."));
@@ -407,29 +472,9 @@ export async function settings(root, section) {
             : "Confirm your current password to change it."
           : "Managed by your sign-in provider.",
         user.password
-          ? button("Change", () => {
-              const current = input("Current password", 128),
-                next = input("New password (12–128 characters)", 128);
-              current.type = next.type = "password";
-              current.autocomplete = "current-password";
-              next.autocomplete = "new-password";
-              sheet(
-                "Change password",
-                current,
-                next,
-                button(
-                  "Save password",
-                  async () => {
-                    await api("/security/password", {
-                      current: current.value,
-                      password: next.value,
-                    });
-                    location.reload();
-                  },
-                  "gradient",
-                ),
-              );
-            })
+          ? button("Change", async () =>
+              (await import("./security-review.js")).changePassword(),
+            )
           : n("small", "", "Provider"),
       ),
       n("h2", "", "Two-Factor"),
@@ -538,21 +583,7 @@ export async function settings(root, section) {
         }),
         button(
           "Delete Account",
-          () => {
-            const code = input("Type DELETE to confirm");
-            sheet(
-              "Delete account permanently?",
-              code,
-              button(
-                "Delete permanently",
-                async () => {
-                  await api("/delete-account", { confirmation: code.value });
-                  location.replace("/");
-                },
-                "danger",
-              ),
-            );
-          },
+          async () => (await import("./security-review.js")).reviewDeletion(),
           "danger",
         ),
       ),
@@ -611,13 +642,35 @@ export async function connections(root) {
 }
 export async function library(root) {
   const card = panel(root, "Saved", "/home"),
-    search = input("Search saved posts…"),
+    search = localFilter("Search saved posts…", drawPosts),
     list = box("library-grid"),
     cols = box("library-grid");
   let d = await api("/library"),
     tab = "All Saved",
     collection = null;
   const title = n("h2", "", "Collections");
+  const unfiled = check("Not in a collection", drawPosts),
+    type = choice(
+      "Attachment type",
+      [
+        ["any", "Any attachment or text"],
+        ["image/", "Has photos"],
+        ["video/", "Has video"],
+        ["text", "Text only"],
+      ],
+      drawPosts,
+    ),
+    order = choice(
+      "Sort saved posts",
+      [
+        ["recent", "Recently saved"],
+        ["old", "Oldest saved"],
+        ["author", "Author A–Z"],
+      ],
+      drawPosts,
+    ),
+    lite = check("Hide media previews", drawPosts),
+    colSearch = localFilter("Find collections by name", draw);
   const create = button("New Collection", () => {
     const field = input("Collection name", 50);
     sheet(
@@ -637,24 +690,34 @@ export async function library(root) {
   });
   card.append(
     n("p", "subtle", "Only you can see your saved posts."),
-    search,
+    search.bar,
     tabs(["All Saved", "Posts", "Reels", "Collections"], tab, (t) => {
       tab = t;
       collection = null;
       draw();
     }),
+    toolbox(
+      "Saved library tools",
+      unfiled.root,
+      type.root,
+      order.root,
+      lite.root,
+    ),
     box("list-heading", title, create),
+    colSearch.bar,
     cols,
     list,
   );
   function draw() {
     cols.replaceChildren();
-    list.replaceChildren();
     cols.hidden = !["All Saved", "Collections"].includes(tab);
     title.textContent = collection
       ? d.collections.find((c) => c.id === collection)?.name
       : "Collections";
-    for (const c of d.collections) {
+    colSearch.bar.hidden = cols.hidden;
+    for (const c of d.collections.filter((c) =>
+      keywordMatch(colSearch.field.value)(c.name),
+    )) {
       const b = button(
         "",
         () => {
@@ -673,24 +736,47 @@ export async function library(root) {
       );
       cols.append(b);
     }
-    for (const p of d.posts) {
+    const label = collection
+      ? `Search in ${title.textContent}`
+      : "Search saved posts…";
+    search.field.setAttribute("aria-label", label);
+    search.field.placeholder = label;
+    drawPosts();
+  }
+  function drawPosts() {
+    list.replaceChildren();
+    const matches = keywordMatch(search.field.value);
+    const members = collection
+      ? new Set(
+          d.links.filter((x) => x.collection === collection).map((x) => x.post),
+        )
+      : null;
+    const sorted = [...d.posts],
+      filed = new Set(d.links.map((l) => l.post));
+    if (order.field.value === "old") sorted.reverse();
+    if (order.field.value === "author")
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+    for (const p of sorted) {
+      if (unfiled.field.checked && filed.has(p.id)) continue;
+      if (
+        type.field.value !== "any" &&
+        (type.field.value === "text"
+          ? p.media.length
+          : !p.media.some((m) => m.type.startsWith(type.field.value)))
+      )
+        continue;
       const reel = p.media.some((m) => m.type.startsWith("video/"));
       if (
         (tab === "Posts" && reel) ||
         (tab === "Reels" && !reel) ||
         (tab === "Collections" && !collection) ||
-        (collection &&
-          !d.links.some(
-            (x) => x.collection === collection && x.post === p.id,
-          )) ||
-        !(p.body + " " + p.name)
-          .toLowerCase()
-          .includes(search.value.toLowerCase())
+        (members && !members.has(p.id)) ||
+        !matches(p.body + " " + p.name)
       )
         continue;
       const link = a("/post/" + p.id, "");
-      if (p.media[0]) {
-        const e = n(reel ? "video" : "img");
+      if (p.media[0] && !lite.field.checked) {
+        const e = n(p.media[0].type.startsWith("video/") ? "video" : "img");
         e.src = "/api/feed/media/" + p.media[0].id;
         e.setAttribute("aria-label", "Saved media");
         link.append(e);
@@ -700,6 +786,7 @@ export async function library(root) {
         box(
           "library-item",
           link,
+          a("/profile/" + p.author, p.name, "saved-author"),
           button("Collections", () => {
             const choices = d.collections.map((c) => {
               const on = d.links.some(
@@ -737,11 +824,12 @@ export async function library(root) {
           "subtle",
           tab === "Collections" && !collection
             ? "Select a collection to open it."
-            : "No saved items here yet.",
+            : search.field.value.trim()
+              ? "No saved items match those keywords."
+              : "No saved items here yet.",
         ),
       );
   }
-  search.oninput = draw;
   draw();
 }
 export async function safety(root) {

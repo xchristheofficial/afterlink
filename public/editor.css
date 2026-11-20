@@ -333,3 +333,6 @@
     transition: transform 0.16s ease;
   }
 }
+
+#photoAdjust { display: grid; gap: .45rem; max-width: 100%; margin-top: .85rem; }
+#photoAdjust :is(select, button) { font: inherit; color: var(--ink); background: var(--soft); border: 1px solid var(--edge); border-radius: .5rem; padding: .35em; }

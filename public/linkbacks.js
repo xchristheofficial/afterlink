@@ -261,31 +261,59 @@ export function inboxTabs(active) {
   }
   return nav;
 }
-function poll(task, live = false) {
-  let busy = false;
-  const tick = async () => {
-    if (document.hidden || busy) return;
+function poll(task, live, status) {
+  let busy = false,
+    queued = false,
+    active = true,
+    src;
+  const tick = async (event) => {
+    if (!active || document.hidden) return;
+    if (busy) {
+      // Poll ticks can be skipped, but a wake-up can represent a change made
+      // after this fetch took its snapshot. Reconcile once after the burst.
+      if (event) queued = true;
+      return;
+    }
     busy = true;
     try {
-      await task();
-    } catch (e) {
-      error(e);
+      do {
+        queued = false;
+        try {
+          await task();
+          if (!queued && active && src?.readyState === 1)
+            status.textContent = "";
+        } catch (e) {
+          if (active) error(e);
+        }
+      } while (queued && active && !document.hidden);
     } finally {
       busy = false;
     }
   };
-  let src;
   function connect() {
+    active = true;
     if (live && !src && window.EventSource) {
       src = new EventSource("/api/feed/live");
       src.addEventListener("group", tick);
-      src.onopen = tick;
+      src.onerror = () => {
+        const message =
+          src.readyState === EventSource.CLOSED
+            ? "Live updates unavailable. Checking groups periodically."
+            : "Reconnecting live updates…";
+        if (status.textContent !== message) status.textContent = message;
+      };
+      src.onopen = (e) => {
+        if (status.textContent)
+          status.textContent = "Catching up on group updates…";
+        tick(e);
+      };
     }
   }
   connect();
   window.addEventListener("pageshow", connect);
   const timer = setInterval(tick, 4500);
   window.addEventListener("pagehide", (e) => {
+    active = queued = false;
     src?.close();
     src = null;
     if (!e.persisted) clearInterval(timer);
@@ -295,10 +323,13 @@ function poll(task, live = false) {
 export async function linkbacks(root, gid, named = false) {
   const label = named ? "Groups" : "Linkbacks",
     base = named ? "/groups" : "/linkbacks",
-    sync = (task) => poll(task, named);
+    status = n("p", "lb-live-status"),
+    sync = (task) => poll(task, named, status);
+  status.setAttribute("role", "status");
   const layout = box("lb-layout"),
     side = box("lb-side"),
     main = box("lb-main");
+  if (named) root.append(status);
   root.append(layout);
   layout.append(side, main);
   layout.classList.toggle("lb-open", !!gid);
@@ -445,6 +476,9 @@ export async function linkbacks(root, gid, named = false) {
       back,
       n("h1", "", g.groupName || "Linkback"),
       button("Details", details),
+      button("Search group history", async () =>
+        (await import("./group-finder.js")).groupFinder(url, g.uid),
+      ),
     ),
     meta = hint(""),
     topicText = n("p", "lb-topic"),
@@ -545,6 +579,13 @@ export async function linkbacks(root, gid, named = false) {
         ...(g.decision
           ? [
               pinCard(g.decision.body),
+              button("View decision in context", async () =>
+                (await import("./group-finder.js")).groupFinder(
+                  url,
+                  g.uid,
+                  g.decision.id,
+                ),
+              ),
               button("Unpin", async () => {
                 await act("pin", { message: null });
                 await refresh();
@@ -559,7 +600,8 @@ export async function linkbacks(root, gid, named = false) {
       renderLog(end);
     }
   }
-  let revision = 0;
+  let revision = 0,
+    updateDetails;
   async function refresh() {
     const r = ++revision;
     try {
@@ -585,8 +627,10 @@ export async function linkbacks(root, gid, named = false) {
           prev.topic,
         ]) !==
           JSON.stringify([g.post, g.members, g.admin, g.groupName, g.topic])
-      )
-        close();
+      ) {
+        // Nested confirmations/editors still close on stale membership data.
+        if (!updateDetails?.()) close();
+      }
     } catch (e) {
       if (e.status === 404 || e.status === 403) {
         close();
@@ -665,81 +709,150 @@ export async function linkbacks(root, gid, named = false) {
     );
   }
   function details() {
-    const owner = g.admin === g.uid,
-      rows = box("lb-people"),
-      search = input("Find a member or invitee");
+    const rows = box("lb-people"),
+      search = input("Find a member or invitee"),
+      title = named ? n("strong") : box("lb-source"),
+      topic = n("p", "lb-topic"),
+      capacity = hint(""),
+      edit = button("Edit group", editGroup),
+      invite = button(
+        "Invite more people",
+        () =>
+          choosePeople(
+            new Map(),
+            new Set(g.members.map((p) => p.id)),
+            async (people) => {
+              const picker = $("#sheet").firstElementChild;
+              await act("invite", { people });
+              if ($("#socialDialog").open && picker?.isConnected) details();
+              await refresh();
+            },
+            details,
+            g.count,
+            g.members.length - g.count,
+          ),
+        "gradient",
+      );
+    // Reuse unchanged rows, including disabled/in-flight actions. Key by ID,
+    // never display name or index: both can change while the list is open.
+    const cache = new Map(),
+      headings = [n("h3", "", "Members"), n("h3", "", "Pending invitations")],
+      noMatch = hint("No matching members or invitees.");
     function roster() {
-      rows.replaceChildren();
-      const term = search.value.trim().toLowerCase();
+      const term = search.value.trim().toLowerCase(),
+        owner = g.admin === g.uid,
+        active = document.activeElement,
+        wasInRows = rows.contains(active),
+        key = active.closest(".lb-person")?.dataset.member,
+        action = active.dataset.rosterAction,
+        ordered = [],
+        keep = new Set();
       for (const pending of [false, true]) {
-        const members = g.members.filter(
+        const matches = g.members.filter(
           (p) =>
             (p.joined === null) === pending &&
             p.name.toLowerCase().includes(term),
         );
-        if (!members.length) continue;
-        rows.append(n("h3", "", pending ? "Pending invitations" : "Members"));
-        for (const p of members) {
-          const l = box(
-            "lb-person",
-            avatar(p.id),
-            n("span", "", p.name + (p.id === g.admin ? " · Admin" : "")),
-          );
-          if (owner && p.id !== g.uid) {
-            if (!pending)
-              l.append(button("Make admin", () => confirmTransfer(p)));
-            if (pending)
-              l.append(
-                button("Resend", async (b) => {
+        if (matches.length) ordered.push(headings[Number(pending)]);
+        for (const p of matches) {
+          const signature = JSON.stringify([
+              p.name,
+              pending,
+              owner,
+              g.admin === p.id,
+            ]),
+            old = cache.get(p.id);
+          let row = old?.row;
+          if (!row || old.signature !== signature) {
+            row = box(
+              "lb-person",
+              avatar(p.id),
+              n("span", "", p.name + (g.admin === p.id ? " · Admin" : "")),
+            );
+            row.dataset.member = p.id;
+            function control(label, fn) {
+              const b = button(label, fn);
+              b.dataset.rosterAction = label;
+              row.append(b);
+            }
+            if (owner && p.id !== g.uid) {
+              if (!pending) control("Make admin", () => confirmTransfer(p));
+              else
+                control("Resend", async (b) => {
                   await act("resend", { member: p.id });
                   b.textContent = "Resent";
-                }),
-              );
-            l.append(
-              button(pending ? "Cancel" : "Remove", async () => {
+                });
+              control(pending ? "Cancel" : "Remove", async () => {
                 await act("remove", { member: p.id });
                 await refresh();
-                details();
-              }),
-            );
+              });
+            }
+            cache.set(p.id, { row, signature });
           }
-          rows.append(l);
+          keep.add(p.id);
+          ordered.push(row);
         }
       }
-      if (!rows.childElementCount)
-        rows.append(hint("No matching members or invitees."));
+      for (const id of cache.keys()) if (!keep.has(id)) cache.delete(id);
+      if (!ordered.length) ordered.push(noMatch);
+      const wanted = new Set(ordered);
+      for (const child of [...rows.children])
+        if (!wanted.has(child)) child.remove();
+      ordered.forEach((child, i) => {
+        if (rows.children[i] !== child)
+          rows.insertBefore(child, rows.children[i] || null);
+      });
+      if (
+        wasInRows &&
+        (active !== document.activeElement || !active.isConnected)
+      ) {
+        const same = [...rows.querySelectorAll("button")].find(
+          (b) =>
+            b.parentElement.dataset.member === key &&
+            b.dataset.rosterAction === action,
+        );
+        (same || search).focus();
+      } else if (wasInRows) active.scrollIntoView({ block: "nearest" });
+    }
+    let postKey;
+    function syncDetails() {
+      const owner = g.admin === g.uid,
+        active = document.activeElement;
+      if (named) title.textContent = g.groupName;
+      else if (!title.childElementCount || postKey !== JSON.stringify(g.post)) {
+        postKey = JSON.stringify(g.post);
+        const hadFocus = title.contains(active);
+        title.replaceChildren(preview(g.post));
+        if (hadFocus) (title.querySelector("a") || search).focus();
+      }
+      topic.textContent = g.topic || "";
+      topic.hidden = !g.topic;
+      capacity.textContent = places(g.count, g.members.length - g.count);
+      edit.hidden = !owner || !named;
+      invite.hidden = !owner;
+      if (
+        (active === edit && edit.hidden) ||
+        (active === invite && invite.hidden)
+      )
+        search.focus();
+      roster();
     }
     search.oninput = roster;
-    roster();
+    syncDetails();
+    updateDetails = () => {
+      if (!rows.isConnected) return false;
+      syncDetails();
+      return true;
+    };
     sheet(
       named ? "Group details" : "Linkback details",
-      named ? n("strong", "", g.groupName) : preview(g.post),
-      ...(g.topic ? [n("p", "lb-topic", g.topic)] : []),
-      ...(owner && named ? [button("Edit group", editGroup)] : []),
-      hint(places(g.count, g.members.length - g.count)),
+      title,
+      topic,
+      edit,
+      capacity,
       search,
       rows,
-      ...(owner
-        ? [
-            button(
-              "Invite more people",
-              () =>
-                choosePeople(
-                  new Map(),
-                  new Set(g.members.map((p) => p.id)),
-                  async (people) => {
-                    await act("invite", { people });
-                    await refresh();
-                    details();
-                  },
-                  details,
-                  g.count,
-                  g.members.length - g.count,
-                ),
-              "gradient",
-            ),
-          ]
-        : []),
+      invite,
       button("Copy group link", async (b) => {
         await navigator.clipboard.writeText(location.origin + base + "/" + gid);
         b.textContent = "Copied";

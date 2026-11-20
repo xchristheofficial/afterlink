@@ -519,7 +519,7 @@
             <div class="member-actions">
               <button id="memberAction" class="pill"></button
               ><button id="shareProfile">Share Profile</button
-              ><a id="profileSafety" hidden>Report or Block</a>
+              ><button id="visitorPreview" hidden>Preview as non-follower</button><a id="profileSafety" hidden>Report or Block</a>
             </div>
           </section>
           <nav class="member-tabs" aria-label="Profile content">
@@ -528,6 +528,7 @@
             ><button data-tab="Saved">Saved</button
             ><button data-tab="Tagged">Tagged</button>
           </nav>
+          <input type="search" id="profilePostFilter" aria-label="Filter these posts" placeholder="Filter these posts by caption…" />
           <section
             id="memberGrid"
             aria-label="Posts"
@@ -555,6 +556,12 @@
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
               />
+              <div id="photoAdjust" hidden>
+                <label id="photoFocusLabel" for="photoFocus">Photo framing</label>
+                <select id="photoFocus" aria-describedby="cropHint"></select>
+                <small id="cropHint">Only the square preview will be saved.</small>
+                <button type="button" id="undoPhoto">Undo photo change</button>
+              </div>
               <p id="badgeNote" hidden>
                 Your legendary gold badge cannot be changed
               </p>
@@ -772,11 +779,12 @@
     <dialog id="shareMember" aria-labelledby="shareTitle">
       <h2 id="shareTitle">Share Profile</h2>
       <label>Profile link<input id="shareUrl" readonly /></label>
-      <p>Other AfterLink members can open this link.</p>
+      <p>This link has no tracking parameters. Sharing it does not change who can see your posts.</p>
       <p role="status" id="copyStatus"></p>
       <div class="editor-actions">
         <button id="shareClose">Close</button
-        ><button id="copyLink" class="pill">Copy link</button>
+        ><button id="nativeShare" hidden>Share via device</button>
+        <button id="copyLink" class="pill">Copy link</button>
       </div>
     </dialog>
     <dialog id="draftDialog" aria-labelledby="draftTitle">

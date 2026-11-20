@@ -320,3 +320,14 @@
   border-radius: 0.85em;
   padding: 0.65em 1em;
 }
+
+.lb-live-status:empty { display: none; }
+.social .lb-live-status:not(:empty) {
+  margin: 1rem auto;
+  width: fit-content;
+  max-width: 92%;
+  padding: .45rem .8rem;
+  border: 1px solid var(--edge);
+  border-radius: .75rem;
+  background: var(--soft);
+}

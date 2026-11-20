@@ -349,9 +349,6 @@ video.call-remote {
   grid-template-columns: minmax(0, 2.4fr) minmax(170px, 1fr);
   text-align: left;
 }
-.watch-content > strong {
-  grid-column: 1/-1;
-}
 .watch-video {
   width: 100%;
   height: min(40vh, 360px);
@@ -427,7 +424,8 @@ video.call-remote {
 
 /* Sizing is local presentation only; a minimized call is a nonmodal dock. */
 .call-view-tools,
-.call-size-label {
+.call-size-label,
+.call-corner-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -438,7 +436,8 @@ video.call-remote {
   font-size: 0.85rem;
   color: var(--dim);
 }
-.call-size-label select {
+.call-size-label select,
+.call-corner-label select {
   background: var(--soft);
   color: var(--ink);
   border: 1px solid var(--edge);
@@ -480,7 +479,7 @@ video.call-remote {
 .call-panel[data-size="large"] .watch-video {
   height: min(48svh, 540px);
 }
-.call-panel:not([data-size="minimized"]) .call-restore {
+.call-panel:not([data-size="minimized"]) :is(.call-restore, .call-corner-label) {
   display: none;
 }
 .call-panel[data-size="minimized"] {
@@ -497,6 +496,32 @@ video.call-remote {
   box-shadow: 0 0.4rem 1.5rem #15162b33;
   font-size: 0.85rem;
 }
+.call-panel[data-size="minimized"][data-corner^="top-"] {
+  top: max(.75rem, env(safe-area-inset-top));
+  bottom: auto;
+}
+.call-panel[data-size="minimized"][data-corner$="-left"] {
+  left: max(.75rem, env(safe-area-inset-left));
+  right: auto;
+}
+.call-panel[open] { grid-template-columns: minmax(0, 1fr); }
+.call-panel h2, .call-person strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.call-person { min-width: 0; max-width: 100%; }
+.thread-head .summary { min-width: 0; }
+.thread-head .contact-name {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.thread-head .dm-call-actions { flex-shrink: 0; }
 .call-panel[data-size="minimized"] h2 {
   margin: 0;
   font-size: 1rem;
@@ -656,3 +681,50 @@ body > .record-download {
   border-radius: 0.5em;
   padding: 0.2em;
 }
+
+.dm-preview .dm-voice-warning:not(:empty) {
+  padding: .5em;
+  color: var(--accent-ink);
+  background: var(--wash);
+  border-radius: .5em;
+}
+.dm-preview .dm-voice-warning:empty { flex-basis: 0; }
+
+.watch-heading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem .65rem;
+  margin-bottom: .25rem;
+}
+.watch-heading strong { flex: 1 1 auto; overflow-wrap: anywhere; }
+.watch-new:not(:empty) {
+  font-size: .85em;
+  font-weight: 700;
+  padding: .2em .65em;
+  border: 1px solid currentColor;
+  border-radius: 1em;
+  color: var(--accent-ink);
+}
+.call-panel .watch-content.watch-expanded { grid-template-columns: minmax(0, 1fr); }
+.call-panel .watch-content.watch-expanded .watch-video { height: min(58svh, 680px); }
+
+.call-quality-check { display: grid; justify-items: start; gap: .3rem; }
+.call-quality:empty { display: none; }
+
+.call-output { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+.call-output select { max-width: 100%; font: inherit; }
+.call-output small { flex-basis: 100%; }
+.call-tab-playback:not([hidden]) { display: grid; gap: .35rem; }
+
+.call-retry {
+  display: grid;
+  gap: .45rem;
+  width: min(25rem, calc(100% - 2rem));
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  border-radius: 1rem;
+}
+.call-retry-actions { display: flex; flex-wrap: wrap; gap: .5rem; }

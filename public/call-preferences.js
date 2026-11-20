@@ -1,4 +1,6 @@
-import { box, n } from "./social-ui.js";
+import { outputPicker } from "./call-output.js";
+import { connectionEstimate } from "./call-quality.mjs";
+import { box, n, button } from "./social-ui.js";
 
 // Playback controls act on the media element, never on the WebRTC tracks:
 // muting a voice locally must not mute a recording or the other person's mic.
@@ -49,7 +51,7 @@ function playback(media, name) {
   return row;
 }
 
-export function callPreferences(remote, local) {
+export function callPreferences(remote, local, pc) {
   const root = n("details", "call-preferences"),
     summary = n("summary", "", "My call settings"),
     body = box("call-preferences-body"),
@@ -71,14 +73,59 @@ export function callPreferences(remote, local) {
   }
   preview.onchange = syncCamera;
   previewLabel.append(preview, "Show my camera preview");
-  body.append(playback(remote, "Partner volume"), previewLabel, note);
+  body.append(
+    playback(remote, "Partner volume"),
+    outputPicker(remote, "partner voice"),
+    previewLabel,
+    note,
+  );
+  const quality = n("small", "call-quality");
+  quality.setAttribute("role", "status");
+  const check = button("Check connection", async () => {
+    if (pc.connectionState !== "connected") {
+      quality.textContent = "Connect the call first, then check again.";
+      return;
+    }
+    quality.textContent = "Measuring call connection…";
+    try {
+      const first = await pc.getStats();
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      if (!root.isConnected || pc.connectionState !== "connected") {
+        quality.textContent =
+          "Call connection changed. Try again when connected.";
+        return;
+      }
+      const { rating, delay, loss, path } = connectionEstimate(
+        first,
+        await pc.getStats(),
+      );
+      quality.textContent = [
+        "Connection estimate: " + rating,
+        delay === null ? "Delay unavailable" : `${delay} ms round trip`,
+        loss === null
+          ? "Audio loss unavailable"
+          : `${loss.toFixed(1)}% incoming audio loss`,
+        path,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    } catch {
+      quality.textContent =
+        "Connection measurements are unavailable in this browser.";
+    }
+  });
+  body.append(box("call-quality-check", check, quality));
   root.append(summary, body);
   syncCamera();
   return {
     root,
     syncCamera,
     tabAudio(video) {
-      const level = playback(video, "Shared tab volume");
+      const level = box(
+        "call-tab-playback",
+        playback(video, "Shared tab volume"),
+        outputPicker(video, "shared tab"),
+      );
       level.hidden = true;
       previewLabel.before(level);
       // Keep the viewer's mute choice when presenters swap. Never replay the

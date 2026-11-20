@@ -1,3 +1,4 @@
+import { ringOnce, lowDataCalls } from "./call-local-options.js";
 import { recordingDownload } from "./recording-download.js";
 import { callPreferences } from "./call-preferences.js";
 import { watchTogether, watchTransport } from "./watch-together.js";
@@ -22,7 +23,8 @@ function tuneSenders(pc, constrained) {
 // One controller per Messages document. Capture starts only after Start/Accept.
 export function callControls() {
   let session = null,
-    busy = false;
+    busy = false,
+    retryNotice;
   const dialog = n("dialog", "call-panel"),
     title = n("h2"),
     status = n("p", "subtle"),
@@ -38,6 +40,14 @@ export function callControls() {
   sizeLabel.append(size);
   size.onchange = () => {
     dialog.dataset.size = size.value;
+  };
+  const corner = n("select"),
+    cornerLabel = n("label", "call-corner-label", "Dock position");
+  for (const label of ["Bottom right", "Bottom left", "Top left", "Top right"])
+    corner.add(new Option(label, label.toLowerCase().replace(" ", "-")));
+  cornerLabel.append(corner);
+  corner.onchange = () => {
+    dialog.dataset.corner = corner.value;
   };
   function dock() {
     // Switch only the dialog mode: keep the same video elements, tracks and RTC session.
@@ -55,7 +65,7 @@ export function callControls() {
   }
   const restore = button("Restore call", expand, "call-restore");
   dialog.append(
-    box("call-view-tools", sizeLabel, minimize, restore),
+    box("call-view-tools", sizeLabel, minimize, cornerLabel, restore),
     title,
     status,
     stage,
@@ -88,10 +98,57 @@ export function callControls() {
     controls.replaceChildren();
     timer.textContent = "";
   }
-  async function end(c) {
+  async function end(c, action = "end") {
     if (!c || c !== session) return;
     reset(c);
-    if (c.id) await write("end", { id: c.id }).catch(() => {});
+    if (c.id) await write(action, { id: c.id }).catch(() => {});
+  }
+  function clearRetry() {
+    retryNotice?.remove();
+    retryNotice = null;
+  }
+  async function startOutgoing(peer, name, kind, answerMuted = false) {
+    if (session) return expand();
+    const c = (session = { peer, name, kind, answerMuted });
+    show(c, false);
+    await prepare(c, false);
+  }
+  function connectionFailed(c) {
+    if (session !== c) return;
+    const { peer, name } = c;
+    // A camera-off or mic-only answer must not turn into a camera-on retry.
+    const kind = c.stream
+      ?.getVideoTracks()
+      .some((t) => t.enabled && t.readyState === "live")
+      ? "video"
+      : "audio";
+    const muted = !c.stream
+      ?.getAudioTracks()
+      .some((t) => t.enabled && t.readyState === "live");
+    const ending = end(c); // Releases local capture before awaiting signaling.
+    const notice = box("call-notice call-retry"),
+      summary = n("strong", "", `Call with ${name} lost its connection.`);
+    summary.setAttribute("role", "status");
+    const retry = button(`Redial with ${kind}`, () => {
+      if (retryNotice !== notice || session) return;
+      return startOutgoing(peer, name, kind, muted);
+    });
+    retry.disabled = true;
+    notice.append(
+      summary,
+      n(
+        "small",
+        "",
+        "Try another network if the problem continues." +
+          (muted ? " Your mic will start muted." : ""),
+      ),
+      box("call-retry-actions", retry, button("Dismiss", clearRetry)),
+    );
+    retryNotice = notice;
+    document.body.append(notice);
+    ending.then(() => {
+      if (retryNotice === notice) retry.disabled = false;
+    });
   }
   dialog.oncancel = (e) => {
     e.preventDefault();
@@ -100,6 +157,7 @@ export function callControls() {
     } else end(session);
   };
   addEventListener("pagehide", () => {
+    clearRetry();
     const c = session;
     if (!c) return;
     reset(c);
@@ -114,9 +172,16 @@ export function callControls() {
         body: JSON.stringify({ action: "end", id: c.id }),
       }).catch(() => {});
   });
+  addEventListener("afterlink-session-expired", () => {
+    clearRetry();
+    if (session) reset(session);
+  });
   function show(c, incoming) {
+    clearRetry();
     dialog.append(downloads.root);
     size.value = dialog.dataset.size = "medium";
+    corner.value = dialog.dataset.corner = "bottom-right";
+    title.title = c.name;
     minimize.hidden = true;
     title.textContent = incoming
       ? "Incoming call"
@@ -130,7 +195,7 @@ export function callControls() {
     stage.replaceChildren(portrait);
     const hang = button(
       incoming ? "Decline" : "End call",
-      () => end(c),
+      () => end(c, incoming ? "decline" : "end"),
       "call-end",
     );
     controls.replaceChildren(hang);
@@ -171,6 +236,7 @@ export function callControls() {
     try {
       const connection = navigator.connection,
         constrained =
+          lowDataCalls() ||
           connection?.saveData ||
           ["slow-2g", "2g", "3g"].includes(connection?.effectiveType);
       const cameraConstraints = {
@@ -241,7 +307,7 @@ export function callControls() {
       c.local.srcObject = stream;
       c.local.hidden = !stream.getVideoTracks().length;
       stage.append(c.local);
-      c.preferences = callPreferences(c.remote, c.local);
+      c.preferences = callPreferences(c.remote, c.local, pc);
       controls.after(c.preferences.root);
       pc.ontrack = (e) => {
         if (c !== session) return;
@@ -404,10 +470,7 @@ export function callControls() {
             c.clock = setInterval(tick, 1000);
           }
         } else if (pc.connectionState === "failed") {
-          end(c);
-          error(
-            "The call could not connect. Check network access or the server’s TURN configuration.",
-          );
+          connectionFailed(c);
         } else if (pc.connectionState === "disconnected")
           status.textContent = "Reconnecting…";
       };
@@ -454,7 +517,7 @@ export function callControls() {
       priorId = before?.id;
     let readingStatus = true;
     try {
-      const { call } = await api(
+      const { call, outcome } = await api(
         "/calls" +
           (before?.talking
             ? "?live=" +
@@ -475,12 +538,16 @@ export function callControls() {
       }
       if (!call || (session?.id && call.id !== session.id)) {
         if (session?.id) {
-          const connected = !!session.clock;
+          const result = !call ? outcome : null;
           reset(session);
           const notice = n(
             "p",
             "call-notice",
-            connected ? "Call ended." : "Call ended or was not answered.",
+            result === "declined"
+              ? "Call declined."
+              : result === "unanswered"
+                ? "No answer."
+                : "Call ended.",
           );
           notice.setAttribute("role", "status");
           document.body.append(notice);
@@ -501,6 +568,7 @@ export function callControls() {
         if (!call.caller && call.state === "ringing") {
           session = { ...call };
           show(session, true);
+          ringOnce();
         }
         return;
       }
@@ -516,10 +584,7 @@ export function callControls() {
       if (c.pc.connectionState !== "connected" && !c.clock) {
         status.textContent = "Connecting…";
         c.connectStart ??= Date.now();
-        if (Date.now() - c.connectStart > 35000)
-          throw Error(
-            "Could not establish a media connection. Try another network.",
-          );
+        if (Date.now() - c.connectStart > 35000) return connectionFailed(c);
       }
       if (call.caller && !c.pc.localDescription)
         await signal(c, await c.pc.createOffer());
@@ -575,19 +640,9 @@ export function callControls() {
       "dm-call-actions",
       ...["audio", "video"].map((kind) =>
         withIcon(
-          button("", async () => {
-            if (session) {
-              expand();
-              return;
-            }
-            const c = (session = {
-              peer: peer.id,
-              name: peer.nickname || peer.name,
-              kind,
-            });
-            show(c, false);
-            await prepare(c, false);
-          }),
+          button("", () =>
+            startOutgoing(peer.id, peer.nickname || peer.name, kind),
+          ),
           kind === "audio" ? "phone" : "reels",
           `Start ${kind} call`,
         ),

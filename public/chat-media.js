@@ -19,34 +19,44 @@ const encode = (blob) =>
   });
 const close = () => $("#socialDialog").close();
 // Show actual microphone levels, not a decorative animation. The recorder also works
-// without Web Audio (or when the member has requested reduced motion).
+// without Web Audio. In reduced-motion mode show only a text reading.
 function levels(stream) {
   const canvas = n("canvas", "dm-levels");
   canvas.setAttribute("aria-hidden", "true");
-  if (
-    !window.AudioContext ||
-    matchMedia("(prefers-reduced-motion: reduce)").matches ||
-    document.documentElement.dataset.motion === "reduce"
-  )
-    return null;
+  if (!window.AudioContext) return null;
+  const animate =
+    !matchMedia("(prefers-reduced-motion: reduce)").matches &&
+    document.documentElement.dataset.motion !== "reduce";
+  const signal = n("small", "dm-signal", "Checking microphone input…");
   let ctx;
   try {
     ctx = new AudioContext();
+    ctx.resume().catch(() => {});
     const source = ctx.createMediaStreamSource(stream),
       meter = ctx.createAnalyser();
     meter.fftSize = 256;
     source.connect(meter);
     const values = new Uint8Array(meter.fftSize),
       bars = new Array(38).fill(1),
-      g = canvas.getContext("2d");
+      g = animate && canvas.getContext("2d");
+    let lastSound = -Infinity;
     canvas.width = 228;
     canvas.height = 40;
     return {
-      canvas,
+      elements: g ? [canvas, signal] : [signal],
       draw(paused) {
-        if (paused) return;
         meter.getByteTimeDomainData(values);
         const peak = values.reduce((m, v) => Math.max(m, Math.abs(v - 128)), 0);
+        if (!paused && peak >= 4) lastSound = performance.now();
+        const state = paused
+          ? "Microphone check paused"
+          : ctx.state !== "running"
+            ? "Microphone level unavailable"
+            : performance.now() - lastSound < 900
+              ? "Microphone: sound detected"
+              : "Microphone: quiet";
+        if (signal.textContent !== state) signal.textContent = state;
+        if (paused || !g) return;
         bars.shift();
         bars.push(Math.max(2, Math.min(38, peak * 1.5)));
         g.clearRect(0, 0, 228, 40);
@@ -73,7 +83,12 @@ export function attachmentComposer(msg, send, dropZone) {
     working = false,
     record = null,
     attempt = 0;
+  function warnBeforeLeaving(event) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
   function clear() {
+    removeEventListener("beforeunload", warnBeforeLeaving);
     attempt++;
     selected = null;
     if (url) URL.revokeObjectURL(url);
@@ -88,6 +103,7 @@ export function attachmentComposer(msg, send, dropZone) {
   function display(blob, kind, data) {
     clear();
     url = URL.createObjectURL(blob);
+    addEventListener("beforeunload", warnBeforeLeaving);
     selected = { type: blob.type.split(";")[0], data, once: false };
     const audio = kind === "Voice note",
       el = n(audio ? "audio" : "img");
@@ -235,8 +251,12 @@ export function attachmentComposer(msg, send, dropZone) {
         length = 0;
       let start = performance.now(),
         duration = 0;
-      const label = n("strong", "", "Recording · 0:00");
+      const label = n("strong", "", "Recording · 0:00 / 2:00");
+      const warning = n("small", "dm-voice-warning");
+      warning.setAttribute("role", "status");
+      let limitReached = false;
       rec.start(500);
+      addEventListener("beforeunload", warnBeforeLeaving);
       const meter = levels(stream);
       const tick = setInterval(() => {
         meter?.draw(rec.state === "paused");
@@ -245,8 +265,14 @@ export function attachmentComposer(msg, send, dropZone) {
             (rec.state === "paused" ? 0 : performance.now() - start)) /
             1000,
         );
-        label.textContent = `${rec.state === "paused" ? "Paused" : "Recording"} · ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
-        if (sec >= 120 && rec.state !== "inactive") rec.stop();
+        label.textContent = `${rec.state === "paused" ? "Paused" : "Recording"} · ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")} / 2:00`;
+        if (sec >= 105 && !warning.textContent)
+          warning.textContent =
+            "15 seconds or less of recording time remain. At 2:00 your note will stop for preview.";
+        if (sec >= 120 && rec.state !== "inactive") {
+          limitReached = true;
+          rec.stop();
+        }
       }, 250);
       rec.ondataavailable = (e) => {
         length += e.data.size;
@@ -264,7 +290,17 @@ export function attachmentComposer(msg, send, dropZone) {
           if (!blob.size || blob.size > max)
             throw Error("Voice note is empty or too large.");
           const data = await encode(blob);
-          if (seq === attempt) display(blob, "Voice note", data);
+          if (seq === attempt) {
+            display(blob, "Voice note", data);
+            if (limitReached)
+              preview.append(
+                n(
+                  "small",
+                  "dm-voice-warning",
+                  "Two-minute limit reached. Review your voice note before sending.",
+                ),
+              );
+          }
         } catch (e) {
           clear();
           error(e);
@@ -284,7 +320,10 @@ export function attachmentComposer(msg, send, dropZone) {
       };
       preview.replaceChildren(
         label,
-        ...(meter ? [meter.canvas] : []),
+        ...(meter
+          ? meter.elements
+          : [n("small", "dm-signal", "Microphone level unavailable")]),
+        warning,
         button("Pause", (b) => {
           if (rec.state === "paused") {
             start = performance.now();
@@ -305,6 +344,8 @@ export function attachmentComposer(msg, send, dropZone) {
       );
       preview.hidden = false;
     } catch (e) {
+      clear();
+      record = null;
       stream?.getTracks().forEach((t) => t.stop());
       working = send.disabled = false;
       throw e;
@@ -345,6 +386,10 @@ export function attachmentComposer(msg, send, dropZone) {
     "plus",
     "Add attachment",
   );
+  addEventListener("afterlink-session-expired", () => {
+    clear();
+    if (record && record.state !== "inactive") record.stop();
+  });
   addEventListener("pagehide", () => {
     clear();
     if (record && record.state !== "inactive") record.stop();
