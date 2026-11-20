@@ -7,8 +7,10 @@ const homeFeed = (() => {
   const grid = document.querySelector(".home-grid");
   const railToggle = el("railToggle");
   const railKey = "afterlink.sidebar.collapsed";
+  const railIdentity = grid.querySelector(".rail-identity");
   function setRail(collapsed) {
     grid.classList.toggle("rail-collapsed", collapsed);
+    railIdentity.inert = collapsed;
     railToggle.setAttribute("aria-expanded", String(!collapsed));
     railToggle.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
     railToggle.setAttribute("aria-label", railToggle.title);
@@ -119,7 +121,21 @@ const homeFeed = (() => {
         );
       node.append(head);
     } else {
-      head.append(text("time", new Date(item.created).toLocaleDateString()));
+      const more = document.createElement("details"),
+        toggle = text("summary", "More"),
+        start = text("a", "Start a Linkback"),
+        groups = text("a", "Your Linkbacks"),
+        options = document.createElement("div");
+      more.className = "feed-options";
+      toggle.setAttribute("aria-label", "Post options");
+      start.href = "/post/" + item.id + "?action=linkback";
+      groups.href = "/post/" + item.id + "?action=groups";
+      options.append(start, groups);
+      more.append(toggle, options);
+      head.append(
+        text("time", new Date(item.created).toLocaleDateString()),
+        more,
+      );
       node.append(
         head,
         text("p", item.body),

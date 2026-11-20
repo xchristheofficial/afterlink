@@ -1,0 +1,281 @@
+/* Private group conversations use the existing inbox palette and type scale. */
+.lb-layout {
+  display: grid;
+  grid-template-columns: minmax(230px, 30%) minmax(0, 1fr);
+  gap: 18px;
+  max-width: 1160px;
+  margin: 20px auto;
+  padding: 0 16px;
+  font-size: 1rem;
+}
+.lb-main,
+.lb-side {
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 16px;
+  padding: clamp(14px, 2vw, 26px);
+  min-width: 0;
+  align-self: start;
+}
+.lb-main,
+.lb-side,
+.lb-invite,
+.lb-copy,
+.lb-card,
+.lb-list,
+.lb-decision,
+.lb-message {
+  display: grid;
+  gap: 10px;
+}
+.lb-main {
+  position: relative;
+}
+.lb-copy,
+.lb-card,
+.lb-bubble,
+.lb-pin,
+.lb-people {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.social .lb-main h1,
+.social .lb-side h1 {
+  font-size: 1.7rem;
+}
+.social .lb-main h2 {
+  font-size: 1.15rem;
+}
+.lb-kicker,
+.lb-pin small {
+  font-size: 0.82rem;
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.lb-tabs,
+.lb-actions,
+.lb-heading,
+.lb-person,
+.lb-chips,
+.lb-compose {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lb-chips,
+.lb-actions {
+  flex-wrap: wrap;
+}
+.lb-tabs {
+  margin-bottom: 12px;
+}
+.lb-tabs a,
+.lb-back {
+  padding: 6px 10px;
+  color: var(--dim);
+  font-size: 0.95rem;
+}
+.lb-tabs [aria-current],
+.lb-card[aria-current] {
+  background: var(--wash);
+  color: var(--accent-ink);
+  border-radius: 10px;
+}
+.lb-card,
+.lb-preview,
+.lb-unavailable {
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  padding: 14px;
+}
+.lb-card {
+  gap: 4px;
+}
+.lb-card span,
+.lb-card strong,
+.lb-preview strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.lb-preview,
+.lb-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lb-preview img,
+.lb-preview video {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.lb-unavailable {
+  text-align: center;
+  padding: 24px;
+  background: var(--soft);
+  border-style: dashed;
+}
+.lb-heading {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.lb-tag,
+.lb-pin {
+  background: var(--wash);
+  color: var(--accent-ink);
+  border-radius: 8px;
+  padding: 8px;
+}
+.lb-pin {
+  display: grid;
+  gap: 3px;
+  border-inline-start: 3px solid var(--accent-ink);
+}
+.lb-decision {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.lb-decision:empty {
+  display: none;
+}
+.lb-log {
+  min-height: 140px;
+  height: clamp(180px, 38dvh, 450px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 6px;
+}
+.lb-message {
+  align-self: flex-start;
+  max-width: 85%;
+  gap: 3px;
+}
+.lb-message.lb-mine {
+  align-self: flex-end;
+  text-align: end;
+}
+.social .lb-bubble {
+  text-align: start;
+  white-space: pre-wrap;
+  background: var(--soft);
+  font: inherit;
+  border-radius: 14px;
+}
+.social .lb-mine .lb-bubble {
+  background: var(--accent);
+  color: white;
+}
+.lb-compose input,
+.lb-person span {
+  flex: 1;
+  min-width: 0;
+}
+.lb-compose {
+  border-top: 1px solid var(--edge);
+  padding-top: 12px;
+}
+.lb-person {
+  padding: 6px 0;
+}
+.lb-person img.face,
+.lb-invite img.face {
+  width: 36px;
+  height: 36px;
+}
+.lb-person input[type="checkbox"] {
+  width: 20px !important;
+  height: 20px;
+}
+.lb-people {
+  max-height: 42dvh;
+  overflow: auto;
+}
+.lb-person button {
+  font-size: 0.85rem;
+}
+.lb-chips:not(:empty) {
+  padding: 8px 0;
+}
+.lb-person span {
+  overflow-wrap: anywhere;
+}
+.social #sheet > .lb-preview {
+  margin-block: 12px;
+}
+.social #sheet:has(.lb-people) button {
+  margin-right: 4px;
+}
+#sheet .lb-card {
+  margin: 10px 0;
+}
+.social .lb-side input {
+  width: 100%;
+}
+@media (max-width: 740px) {
+  .lb-layout {
+    display: block;
+    margin: 12px auto;
+    padding: 0 10px;
+  }
+  .lb-open .lb-side,
+  .lb-layout:not(.lb-open) .lb-main {
+    display: none;
+  }
+  .lb-heading .lb-back {
+    padding-inline: 0;
+  }
+  .lb-person {
+    flex-wrap: wrap;
+  }
+  .lb-log {
+    height: 35dvh;
+  }
+}
+.lb-subheading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.lb-subheading small {
+  font-size: 0.8rem;
+}
+.lb-main .lb-invite {
+  background: var(--soft);
+  border-radius: 14px;
+  padding: clamp(14px, 3vw, 28px);
+  gap: 16px;
+}
+.lb-list {
+  max-height: 62dvh;
+  overflow: auto;
+}
+.lb-actions button {
+  min-height: 42px;
+}
+#socialDialog:has(.lb-preview, .lb-people, .lb-pin, .lb-card) {
+  width: min(460px, calc(100vw - 24px));
+  max-height: 85dvh;
+  overflow: auto;
+}
+#sheet:has(.lb-preview, .lb-people, .lb-pin, .lb-card) {
+  display: grid;
+  gap: 8px;
+  clear: both;
+}
+@media (max-width: 600px) {
+  #socialDialog:has(.lb-preview, .lb-people, .lb-pin, .lb-card) {
+    margin: auto auto 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}

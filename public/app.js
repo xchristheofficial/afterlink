@@ -265,7 +265,7 @@ $("google").onclick = async () => {
 const target = new URLSearchParams(location.search).get("profile");
 const allowedSocial = (s) =>
   typeof s === "string" &&
-  /^\/(?:messages(?:\/[1-9]\d*)?|notifications|settings(?:\/(?:privacy|notifications|appearance|security))?|connections|saved|safety|stories(?:\/create)?|search|reels|post\/[1-9]\d*)(?:\?[^\s\\#]*)?$/.test(
+  /^\/(?:linkbacks(?:\/[1-9]\d*)?|messages(?:\/[1-9]\d*)?|notifications|settings(?:\/(?:privacy|notifications|appearance|security))?|connections|saved|safety|stories(?:\/create)?|search|reels|post\/[1-9]\d*)(?:\?[^\s\\#]*)?$/.test(
     s,
   );
 const nextPage = new URLSearchParams(location.search).get("next");

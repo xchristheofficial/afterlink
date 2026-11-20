@@ -1,3 +1,4 @@
+import { postMenu, startLinkback, yourLinkbacks } from "./linkbacks.js";
 import {
   n,
   box,
@@ -38,6 +39,18 @@ export async function postDetail(root, id) {
       ),
       ...(!data.own ? [follow(data.author)] : []),
     );
+  const source = {
+    id: p.id,
+    body: p.body,
+    name: data.author.name,
+    media: p.media[0]?.id,
+    type: p.media[0]?.type,
+  };
+  author.append(postMenu(source));
+  if (new URLSearchParams(location.search).get("action") === "linkback")
+    startLinkback(source);
+  else if (new URLSearchParams(location.search).get("action") === "groups")
+    await yourLinkbacks(source);
   let index = 0;
   function slide() {
     stage.replaceChildren();

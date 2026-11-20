@@ -777,7 +777,7 @@ export async function safety(root) {
     ),
     row(
       "Block " + p.name,
-      "Hide their posts and prevent direct messages.",
+      "Hide their posts, prevent direct messages, and leave shared Linkbacks.",
       button(
         "Block",
         async () => {

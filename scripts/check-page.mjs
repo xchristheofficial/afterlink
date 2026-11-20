@@ -222,7 +222,17 @@ try {
   const expandedWidth = (await menu.boundingBox()).width;
   await toggle.click();
   assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-  assert.ok((await menu.boundingBox()).width < expandedWidth);
+  await page.waitForFunction(
+    () =>
+      document.querySelector("#profileRail").getBoundingClientRect().width <=
+      69,
+  );
+  const collapsedBox = await menu.boundingBox();
+  assert.ok(collapsedBox.width < expandedWidth && collapsedBox.x <= 20);
+  assert.equal(
+    await menu.locator(".rail-identity").evaluate((e) => e.inert),
+    true,
+  );
   await menu.getByRole("button", { name: "Notifications" }).click();
   await page
     .getByRole("heading", { name: "Notifications", exact: true })
@@ -234,9 +244,7 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await toggle.click();
   assert.equal(await toggle.getAttribute("aria-expanded"), "true");
-  assert.ok(
-    await menu.locator('[data-later="Notifications"] span').isVisible(),
-  );
+  await menu.locator('[data-later="Notifications"] span').waitFor();
   assert.ok(
     await page.evaluate(
       () => document.documentElement.scrollWidth === innerWidth,

@@ -1,3 +1,4 @@
+import { linkbacks } from "./linkbacks.js";
 import { settings, connections, library, safety } from "./settings-pages.js";
 import { stories } from "./stories.js";
 import { $, icon, error } from "./social-ui.js";
@@ -17,6 +18,7 @@ const [, page, raw] = location.pathname.split("/"),
 document.body.dataset.screen = theme;
 document.title =
   ({
+    linkbacks: "Linkbacks",
     settings: "Settings",
     connections: "Connections",
     saved: "Saved",
@@ -51,6 +53,7 @@ $("#dismiss").onclick = () => $("#socialDialog").close();
 const root = $("#surface");
 try {
   if (page === "settings") await settings(root, raw);
+  if (page === "linkbacks") await linkbacks(root, peer);
   if (page === "saved") await library(root);
   if (page === "connections") await connections(root);
   if (page === "safety") await safety(root);

@@ -165,6 +165,46 @@ export async function checkSocial({
     await v.getByRole("button", { name: "Like reel, 0 likes" }).click();
     await v.getByRole("button", { name: "Like reel, 1 likes" }).waitFor();
     assert.equal(new URL(v.url()).searchParams.get("id"), String(id));
+    // Follow a real invitation from the post into the recipient's mobile inbox.
+    await p.goto(url + "/post/" + postId);
+    await p.getByRole("button", { name: "Post options" }).click();
+    await p.getByRole("button", { name: "Start a Linkback" }).click();
+    await p
+      .getByRole("textbox", { name: "First message (optional)" })
+      .fill("Meet by the station?");
+    await p.getByRole("button", { name: "Choose people" }).click();
+    await p.getByRole("checkbox", { name: "Second Member" }).check();
+    await p.getByRole("button", { name: "Send invites (1)" }).click();
+    await p
+      .getByRole("button", { name: "Meet by the station?", exact: true })
+      .waitFor();
+    const groupPath = new URL(p.url()).pathname;
+    await v.setViewportSize({ width: 390, height: 844 });
+    await v.goto(url + "/messages");
+    await v.getByRole("link", { name: "Linkbacks", exact: true }).click();
+    await v.getByRole("link", { name: /Invitation from/ }).click();
+    assert.equal(await v.locator(".lb-bubble").count(), 0);
+    await v.getByRole("button", { name: "Accept", exact: true }).click();
+    await v
+      .getByRole("textbox", { name: "Message this Linkback…" })
+      .fill("Saturday at seven");
+    await v.getByRole("button", { name: "Send", exact: true }).click();
+    await v
+      .getByRole("button", { name: "Saturday at seven", exact: true })
+      .click();
+    await v.getByRole("button", { name: "Pin as decision" }).click();
+    await v.locator(".lb-decision").getByText("Saturday at seven").waitFor();
+    await v.getByRole("button", { name: "Details" }).click();
+    await v.getByRole("dialog").getByText("RADAR · Admin").waitFor();
+    await v.keyboard.press("Escape");
+    await p.goto(url + "/post/" + postId);
+    await p.getByRole("button", { name: "Post options" }).click();
+    await p.getByRole("button", { name: "Your Linkbacks" }).click();
+    await p
+      .getByRole("dialog")
+      .getByRole("link", { name: /Saturday at seven/ })
+      .click();
+    await p.locator(".lb-decision").getByText("Saturday at seven").waitFor();
     if (process.env.SOCIAL_SCREENSHOTS) {
       const { mkdir } = await import("node:fs/promises");
       const { join } = await import("node:path");
@@ -172,6 +212,7 @@ export async function checkSocial({
       await v.setViewportSize({ width: 1440, height: 900 });
       for (const [k, path] of Object.entries({
         inbox: "/messages",
+        linkback: groupPath,
         thread: "/messages/" + author,
         post: "/post/" + postId,
         search: "/search",
@@ -222,6 +263,8 @@ export async function checkSocial({
       "/post/" + postId,
       "/settings",
       "/settings/privacy",
+      groupPath,
+      "/linkbacks",
       "/settings/notifications",
       "/settings/appearance",
       "/settings/security",

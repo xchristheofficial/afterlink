@@ -41,6 +41,16 @@ Open **Profile** from the home sidebar, or select a name in a post or Explore Pe
 - **Notifications** (`/notifications`): follows, post likes, comments, replies and visible `@username` mentions. Filter activity, follow back, open the referenced item or mark all read. Profile visits and individual saves are not disclosed.
 - Motion uses short entry/interaction transitions and respects the device’s reduced-motion setting. `npm run test:ui` exercises these screens with isolated accounts, including a third-party privacy check and a real short WebM generated at test time. Optional `SOCIAL_SCREENSHOTS` names a directory for review images.
 
+## Linkbacks
+
+Open **Post options → Start a Linkback** on a post or reel, optionally write an opening message, then choose people to invite. **Messages → Linkbacks** lists your recent groups and invitations separately from direct messages. **Your Linkbacks** on a post lists only your own groups about it. A post author has no special access to other people’s conversations. Copying a group link does not invite anyone.
+
+Invitees must accept before seeing the conversation, participant list, or pinned decision. Select a message to preview and pin it above the conversation. Details lets the admin invite or remove members and resend or cancel pending invitations. If the admin leaves, the longest-standing remaining member becomes admin. Leaving also cancels your outstanding invitations; groups with no remaining members close.
+
+Original post previews use the current viewer’s post permissions rather than storing a copy. A deleted or newly private post is replaced by an unavailable state while group messages and decisions remain. Blocking a member leaves groups you share with them. Invitations respect blocks and the recipient’s messaging preferences. Linkbacks are private to their participants, **not end-to-end encrypted**.
+
+The inbox shows the latest 100 groups/invitations; search matches the visible post, latest message, pinned decision, inviter, or group number. Threads load in batches of 60 messages and refresh while visible. Each group supports up to 30 participants including outstanding invitations.
+
 ## Member settings and stories
 
 Open **Settings** from navigation to search account, privacy, notification and appearance controls. Notification preferences affect new in-app activity, not historical notices; push and email notifications are not delivered. Appearance includes system/light/dark mode, accent color, reduced motion and separate video and reel autoplay preferences. All screens use the same surface and action colors from `public/theme.css`; saved appearance changes carry across navigation and open tabs. Media backdrops remain neutral for legibility.

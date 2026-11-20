@@ -1,3 +1,4 @@
+import { postMenu } from "./linkbacks.js";
 import {
   n,
   box,
@@ -253,6 +254,15 @@ export async function reels(root, q, id) {
           "moderate",
         ),
       );
+    caption.append(
+      postMenu({
+        id: post.id,
+        body: post.body,
+        name: author.name,
+        media: post.media[0]?.id,
+        type: post.media[0]?.type,
+      }),
+    );
     const overlay = withIcon(
       button("", () => player.play(), "big-play"),
       "play",
