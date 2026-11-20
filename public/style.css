@@ -64,7 +64,7 @@ input:focus-visible {
   color: #fff1d6;
   background: linear-gradient(to top, #211528eb, transparent 32%);
 }
-.art-edition, .art-location {
+.art-edition {
   display: flex;
   align-items: center;
   gap: .8em;
@@ -85,8 +85,6 @@ input:focus-visible {
   font-weight: 500;
   color: #eed4ff;
 }
-.art-location { margin-top: .85em; }
-.art-location b { color: #eed4ff; }
 /* The form is its own scroll area: even a short viewport never shifts the artwork. */
 .card {
   overflow: auto;
@@ -363,7 +361,7 @@ dialog .primary {
     background: linear-gradient(20deg, #211528df, transparent 58%);
   }
   .art-wordmark { font-size: clamp(2rem, 9cqw, 3.5rem); }
-  .art-edition, .art-location { display: none;
+  .art-edition { display: none;
   }
   .inside {
     width: min(88%, 480px);
