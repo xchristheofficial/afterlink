@@ -8,7 +8,7 @@ import { OAuth2Client, CodeChallengeMethod } from "google-auth-library";
 import { DatabaseSync } from "node:sqlite";
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -394,9 +394,13 @@ app.get(
     res.sendFile(resolve(dir, "public/social.html"));
   },
 );
+// These routes already checked the session. Send only the signed-in email
+// needed by the shared shell so navigation needs no second session round trip.
+const memberShell = readFileSync(resolve(dir, "public/index.html"), "utf8");
 app.get(["/home", "/create", "/profile", "/profile/:id"], (req, res) => {
   res.set("Cache-Control", "no-store");
-  if (!session(req)) {
+  const member = session(req);
+  if (!member) {
     const profile = req.path.startsWith("/profile")
       ? req.params.id === "edit"
         ? "edit"
@@ -408,7 +412,15 @@ app.get(["/home", "/create", "/profile", "/profile/:id"], (req, res) => {
       "/?auth=session" + (profile ? "&profile=" + profile : ""),
     );
   }
-  res.sendFile(resolve(dir, "public/index.html"));
+  res
+    .type("html")
+    .send(
+      memberShell.replace(
+        "<!-- member-session -->",
+        () =>
+          `<meta name="member-session" content="${encodeURIComponent(member.email)}">`,
+      ),
+    );
 });
 app.use(express.static(resolve(dir, "public")));
 app.use((err, req, res, next) => {

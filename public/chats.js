@@ -341,7 +341,9 @@ export async function messages(root, peer) {
       polling = false;
     }
   }, 4500);
-  window.addEventListener("pagehide", () => clearInterval(timer), {
-    once: true,
+  // A cached document is frozen (including its timers). Keep its poller for
+  // Back/Forward restores; only tear it down on a non-cached departure.
+  window.addEventListener("pagehide", (event) => {
+    if (!event.persisted) clearInterval(timer);
   });
 }
