@@ -25,6 +25,7 @@ export function installSocial(app, db, enrich, session) {
     CREATE TABLE IF NOT EXISTS message_photos(message INTEGER PRIMARY KEY REFERENCES messages(id) ON DELETE CASCADE,bytes BLOB NOT NULL);
     CREATE TABLE IF NOT EXISTS link_shares(post_id ${post},actor ${user},PRIMARY KEY(post_id,actor));
     CREATE TABLE IF NOT EXISTS reel_views(post_id ${post},viewer ${user},PRIMARY KEY(post_id,viewer));
+    CREATE INDEX IF NOT EXISTS unread_dm ON messages(recipient,sender) WHERE seen=0;
     CREATE INDEX IF NOT EXISTS message_pair ON messages(sender,recipient,id);
     CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY,post_id ${post},author ${user},parent INTEGER REFERENCES comments(id) ON DELETE SET NULL,body TEXT NOT NULL,created INTEGER NOT NULL);
     CREATE INDEX IF NOT EXISTS comments_for ON comments(post_id,id);
@@ -108,6 +109,32 @@ export function installSocial(app, db, enrich, session) {
   db.exec(
     `CREATE TABLE IF NOT EXISTS dm_nicknames(owner INTEGER REFERENCES users(id) ON DELETE CASCADE,peer INTEGER REFERENCES users(id) ON DELETE CASCADE,nickname TEXT NOT NULL,PRIMARY KEY(owner,peer))`,
   );
+  db.exec(
+    `CREATE TABLE IF NOT EXISTS inbox_pins(owner INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,peer INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,PRIMARY KEY(owner,peer))`,
+  );
+  endpoint("post", "inbox-pin/:peer", (uid, q, b, p) => {
+    const peer = id(p.peer);
+    if (
+      hidden(uid, peer) ||
+      !one(
+        "SELECT 1 FROM messages WHERE (sender=? AND recipient=?) OR (sender=? AND recipient=?) LIMIT 1",
+        uid,
+        peer,
+        peer,
+        uid,
+      )
+    )
+      fail("Conversation unavailable.", 404);
+    if (typeof b.pinned !== "boolean") fail("Choose a pin state.");
+    if (b.pinned)
+      run(
+        "INSERT OR IGNORE INTO inbox_pins(owner,peer) VALUES(?,?)",
+        uid,
+        peer,
+      );
+    else run("DELETE FROM inbox_pins WHERE owner=? AND peer=?", uid, peer);
+    wake("chat", uid);
+  });
   const nickname = (uid, peer) =>
     one("SELECT nickname FROM dm_nicknames WHERE owner=? AND peer=?", uid, peer)
       ?.nickname || "";
@@ -143,7 +170,7 @@ export function installSocial(app, db, enrich, session) {
     wake,
     checkQuota,
   });
-  installLinkbacks(db, {
+  const groupCounts = installLinkbacks(db, {
     wake,
     endpoint,
     one,
@@ -310,9 +337,21 @@ export function installSocial(app, db, enrich, session) {
         notify(p.author, uid, "like", p.id);
     }
   });
+  const visibleNotice = `recipient=:uid AND NOT ${separated(":uid", "n.actor")} AND (post_id IS NULL OR EXISTS(SELECT 1 FROM posts p WHERE p.id=n.post_id AND ${visible}))`;
+  endpoint("get", "unread", (uid) => {
+    const counts = one(
+      `SELECT (SELECT count(*) FROM messages WHERE recipient=:uid AND seen=0 AND NOT ${separated(":uid", "sender")}) chats,(SELECT count(*) FROM notices n WHERE seen=0 AND ${visibleNotice}) notifications`,
+      { uid },
+    );
+    Object.assign(counts, groupCounts(uid));
+    return {
+      ...counts,
+      messages: counts.chats + counts.groups + counts.linkbacks,
+    };
+  });
   endpoint("get", "notices", (uid) => ({
     notices: all(
-      `SELECT n.*,a.name,a.founder,exists(SELECT 1 FROM follows WHERE follower=:uid AND followed=n.actor) following,coalesce(s.private,0) private FROM notices n JOIN feed_profiles a ON a.id=n.actor LEFT JOIN profile_settings s ON s.user_id=a.id WHERE recipient=:uid AND NOT ${separated(":uid", "n.actor")} AND (post_id IS NULL OR EXISTS(SELECT 1 FROM posts p WHERE p.id=n.post_id AND ${visible})) ORDER BY n.id DESC LIMIT 100`,
+      `SELECT n.*,a.name,a.founder,exists(SELECT 1 FROM follows WHERE follower=:uid AND followed=n.actor) following,coalesce(s.private,0) private FROM notices n JOIN feed_profiles a ON a.id=n.actor LEFT JOIN profile_settings s ON s.user_id=a.id WHERE ${visibleNotice} ORDER BY n.id DESC LIMIT 100`,
       { uid },
     ),
   }));
@@ -332,9 +371,57 @@ export function installSocial(app, db, enrich, session) {
       .slice(0, 100);
     return {
       threads: all(
-        `WITH mine AS (SELECT *,CASE WHEN sender=:uid THEN recipient ELSE sender END peer FROM messages WHERE sender=:uid OR recipient=:uid), latest AS (SELECT peer,max(id) id,sum(CASE WHEN recipient=:uid AND seen=0 THEN 1 ELSE 0 END) unread FROM mine GROUP BY peer) SELECT p.*,nn.nickname,m.body,m.removed,(SELECT type FROM dm_media WHERE message=m.id) mediaType,m.created,m.sender=:uid outgoing,l.unread FROM latest l JOIN mine m ON m.id=l.id JOIN feed_profiles p ON p.id=l.peer LEFT JOIN dm_nicknames nn ON nn.owner=:uid AND nn.peer=p.id WHERE NOT ${separated(":uid", "l.peer")} AND (instr(lower(p.name||' '||coalesce(p.username,'')||' '||coalesce(nn.nickname,'')),:term) OR EXISTS(SELECT 1 FROM mine t WHERE t.peer=l.peer AND instr(lower(t.body),:term))) ORDER BY l.id DESC LIMIT 100`,
-        { uid, term },
+        `WITH mine AS (SELECT *,CASE WHEN sender=:uid THEN recipient ELSE sender END peer FROM messages WHERE sender=:uid OR recipient=:uid), latest AS (SELECT peer,max(id) id,sum(CASE WHEN recipient=:uid AND seen=0 THEN 1 ELSE 0 END) unread FROM mine GROUP BY peer) SELECT p.*,nn.nickname,ip.peer IS NOT NULL pinnedChat,m.body,m.removed,(SELECT type FROM dm_media WHERE message=m.id) mediaType,m.created,m.sender=:uid outgoing,l.unread FROM latest l JOIN mine m ON m.id=l.id JOIN feed_profiles p ON p.id=l.peer LEFT JOIN dm_nicknames nn ON nn.owner=:uid AND nn.peer=p.id LEFT JOIN inbox_pins ip ON ip.owner=:uid AND ip.peer=p.id WHERE (:unread=0 OR l.unread>0) AND NOT ${separated(":uid", "l.peer")} AND (instr(lower(p.name||' '||coalesce(p.username,'')||' '||coalesce(nn.nickname,'')),:term) OR EXISTS(SELECT 1 FROM mine t WHERE t.peer=l.peer AND instr(lower(t.body),:term))) ORDER BY pinnedChat DESC,l.id DESC LIMIT 100`,
+        { uid, term, unread: Number(q.view === "unread") },
       ),
+    };
+  });
+  // Short-lived presence only: never persist a draft or transmit its content.
+  const typing = new Map();
+  setInterval(() => {
+    for (const [key, t] of typing)
+      if (t.until <= Date.now()) typing.delete(key);
+  }, 6000).unref();
+  const canType = (from, to) =>
+    from !== to &&
+    allowedDM(from, to) &&
+    prefs(from).typing &&
+    prefs(to).typing;
+  const typingPath = "/api/feed/typing/:peer";
+  app.post(
+    typingPath,
+    rateLimit({
+      windowMs: 60000,
+      limit: 60,
+      keyGenerator: (_req, res) => String(res.locals.uid),
+    }),
+    (req, res) => {
+      const uid = res.locals.uid,
+        peer = Number(req.params.peer);
+      if (
+        !Number.isSafeInteger(peer) ||
+        !one("SELECT id FROM feed_profiles WHERE id=?", peer) ||
+        !canType(uid, peer)
+      )
+        return res.json({ ok: true });
+      if (req.body?.active === true) {
+        typing.set(uid, { peer, until: Date.now() + 5000 });
+        wake("typing", peer);
+      } else if (typing.get(uid)?.peer === peer) {
+        typing.delete(uid);
+        wake("typing", peer);
+      }
+      res.json({ ok: true });
+    },
+  );
+  endpoint("get", "typing/:peer", (uid, q, b, p) => {
+    const peer = id(p.peer),
+      t = typing.get(peer);
+    return {
+      remaining:
+        t?.peer === uid && canType(peer, uid)
+          ? Math.max(0, t.until - Date.now())
+          : 0,
     };
   });
   endpoint("get", "thread/:peer", (uid, q, b, p) => {
@@ -353,7 +440,25 @@ export function installSocial(app, db, enrich, session) {
       before,
     );
     return {
-      member: { ...member, nickname: nickname(uid, peer) },
+      viewer: uid,
+      member: {
+        ...member,
+        nickname: nickname(uid, peer),
+        pinnedChat: !!one(
+          "SELECT 1 FROM inbox_pins WHERE owner=? AND peer=?",
+          uid,
+          peer,
+        ),
+      },
+      ...(q.opening === "1"
+        ? {
+            firstUnread: one(
+              "SELECT min(id) n FROM messages WHERE recipient=? AND sender=? AND seen=0",
+              uid,
+              peer,
+            ).n,
+          }
+        : {}),
       pin:
         one(
           "SELECT id,body FROM messages WHERE pinned=1 AND ((sender=? AND recipient=?) OR (sender=? AND recipient=?))",
@@ -382,6 +487,8 @@ export function installSocial(app, db, enrich, session) {
     person(peer, uid);
     if (!allowedDM(uid, peer))
       fail("This member is not accepting messages from you.", 403);
+    if (b.expectedSender !== undefined && b.expectedSender !== uid)
+      fail("Your account changed. Reload this conversation.", 409);
     const token = b.clientId ?? null;
     if (token !== null) {
       if (typeof token !== "string" || !/^[-a-zA-Z0-9]{16,64}$/.test(token))
@@ -440,6 +547,10 @@ export function installSocial(app, db, enrich, session) {
         result.lastInsertRowid,
         photo,
       );
+    if (typing.get(uid)?.peer === peer) {
+      typing.delete(uid);
+      wake("typing", peer);
+    }
     wake("chat", peer, uid);
     return { message: one(select + " WHERE m.id=?", result.lastInsertRowid) };
   });

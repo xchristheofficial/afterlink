@@ -62,7 +62,7 @@ function levels(stream) {
     return null;
   }
 }
-export function attachmentComposer(msg, send) {
+export function attachmentComposer(msg, send, dropZone) {
   const file = n("input"),
     preview = box("attachment dm-preview");
   file.type = "file";
@@ -98,7 +98,17 @@ export function attachmentComposer(msg, send) {
       "Remove " + (audio ? "voice note" : kind === "GIF" ? "GIF" : "photo"),
       clear,
     );
-    const kids = [el, n("strong", "", kind + " preview")];
+    const size = n(
+      "span",
+      "dm-size",
+      blob.size < 1024
+        ? `${blob.size} B`
+        : blob.size < 1024 * 1024
+          ? `${(blob.size / 1024).toFixed(1)} KiB`
+          : `${(blob.size / 1024 / 1024).toFixed(2)} MiB`,
+    );
+    size.title = `Attachment size: ${blob.size.toLocaleString()} bytes`;
+    const kids = [el, n("strong", "", kind + " preview"), size];
     if (!audio) {
       const mode = box("dm-mode"),
         hint = n(
@@ -125,9 +135,8 @@ export function attachmentComposer(msg, send) {
     msg.placeholder = "Add a caption…";
     msg.setAttribute("aria-label", msg.placeholder);
   }
-  file.onchange = async () => {
-    const f = file.files[0];
-    if (!f) return;
+  async function prepareImage(f) {
+    if (!f || working || send.disabled) return;
     const seq = ++attempt;
     working = send.disabled = true;
     try {
@@ -160,7 +169,41 @@ export function attachmentComposer(msg, send) {
     } finally {
       working = send.disabled = false;
     }
-  };
+  }
+  file.onchange = () => prepareImage(file.files[0]);
+  function receive(files) {
+    if (working || send.disabled)
+      return error("Finish the current attachment first.");
+    if (selected)
+      return error("Remove the current attachment before adding another.");
+    if (files.length !== 1) return error("Add one image at a time.");
+    prepareImage(files[0]);
+  }
+  msg.addEventListener("paste", (e) => {
+    const files = e.clipboardData?.files;
+    if (!files?.length) return; // Leave ordinary text pastes to the browser.
+    e.preventDefault();
+    receive(files);
+  });
+  function hasFiles(e) {
+    return Array.from(e.dataTransfer?.types || []).includes("Files");
+  }
+  dropZone.addEventListener("dragover", (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    dropZone.classList.add("image-drop-target");
+  });
+  dropZone.addEventListener("dragleave", (e) => {
+    if (!dropZone.contains(e.relatedTarget))
+      dropZone.classList.remove("image-drop-target");
+  });
+  dropZone.addEventListener("drop", (e) => {
+    dropZone.classList.remove("image-drop-target");
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    receive(e.dataTransfer.files);
+  });
   async function voice() {
     if (record || working) return;
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)
@@ -283,6 +326,11 @@ export function attachmentComposer(msg, send) {
         });
       sheet(
         "Add to message",
+        n(
+          "p",
+          "subtle",
+          "Choose an attachment, paste an image into the message field, or drop an image into this chat. Nothing is sent until you press Send.",
+        ),
         box(
           "dm-choices",
           choose("Photo", "image/jpeg,image/png,image/webp"),
@@ -369,7 +417,19 @@ export function mediaBubble(m, sent) {
     audio.controls = true;
     audio.preload = "metadata";
     audio.src = src;
-    return box("dm-voice", n("strong", "", kind), audio);
+    const speed = n("select");
+    for (const rate of [0.75, 1, 1.25, 1.5, 2])
+      speed.add(new Option(`${rate}×`, String(rate)));
+    speed.value = "1";
+    speed.onchange = () => {
+      audio.playbackRate = Number(speed.value);
+    };
+    audio.addEventListener("ratechange", () => {
+      speed.value = String(audio.playbackRate);
+    });
+    const label = n("label", "dm-speed", "Voice note speed");
+    label.append(speed);
+    return box("dm-voice", n("strong", "", kind), audio, label);
   }
   const img = n("img", "message-photo");
   img.src = src;

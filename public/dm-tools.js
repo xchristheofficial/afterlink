@@ -78,7 +78,7 @@ export function messageMenu(m, sent, reply, refresh) {
     close();
     await refresh();
   };
-  return withIcon(
+  const trigger = withIcon(
     button("", () => {
       const items = [
         button("Reply", () => {
@@ -90,6 +90,39 @@ export function messageMenu(m, sent, reply, refresh) {
           emojiPicker((emoji) => request("react", { emoji })),
         ),
       ];
+      if (m.body)
+        items.push(
+          button("Copy text", async (b) => {
+            if (!trigger.isConnected)
+              throw Error("Message changed. Reopen its actions.");
+            try {
+              await navigator.clipboard.writeText(m.body);
+              b.textContent = "Copied";
+            } catch {
+              if (
+                !trigger.isConnected ||
+                !b.isConnected ||
+                !$("#socialDialog").open
+              )
+                return;
+              const field = n("textarea", "manual-copy");
+              field.readOnly = true;
+              field.setAttribute("aria-label", "Message text");
+              field.value = m.body;
+              sheet(
+                "Copy message",
+                n(
+                  "p",
+                  "subtle",
+                  "Clipboard access is unavailable. Use your device’s Copy command on the selected text.",
+                ),
+                field,
+              );
+              field.focus();
+              field.select();
+            }
+          }),
+        );
       if (!m.onceOnly)
         items.push(
           button("Forward", async () => {
@@ -136,6 +169,7 @@ export function messageMenu(m, sent, reply, refresh) {
     "more",
     "Message actions",
   );
+  return trigger;
 }
 export function liveMessages(refresh) {
   let source;
@@ -145,9 +179,14 @@ export function liveMessages(refresh) {
     source.addEventListener("call", () =>
       window.dispatchEvent(new Event("dm-call")),
     );
+    source.addEventListener("typing", () =>
+      window.dispatchEvent(new Event("dm-typing")),
+    );
     for (const key of ["chat", "read", "mutation", "open"])
       source.addEventListener(key, () => {
+        if (key === "mutation") window.dispatchEvent(new Event("dm-mutation"));
         if (key !== "read") window.dispatchEvent(new Event("dm-chat"));
+        window.dispatchEvent(new Event("unread-change"));
         refresh(key === "mutation" || key === "open");
       });
   };

@@ -98,6 +98,7 @@ export async function notifications(root, q) {
     "Mark all as read",
     async () => {
       await api("/notices/read", { all: true });
+      window.dispatchEvent(new Event("unread-change"));
       items.forEach((i) => (i.seen = 1));
       render();
     },
@@ -164,6 +165,7 @@ export async function notifications(root, q) {
           e.preventDefault();
           try {
             await api("/notices/read", { id: i.id });
+            window.dispatchEvent(new Event("unread-change"));
           } finally {
             location.assign(view.href);
           }
@@ -176,6 +178,7 @@ export async function notifications(root, q) {
               async () => {
                 await api("/follow", { id: i.actor, on: true });
                 await api("/notices/read", { id: i.id });
+                window.dispatchEvent(new Event("unread-change"));
                 i.following = 1;
                 i.seen = 1;
                 render();

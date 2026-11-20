@@ -1,3 +1,5 @@
+import { recordingDownload } from "./recording-download.js";
+import { callPreferences } from "./call-preferences.js";
 import { watchTogether, watchTransport } from "./watch-together.js";
 import { callRecording } from "./call-recording.js";
 import { api, avatar, box, button, n, withIcon, error } from "./social-ui.js";
@@ -37,13 +39,14 @@ export function callControls() {
   size.onchange = () => {
     dialog.dataset.size = size.value;
   };
-  const minimize = button("Minimize", () => {
+  function dock() {
     // Switch only the dialog mode: keep the same video elements, tracks and RTC session.
     dialog.close();
     dialog.dataset.size = "minimized";
     dialog.show();
     restore.focus();
-  });
+  }
+  const minimize = button("Minimize", dock);
   function expand() {
     if (dialog.dataset.size === "minimized") dialog.close();
     dialog.dataset.size = size.value;
@@ -59,11 +62,13 @@ export function callControls() {
     timer,
     controls,
   );
-  document.body.append(dialog);
+  const downloads = recordingDownload();
+  document.body.append(dialog, downloads.root);
   const write = (action, extra) => api("/calls", { action, ...extra });
   function release(c) {
     if (!c) return;
     c.watch?.close();
+    c.preferences?.root.remove();
     c.recording?.close();
     clearTimeout(c.iceTimer);
     clearInterval(c.clock);
@@ -77,6 +82,7 @@ export function callControls() {
     session = null;
     release(c);
     c.recording?.panel.remove();
+    document.body.append(downloads.root);
     dialog.close();
     stage.replaceChildren();
     controls.replaceChildren();
@@ -89,7 +95,9 @@ export function callControls() {
   }
   dialog.oncancel = (e) => {
     e.preventDefault();
-    end(session);
+    if (session?.talking) {
+      if (dialog.dataset.size !== "minimized") dock();
+    } else end(session);
   };
   addEventListener("pagehide", () => {
     const c = session;
@@ -107,6 +115,7 @@ export function callControls() {
       }).catch(() => {});
   });
   function show(c, incoming) {
+    dialog.append(downloads.root);
     size.value = dialog.dataset.size = "medium";
     minimize.hidden = true;
     title.textContent = incoming
@@ -125,11 +134,32 @@ export function callControls() {
       "call-end",
     );
     controls.replaceChildren(hang);
-    if (incoming)
-      controls.append(button("Accept", () => prepare(c, true), "gradient"));
+    if (incoming) {
+      const muted = n("input"),
+        label = n("label", "answer-muted");
+      muted.type = "checkbox";
+      muted.checked = !!c.answerMuted;
+      muted.onchange = () => {
+        c.answerMuted = muted.checked;
+      };
+      label.append(muted, "Start with mic muted");
+      controls.append(label);
+      const video = c.kind === "video";
+      controls.append(
+        button(
+          video ? "Answer with camera" : "Accept",
+          () => prepare(c, true, video),
+          "gradient",
+        ),
+      );
+      if (video)
+        controls.append(
+          button("Answer with mic only", () => prepare(c, true, false)),
+        );
+    }
     if (!dialog.open) dialog.showModal();
   }
-  async function prepare(c, incoming) {
+  async function prepare(c, incoming, useCamera = c.kind === "video") {
     if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) {
       await end(c);
       error("Calling requires a supported browser and HTTPS.");
@@ -143,28 +173,32 @@ export function callControls() {
         constrained =
           connection?.saveData ||
           ["slow-2g", "2g", "3g"].includes(connection?.effectiveType);
+      const cameraConstraints = {
+        width: { ideal: constrained ? 320 : 640, max: 1280 },
+        height: { ideal: constrained ? 180 : 360, max: 720 },
+        frameRate: {
+          ideal: constrained ? 15 : 24,
+          max: constrained ? 20 : 30,
+        },
+      };
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           channelCount: { ideal: 1 },
         },
-        video: c.kind === "video" && {
-          width: { ideal: constrained ? 320 : 640, max: 1280 },
-          height: { ideal: constrained ? 180 : 360, max: 720 },
-          frameRate: {
-            ideal: constrained ? 15 : 24,
-            max: constrained ? 20 : 30,
-          },
-        },
+        video: useCamera && cameraConstraints,
       });
       if (c !== session) {
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
+      // Apply the choice before accepting or attaching any track to WebRTC.
+      const mic = stream.getAudioTracks()[0];
+      if (c.answerMuted) mic.enabled = false;
       c.stream = stream;
       const result = incoming
-        ? await write("accept", { id: c.id })
+        ? await write("accept", { id: c.id, camera: useCamera })
         : await write("start", { peer: c.peer, kind: c.kind });
       if (c !== session) {
         await write("end", { id: c.id || result.id }).catch(() => {});
@@ -182,8 +216,7 @@ export function callControls() {
           track.contentHint = "speech";
         pc.addTrack(track, stream);
       });
-      if (c.kind === "video")
-        c.watchTransport = watchTransport(pc, !incoming, constrained);
+      c.watchTransport = watchTransport(pc, !incoming, constrained);
       const batch = [];
       c.offset = 0;
       pc.onicecandidate = ({ candidate }) => {
@@ -198,21 +231,24 @@ export function callControls() {
               });
           }, 70);
       };
-      c.remote = n(c.kind === "video" ? "video" : "audio", "call-remote");
+      c.remote = n("video", "call-remote");
+      c.remote.srcObject = new MediaStream();
       c.remote.autoplay = true;
       c.remote.playsInline = true;
       stage.append(c.remote);
-      if (c.kind === "video") {
-        c.local = n("video", "call-local");
-        c.local.autoplay = c.local.muted = c.local.playsInline = true;
-        c.local.srcObject = stream;
-        stage.append(c.local);
-      }
+      c.local = n("video", "call-local");
+      c.local.autoplay = c.local.muted = c.local.playsInline = true;
+      c.local.srcObject = stream;
+      c.local.hidden = !stream.getVideoTracks().length;
+      stage.append(c.local);
+      c.preferences = callPreferences(c.remote, c.local);
+      controls.after(c.preferences.root);
       pc.ontrack = (e) => {
         if (c !== session) return;
         if (c.watchTransport && !c.watchTransport.isCamera(e.transceiver))
           return;
-        c.remote.srcObject = e.streams[0];
+        if (!c.remote.srcObject.getTracks().includes(e.track))
+          c.remote.srcObject.addTrack(e.track);
         c.remote.play().catch(() => {
           if (c === session)
             controls.append(
@@ -222,26 +258,133 @@ export function callControls() {
       };
       status.textContent = incoming ? "Connecting…" : "Ringing…";
       title.textContent = `${c.kind === "video" ? "Video" : "Audio"} call · ${c.name}`;
-      const toggle = (kind, on, off) =>
-        button(off, (b) => {
-          const t = stream.getTracks().find((t) => t.kind === kind);
-          t.enabled = !t.enabled;
-          b.textContent = t.enabled ? off : on;
-          b.setAttribute("aria-pressed", String(!t.enabled));
-        });
+      const micState = n("span", "dock-mic");
+      micState.setAttribute("role", "status");
+      const micButton = button("", () => {
+        mic.enabled = !mic.enabled;
+        paintMic();
+      });
+      function paintMic() {
+        const on = mic.enabled;
+        micButton.textContent = on ? "Mute" : "Unmute";
+        micButton.setAttribute("aria-pressed", String(!on));
+        micState.textContent =
+          mic.readyState !== "live" || mic.muted
+            ? "Mic unavailable"
+            : on
+              ? "Mic on"
+              : "Mic muted";
+      }
+      for (const event of ["mute", "unmute", "ended"])
+        mic.addEventListener(event, paintMic);
+      paintMic();
+      c.mode = c.kind;
+      c.modeVersion = 0;
+      c.remoteCamera = c.kind === "video";
+      const feedback = n("span", "call-feedback");
+      feedback.setAttribute("role", "status");
+      const camera = button("Camera off", () =>
+          changeMode(stream.getVideoTracks().length ? "camera-off" : "video"),
+        ),
+        mode = button("", () =>
+          changeMode(c.mode === "video" ? "audio" : "video"),
+        );
+      function paint() {
+        const on = stream.getVideoTracks().length > 0;
+        c.preferences.syncCamera();
+        camera.hidden = c.mode !== "video";
+        camera.textContent = on ? "Camera off" : "Camera on";
+        mode.textContent =
+          c.mode === "video" ? "Switch to audio" : "Switch to video";
+        title.textContent = `${c.mode === "video" ? "Video" : "Audio"} call · ${c.name}`;
+        if (c.remoteCamera && pc.connectionState === "connected")
+          portrait.remove();
+        else if (!stage.contains(portrait)) stage.prepend(portrait);
+      }
+      function dropCamera() {
+        for (const t of stream.getVideoTracks()) {
+          t.stop();
+          stream.removeTrack(t);
+        }
+        c.local.hidden = true;
+      }
+      c.syncMode = (next) => {
+        if (next.modeVersion < c.modeVersion) return;
+        c.modeVersion = next.modeVersion;
+        c.mode = next.mode;
+        c.remoteCamera = next.remoteCamera;
+        if (!next.localCamera && stream.getVideoTracks().length) {
+          dropCamera();
+          c.watchTransport
+            .cameraSender()
+            ?.replaceTrack(null)
+            .catch(() => {});
+        }
+        paint();
+      };
+      let switching = false;
+      async function changeMode(step) {
+        if (switching || session !== c) return;
+        switching = true;
+        feedback.textContent = "";
+        const version = c.modeVersion;
+        let track;
+        try {
+          const sender = c.watchTransport.cameraSender();
+          if (step === "video") {
+            if (!sender)
+              throw Error("Reopen Messages on both devices to enable video.");
+            track = (
+              await navigator.mediaDevices.getUserMedia({
+                audio: false,
+                video: cameraConstraints,
+              })
+            ).getVideoTracks()[0];
+          } else {
+            dropCamera();
+            if (sender) await sender.replaceTrack(null);
+          }
+          if (session !== c) return;
+          const next = await write("mode", { id: c.id, step, version });
+          if (session !== c || next.modeVersion < c.modeVersion) return;
+          if (track) {
+            await sender.replaceTrack(track);
+            if (session !== c || next.modeVersion < c.modeVersion) return;
+            stream.addTrack(track);
+            track = null;
+            c.watchTransport.resizeCameras(
+              dialog.classList.contains("watching"),
+            );
+          }
+          c.syncMode(next);
+        } catch (e) {
+          feedback.textContent =
+            e.name === "NotAllowedError"
+              ? "Camera permission was denied. Audio is still connected."
+              : e.message;
+        } finally {
+          track?.stop();
+          switching = false;
+          if (session === c) paint();
+        }
+      }
       controls.replaceChildren(
-        toggle("audio", "Unmute", "Mute"),
-        ...(c.kind === "video"
-          ? [toggle("video", "Camera on", "Camera off")]
-          : []),
+        micState,
+        micButton,
+        camera,
+        mode,
         button("End call", () => end(c), "call-end"),
+        feedback,
       );
+      mode.hidden = camera.disabled = true;
+      paint();
       queueMicrotask(poll);
       pc.onconnectionstatechange = () => {
         if (c !== session) return;
         if (pc.connectionState === "connected") {
           status.textContent = "Connected";
-          if (c.kind === "video") portrait.remove();
+          mode.hidden = camera.disabled = false;
+          paint();
           if (!c.clock) {
             tuneSenders(pc, constrained);
             if (c.watchTransport) {
@@ -249,10 +392,11 @@ export function callControls() {
               stage.before(c.watch.pane);
               controls.after(c.watch.root);
             }
-            c.recording = callRecording(c, write);
+            c.recording = callRecording(c, write, downloads.forCall());
             controls.after(c.recording.panel);
             const start = Date.now();
             const tick = () => {
+              c.recording.tick();
               const t = Math.floor((Date.now() - start) / 1000);
               timer.textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
             };
@@ -268,6 +412,24 @@ export function callControls() {
           status.textContent = "Reconnecting…";
       };
     } catch (e) {
+      if (c !== session) return;
+      if (
+        incoming &&
+        useCamera &&
+        !c.stream &&
+        [
+          "NotAllowedError",
+          "NotFoundError",
+          "NotReadableError",
+          "OverconstrainedError",
+        ].includes(e.name)
+      ) {
+        c.preparing = false;
+        show(c, true);
+        status.textContent =
+          "Couldn’t open the camera and microphone. Try answering with mic only, or check device permissions.";
+        return;
+      }
       if (incoming && !c.talking && e.status === 409) reset(c);
       else await end(c);
       error(
@@ -290,6 +452,7 @@ export function callControls() {
     busy = true;
     const before = session,
       priorId = before?.id;
+    let readingStatus = true;
     try {
       const { call } = await api(
         "/calls" +
@@ -301,7 +464,15 @@ export function callControls() {
               (before.pc?.remoteDescription ? "&synced=1" : "")
             : ""),
       );
+      readingStatus = false;
       if (before !== session || priorId !== session?.id) return;
+      if (before?.retrySince) {
+        delete before.retrySince;
+        status.textContent =
+          before.pc.connectionState === "connected"
+            ? "Connected"
+            : "Reconnecting…";
+      }
       if (!call || (session?.id && call.id !== session.id)) {
         if (session?.id) {
           const connected = !!session.clock;
@@ -335,8 +506,13 @@ export function callControls() {
       }
       const c = session;
       if (!c.pc || call.state !== "accepted") return;
+      c.syncMode?.(call);
       c.watch?.sync(call.presenter, call.watchVersion);
-      c.recording?.sync(call.recording, call.recordVersion);
+      c.recording?.sync(
+        call.recording,
+        call.recordVersion,
+        call.recordElapsedMs,
+      );
       if (c.pc.connectionState !== "connected" && !c.clock) {
         status.textContent = "Connecting…";
         c.connectStart ??= Date.now();
@@ -361,6 +537,22 @@ export function callControls() {
         }
     } catch (e) {
       if (before && before === session) {
+        // Losing one status read need not interrupt an established media path.
+        // Never ignore access failures or extend a recording without consent updates.
+        if (
+          readingStatus &&
+          before.pc?.connectionState === "connected" &&
+          !before.recording?.needsSync() &&
+          (e instanceof TypeError ||
+            e.status >= 500 ||
+            [408, 429].includes(e.status))
+        ) {
+          before.retrySince ??= Date.now();
+          if (Date.now() - before.retrySince < 12000) {
+            status.textContent = "Call controls reconnecting…";
+            return;
+          }
+        }
         await end(before);
         error(e);
       }

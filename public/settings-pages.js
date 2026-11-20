@@ -273,6 +273,11 @@ export async function settings(root, section) {
     draw();
     card.append(
       row(
+        "Typing indicators",
+        "Show when you are typing to chat partners who also share typing indicators.",
+        toggle(prefs.typing, "Typing indicators", (v) => save({ typing: v })),
+      ),
+      row(
         "Show Activity Status",
         "Show recent activity to members who also share their status.",
         toggle(prefs.activity, "Show Activity Status", (v) =>

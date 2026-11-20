@@ -1,17 +1,27 @@
+import { retryableComposer } from "./chat-compose.js";
+import { typingIndicator } from "./typing.js";
 import { api, box, button, input, n } from "./social-ui.js";
 
 // The presentation is separate from camera/mic. Reserve streamless m-lines in
 // the first offer so switching presenters never interrupts either face or voice.
 export function watchTransport(pc, caller, constrained) {
-  const camera = new Set(pc.getSenders());
+  // First audio/video lanes are reserved for mic/camera, even on an audio start.
+  // The answerer discovers the same lanes from the offer. No camera capture is
+  // necessary to negotiate an empty video sender.
+  if (caller && !pc.getSenders().some((s) => s.track?.kind === "video"))
+    pc.addTransceiver("video", { direction: "sendrecv" });
+  const primary = (kind) =>
+    pc.getTransceivers().find((t) => t.receiver.track.kind === kind);
+  const isCamera = (t) => t === primary(t.receiver.track.kind);
   if (caller)
     for (const kind of ["video", "audio"])
       pc.addTransceiver(kind, { direction: "sendrecv" });
-  const slots = () => pc.getTransceivers().filter((t) => !camera.has(t.sender));
+  const slots = () => pc.getTransceivers().filter((t) => !isCamera(t));
   return {
-    isCamera: (t) => camera.has(t.sender),
+    isCamera,
+    cameraSender: () => primary("video")?.sender,
     answer() {
-      for (const t of slots()) t.direction = "sendrecv";
+      for (const t of pc.getTransceivers()) t.direction = "sendrecv";
     },
     remote: () => new MediaStream(slots().map((t) => t.receiver.track)),
     async send(stream) {
@@ -45,8 +55,8 @@ export function watchTransport(pc, caller, constrained) {
       );
     },
     resizeCameras(watching) {
-      const sender = [...camera].find((t) => t.track?.kind === "video");
-      if (!sender) return;
+      const sender = primary("video")?.sender;
+      if (!sender?.track) return;
       const p = sender.getParameters();
       for (const e of p.encodings || []) {
         e.scaleResolutionDownBy = watching ? 1.5 : 1;
@@ -90,10 +100,12 @@ export function watchTogether(c, dialog, write, constrained) {
     version = 0,
     last = "",
     chatTimer;
+  const typing = typingIndicator(field, c.peer);
+  chat.firstChild.append(typing.label);
   notice.setAttribute("role", "status");
   url.type = "url";
   video.autoplay = video.playsInline = true;
-  video.controls = true;
+  const listenToTab = c.preferences.tabAudio(video);
   log.setAttribute("role", "log");
   field.required = true;
   form.append(field, send);
@@ -139,7 +151,56 @@ export function watchTogether(c, dialog, write, constrained) {
       notice.textContent = "Picture-in-picture is unavailable here.";
     }
   });
-  root.append(box("watch-actions", toggle, stop, pip), setup, notice);
+  const sound = n("small", "watch-sound");
+  sound.setAttribute("role", "status");
+  const soundButton = button("", () => {
+    const tracks = liveTabAudio();
+    const on = !tracks.some((t) => t.enabled);
+    for (const t of tracks) t.enabled = on;
+    paintSound();
+  });
+  function liveTabAudio() {
+    return (stream?.getAudioTracks() || []).filter(
+      (t) => t.readyState === "live",
+    );
+  }
+  function paintSound() {
+    const mine = !!presenter && presenter !== c.peer && !!stream;
+    const tracks = liveTabAudio();
+    sound.hidden = !mine;
+    soundButton.hidden = !mine || !tracks.length;
+    const paused = tracks.length && !tracks.some((t) => t.enabled);
+    sound.textContent = !mine
+      ? ""
+      : !tracks.length
+        ? "No tab audio captured"
+        : paused
+          ? "Tab sound paused"
+          : tracks.every((t) => t.muted)
+            ? "Tab audio temporarily unavailable"
+            : "Tab audio included";
+    soundButton.textContent = paused ? "Resume tab sound" : "Pause tab sound";
+  }
+  const playTab = button("Play shared tab", () => playShared());
+  async function playShared() {
+    const source = video.srcObject;
+    if (!source) return;
+    try {
+      await video.play();
+      if (source === video.srcObject) playTab.hidden = true;
+    } catch {
+      if (!closed && source === video.srcObject && presenter === c.peer)
+        playTab.hidden = false;
+    }
+  }
+  playTab.hidden = true;
+  paintSound();
+  root.append(
+    box("watch-actions", toggle, stop, pip, soundButton, playTab),
+    sound,
+    setup,
+    notice,
+  );
   pip.hidden = true;
   pane.append(content);
   stop.hidden = setup.hidden = pane.hidden = true;
@@ -178,40 +239,39 @@ export function watchTogether(c, dialog, write, constrained) {
       if (!closed) notice.textContent = e.message;
     }
   }
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    if (send.disabled || !field.value.trim()) return;
-    const text = field.value;
-    send.disabled = true;
-    try {
-      await api("/thread/" + c.peer, {
-        body: text,
-        clientId: crypto.randomUUID(),
-      });
-      if (field.value === text) field.value = "";
+  retryableComposer(
+    form,
+    field,
+    send,
+    ({ text, clientId }) => api("/thread/" + c.peer, { body: text, clientId }),
+    async () => {
       await refresh();
       field.focus();
-    } catch (e) {
+    },
+    (e) => {
       notice.textContent = e.message;
-    } finally {
-      send.disabled = false;
-    }
-  };
+    },
+  );
   function release() {
     stream?.getTracks().forEach((t) => t.stop());
     stream = null;
+    paintSound();
   }
   function sync(owner, rev) {
     if (closed || rev < revision) return;
     revision = rev;
-    if (owner === presenter) return;
-    presenter = owner;
-    c.watchTransport.resizeCameras(!!owner);
     pip.hidden =
       !owner ||
+      !c.remoteCamera ||
       !document.pictureInPictureEnabled ||
       !c.remote.requestPictureInPicture;
+    if (owner === presenter) return;
+    presenter = owner;
+    paintSound();
+    playTab.hidden = true;
+    c.watchTransport.resizeCameras(!!owner);
     const mine = owner && owner !== c.peer;
+    listenToTab(owner === c.peer);
     dialog.classList.toggle("watching", !!owner);
     pane.hidden = !owner;
     toggle.hidden = !!owner;
@@ -233,9 +293,8 @@ export function watchTogether(c, dialog, write, constrained) {
     label.textContent = mine
       ? "You are sharing a tab"
       : `${c.name} is sharing a tab`;
-    video.muted = !!mine;
     video.srcObject = mine ? stream : c.watchTransport.remote();
-    video.play().catch(() => {});
+    playShared();
     refresh();
     chatTimer = setInterval(refresh, 6000);
   }
@@ -282,6 +341,11 @@ export function watchTogether(c, dialog, write, constrained) {
         throw Error("Choose a browser tab rather than an entire screen.");
       if (closed || presenter) return;
       stream = selected;
+      for (const audio of stream.getAudioTracks())
+        for (const event of ["mute", "unmute", "ended"])
+          audio.addEventListener(event, paintSound);
+      stream.addEventListener("removetrack", paintSound);
+
       const r = await write("watch", { id: c.id, step: "start" });
       claimed = true;
       if (closed || !r.presenter) return;
@@ -308,6 +372,7 @@ export function watchTogether(c, dialog, write, constrained) {
     sync,
     close() {
       closed = true;
+      typing.close();
       version++;
       clearInterval(chatTimer);
       window.removeEventListener("dm-chat", refresh);

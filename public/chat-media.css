@@ -162,9 +162,12 @@ video.call-remote {
   position: absolute;
   bottom: 0.6em;
   right: 0.6em;
-  width: 24%;
-  max-height: 30%;
-  object-fit: cover;
+  width: min(30svh, clamp(84px, 24%, 250px));
+  aspect-ratio: 4 / 3;
+  max-width: 38%;
+  max-height: none;
+  object-fit: contain;
+  background: #161622;
   border-radius: 0.6em;
   border: 2px solid var(--panel);
   transform: scaleX(-1);
@@ -456,6 +459,9 @@ video.call-remote {
 .call-panel[data-size="large"]:not(.watching) .call-stage {
   min-height: min(46svh, 420px);
 }
+.call-panel[data-size="small"]:not(.watching) .call-local {
+  width: min(18svh, 24%);
+}
 .call-panel[data-size="small"] .call-remote {
   max-height: 30svh;
 }
@@ -515,4 +521,138 @@ video.call-remote {
   :root:not([data-motion="reduce"]) .call-panel:not([data-size="minimized"]) {
     transition: width 0.18s ease-out;
   }
+}
+
+.call-stage:has(.call-person) video.call-remote {
+  opacity: 0;
+}
+.call-feedback:not(:empty) {
+  width: 100%;
+  font-size: 0.85rem;
+}
+.call-feedback:empty {
+  display: none;
+}
+
+.call-preferences {
+  justify-self: stretch;
+  text-align: start;
+  border: 1px solid var(--edge);
+  border-radius: 0.8rem;
+  min-width: 0;
+}
+.call-preferences summary {
+  cursor: pointer;
+  padding: 0.55rem 0.8rem;
+  font-weight: 600;
+}
+.call-preferences-body {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0 0.8rem 0.8rem;
+}
+.call-level,
+.call-level label,
+.call-preview-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.call-level label {
+  flex: 1;
+  flex-wrap: wrap;
+}
+.call-level input[type="range"] {
+  flex: 1;
+  min-width: 5rem;
+  max-width: 100%;
+  padding: 0;
+  accent-color: var(--tone);
+}
+.call-level-value {
+  min-width: 3em;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.call-panel[data-size="minimized"] .call-preferences {
+  display: none;
+}
+.answer-muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.dock-mic {
+  display: none;
+}
+.call-panel[data-size="minimized"] .dock-mic {
+  display: block;
+  flex-basis: 100%;
+  color: var(--accent-ink);
+  font-weight: 650;
+}
+.watch-sound {
+  color: var(--dim);
+}
+.record-clock {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+.record-limit:empty {
+  display: none;
+}
+.record-limit {
+  width: 100%;
+  color: var(--danger-ink);
+}
+.record-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  padding: 0.65em;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 0.85em;
+  font-size: 0.9rem;
+}
+.record-download small {
+  width: 100%;
+  text-align: center;
+}
+.record-download a {
+  text-decoration: underline;
+  color: var(--accent-ink);
+}
+body > .record-download {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(24rem, 94vw);
+  box-shadow: 0 3px 20px #18102b35;
+  z-index: 20;
+}
+.chat-right.image-drop-target {
+  outline: 3px dashed var(--tone);
+  outline-offset: -4px;
+}
+.dm-size {
+  font-size: 0.85em;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.dm-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-size: 0.85em;
+}
+.dm-speed select {
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 0.5em;
+  padding: 0.2em;
 }

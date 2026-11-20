@@ -60,6 +60,72 @@ export function installMessageActions(
       fail("Message unavailable.", 404);
     return m;
   }
+  // A text-only projection: neither search nor context loads attachment bytes,
+  // consumes view-once media, or advances the conversation's read cursor.
+  const snippets = `SELECT id,sender,body,created FROM messages WHERE removed=0 AND ((sender=:uid AND recipient=:peer) OR (sender=:peer AND recipient=:uid))`;
+  function threadScope(uid, key) {
+    const peer = id(key);
+    if (peer === uid || hidden(uid, peer))
+      fail("Conversation unavailable.", 403);
+    person(peer, uid);
+    return { uid, peer };
+  }
+  // POST keeps private search text out of request URLs and access logs.
+  endpoint("post", "thread/:peer/search", (uid, q, b, p) => {
+    const scope = threadScope(uid, p.peer);
+    const term = b.term ?? "",
+      who = b.from ?? "any";
+    if (typeof term !== "string" || term.length > 100)
+      fail("Search for up to 100 characters.");
+    if (!["any", "me", "partner"].includes(who))
+      fail("Choose a sender in this conversation.");
+    const params = {
+      ...scope,
+      before: b.before === undefined ? Number.MAX_SAFE_INTEGER : id(b.before),
+    };
+    const clauses = ["id<:before", "body<>''"];
+    if (term.trim()) {
+      params.term = term.trim();
+      clauses.push("instr(lower(body),lower(:term))>0");
+    }
+    if (who !== "any") {
+      params.author = who === "me" ? uid : scope.peer;
+      clauses.push("sender=:author");
+    }
+    for (const [key, clause] of [
+      ["startMs", "created>=:startMs"],
+      ["endMs", "created<:endMs"],
+    ]) {
+      if (b[key] === undefined) continue;
+      if (!Number.isSafeInteger(b[key]) || Math.abs(b[key]) > 8640000000000000)
+        fail("Choose a valid date range.");
+      params[key] = b[key];
+      clauses.push(clause);
+    }
+    if (params.startMs >= params.endMs)
+      fail("The end date must not precede the start date.");
+    if (clauses.length === 2) fail("Enter search text or choose a filter.");
+    const rows = all(
+      snippets + " AND " + clauses.join(" AND ") + " ORDER BY id DESC LIMIT 21",
+      params,
+    );
+    return { messages: rows.slice(0, 20), more: rows.length > 20 };
+  });
+  endpoint("get", "thread/:peer/context/:id", (uid, q, b, p) => {
+    const params = { ...threadScope(uid, p.peer), anchor: id(p.id) };
+    const match = one(snippets + " AND id=:anchor", params);
+    if (!match) fail("Message unavailable.", 404);
+    return {
+      messages: [
+        ...all(
+          snippets + " AND id<:anchor ORDER BY id DESC LIMIT 3",
+          params,
+        ).reverse(),
+        match,
+        ...all(snippets + " AND id>:anchor ORDER BY id LIMIT 3", params),
+      ],
+    };
+  });
   endpoint("post", "message/:id/action", (uid, q, b, p) => {
     const m = target(uid, p.id),
       peer = m.sender === uid ? m.recipient : m.sender,
