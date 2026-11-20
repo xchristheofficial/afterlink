@@ -45,3 +45,18 @@ export async function googleHandoff(client, state) {
     }),
   };
 }
+
+// Interpret provider errors only when they belong to this browser's attempt.
+// Return only app-owned status names, never a provider-supplied error message.
+export function googleReturn(cookieValue, query) {
+  const [state, ...parts] = cookieValue.split(".");
+  const verifier = parts.join(".");
+  if (!query.state || typeof query.state !== "string")
+    return { status: "failed" };
+  if (!state || !verifier || query.state !== state)
+    return { status: "restart" };
+  if (query.error === "access_denied") return { status: "cancelled" };
+  if (query.error || typeof query.code !== "string" || !query.code)
+    return { status: "failed" };
+  return { code: query.code, codeVerifier: verifier };
+}
