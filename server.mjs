@@ -5,7 +5,7 @@ import express from "express";
 import { memberAssets, publicAssets } from "./web-assets.mjs";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
-import { OAuth2Client, CodeChallengeMethod } from "google-auth-library";
+import { googleClient, googleHandoff } from "./google-signin.mjs";
 import { DatabaseSync } from "node:sqlite";
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
@@ -320,33 +320,17 @@ app.post(["/api/signup", "/api/signin"], limit, async (req, res) => {
   login(req, res, row.id);
   res.json({ user: { email } });
 });
-const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } =
-  process.env;
-const google =
-  GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_REDIRECT_URI
-    ? new OAuth2Client(
-        GOOGLE_CLIENT_ID,
-        GOOGLE_CLIENT_SECRET,
-        GOOGLE_REDIRECT_URI,
-      )
-    : null;
+const google = googleClient(process.env);
 app.get("/api/providers", (req, res) => res.json({ google: !!google }));
 app.get("/auth/google", limit, async (req, res) => {
   if (!google) return res.redirect("/?auth=unavailable");
   const state = token(),
-    { codeVerifier, codeChallenge } = await google.generateCodeVerifierAsync();
+    { codeVerifier, url } = await googleHandoff(google, state);
   res.cookie("afterlink_oauth", `${state}.${codeVerifier}`, {
     ...flags,
     maxAge: 600000,
   });
-  res.redirect(
-    google.generateAuthUrl({
-      scope: ["openid", "email"],
-      state,
-      code_challenge: codeChallenge,
-      code_challenge_method: CodeChallengeMethod.S256,
-    }),
-  );
+  res.redirect(url);
 });
 app.get("/auth/google/callback", limit, async (req, res) => {
   const [state, ...parts] = cookie(req, "afterlink_oauth").split(".");
@@ -365,7 +349,7 @@ app.get("/auth/google/callback", limit, async (req, res) => {
     });
     const ticket = await google.verifyIdToken({
       idToken: tokens.id_token,
-      audience: GOOGLE_CLIENT_ID,
+      audience: process.env.GOOGLE_CLIENT_ID.trim(),
     });
     const p = ticket.getPayload();
     if (!p?.sub || !p.email_verified || !p.email)
