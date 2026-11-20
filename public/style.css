@@ -529,3 +529,37 @@ dialog .primary {
     }
   }
 }
+/* The shared eye narrows into a closed lid when the password is covered. */
+:is(#reveal, .reset-eye) svg {
+  transform: scaleY(0.82);
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1),
+    color 0.16s ease;
+}
+:is(#reveal, .reset-eye)[aria-pressed="true"] svg {
+  transform: scaleY(1);
+  color: var(--accent-ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(#reveal, .reset-eye) svg {
+    transition: none;
+  }
+}
+
+.eye-cover {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.2s ease;
+}
+[aria-pressed="true"] .eye-cover {
+  stroke-dashoffset: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .eye-cover {
+    transition: none;
+  }
+}

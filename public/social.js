@@ -1,10 +1,4 @@
-import { linkbacks } from "./linkbacks.js";
-import { settings, connections, library, safety } from "./settings-pages.js";
-import { stories } from "./stories.js";
 import { $, icon, error } from "./social-ui.js";
-import { messages } from "./chats.js";
-import { search, reels, notifications } from "./discovery.js";
-import { postDetail } from "./post-detail.js";
 const [, page, raw] = location.pathname.split("/"),
   peer = Number(raw),
   params = new URLSearchParams(location.search),
@@ -19,6 +13,7 @@ document.body.dataset.screen = theme;
 document.title =
   ({
     linkbacks: "Linkbacks",
+    groups: "Groups",
     settings: "Settings",
     connections: "Connections",
     saved: "Saved",
@@ -52,17 +47,31 @@ $("#dismiss").replaceChildren(icon("close"));
 $("#dismiss").onclick = () => $("#socialDialog").close();
 const root = $("#surface");
 try {
-  if (page === "settings") await settings(root, raw);
-  if (page === "linkbacks") await linkbacks(root, peer);
-  if (page === "saved") await library(root);
-  if (page === "connections") await connections(root);
-  if (page === "safety") await safety(root);
-  if (page === "stories") await stories(root, raw === "create");
-  if (page === "messages") await messages(root, peer);
-  if (page === "reels") await reels(root, q, Number(params.get("id")));
-  if (page === "post") await postDetail(root, peer);
-  if (page === "search") await search(root, q);
-  if (page === "notifications") await notifications(root, q);
+  if (page === "settings")
+    await (await import("./settings-pages.js")).settings(root, raw);
+  if (page === "linkbacks" || page === "groups")
+    await (
+      await import("./linkbacks.js")
+    ).linkbacks(root, peer, page === "groups");
+  if (page === "saved")
+    await (await import("./settings-pages.js")).library(root);
+  if (page === "connections")
+    await (await import("./settings-pages.js")).connections(root);
+  if (page === "safety")
+    await (await import("./settings-pages.js")).safety(root);
+  if (page === "stories")
+    await (await import("./stories.js")).stories(root, raw === "create");
+  if (page === "messages")
+    await (await import("./chats.js")).messages(root, peer);
+  if (page === "reels")
+    await (
+      await import("./discovery.js")
+    ).reels(root, q, Number(params.get("id")));
+  if (page === "post")
+    await (await import("./post-detail.js")).postDetail(root, peer);
+  if (page === "search") await (await import("./discovery.js")).search(root, q);
+  if (page === "notifications")
+    await (await import("./discovery.js")).notifications(root, q);
 } catch (e) {
   error(e);
 } finally {

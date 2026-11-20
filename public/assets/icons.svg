@@ -92,4 +92,6 @@
   </symbol>
   <symbol id="play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8z" fill="currentColor"/></symbol>
   <symbol id="brand-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m10 8 3.2-3.2a4.3 4.3 0 0 1 6.1 6.1L16 14.2M14 16l-3.2 3.2a4.3 4.3 0 0 1-6.1-6.1L8 9.8M9 15l6-6"/></g></symbol>
+<symbol id="mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4m-4 0h8"/></symbol>
+<symbol id="phone" viewBox="0 0 24 24"><path d="M6 3H4a1 1 0 0 0-1 1c0 9 8 17 17 17a1 1 0 0 0 1-1v-3l-5-2-2 2a15 15 0 0 1-7-7l2-2-2-5z"/></symbol>
 </svg>

@@ -28,6 +28,10 @@ try {
   const url = `http://127.0.0.1:${line.toString().match(/on (\d+)/)[1]}`;
   browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH,
+    args: [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+    ],
   });
   const owner = await browser.newContext({ baseURL: url });
   const page = await owner.newPage();

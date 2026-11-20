@@ -243,6 +243,7 @@ const homeFeed = (() => {
   function clear() {
     version++;
     for (const id of [
+      "homeNotes",
       "profileName",
       "profileHandle",
       "counts",
@@ -272,6 +273,10 @@ const homeFeed = (() => {
       } else {
         const q = new URLSearchParams(location.search).get("q");
         if (q !== null) el("searchPeople").value = q;
+        if (q === null)
+          import("./notes.js")
+            .then((m) => m.notes(el("homeNotes")))
+            .catch(fail);
         load(q === null ? "Feed" : "Explore");
       }
     },
