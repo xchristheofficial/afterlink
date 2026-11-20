@@ -1,3 +1,4 @@
+import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -60,28 +61,230 @@ test("Linkback invitations, post visibility, membership and decisions are privat
     { cookie: c, id: carol } = await signup("carol");
 
   const group = (
-      await ok("groups", a, { name: "Movie night", people: [bob, carol] })
+      await ok("groups", a, {
+        name: "Movie night",
+        topic: "Private screening",
+        people: [bob, carol],
+      })
     ).id,
     gpath = "linkbacks/" + group;
   assert.equal(
     (await ok("linkbacks?kind=groups", b)).groups[0].groupName,
     "Movie night",
   );
+  const filtered = (who, view) => ok("linkbacks?kind=groups&view=" + view, who);
+  assert.deepEqual(
+    (await filtered(b, "invites")).groups.map((g) => g.id),
+    [group],
+  );
+  assert.equal("topic" in (await filtered(b, "invites")).groups[0], false);
+  assert.equal("topic" in (await ok(gpath, b)), false);
+  assert.equal((await ok(gpath, a)).topic, "Private screening");
+  const edit = { action: "edit", name: "Friday films", topic: "Meet at seven" };
+  assert.equal((await req("/api/feed/" + gpath, b, edit)).status, 403);
+  await ok(gpath, a, edit);
+  assert.equal((await ok(gpath, b)).groupName, edit.name);
+  assert.deepEqual((await filtered(b, "unread")).groups, []);
   assert.deepEqual((await ok("linkbacks", b)).groups, []);
-  await ok(gpath, a, { action: "message", message: "Private introduction" });
+  const submission = {
+    action: "message",
+    message: "Private introduction",
+    clientId: "retry-test-token-12345",
+  };
+  await ok(gpath, a, submission);
+  await ok(gpath, a, submission);
+  assert.equal((await ok(gpath, a)).messages.length, 1);
+  assert.equal((await req("/api/feed/" + gpath, b, submission)).status, 403);
+  assert.equal((await ok("unread", b)).groups, 1);
   assert.ok(!("messages" in (await ok(gpath, b))));
+  const leavePath = gpath + "/leave-preview",
+    alone = await ok(leavePath, a);
+  assert.ok(alone.closes);
+  assert.deepEqual(
+    alone.cancelled.map((x) => x.id),
+    [bob, carol],
+  );
+  assert.equal((await req("/api/feed/" + leavePath, b)).status, 404);
+  assert.equal(
+    (await req("/api/feed/" + gpath, a, { action: "transfer", member: bob }))
+      .status,
+    400,
+  );
   await ok(gpath, b, { action: "accept" });
+  assert.equal(
+    (
+      await req("/api/feed/" + gpath, a, {
+        action: "leave",
+        previewToken: alone.token,
+      })
+    ).status,
+    409,
+  );
+  const impact = await ok(leavePath, a);
+  assert.equal(impact.nextAdmin.id, bob);
+  assert.deepEqual(
+    impact.cancelled.map((x) => x.id),
+    [carol],
+  );
+  await ok(gpath, a, { action: "transfer", member: bob });
+  assert.equal((await ok(gpath, b)).admin, bob);
+  assert.equal(
+    (await req("/api/feed/" + gpath, a, { action: "transfer", member: alice }))
+      .status,
+    403,
+  );
+  await ok(gpath, b, { action: "transfer", member: alice });
   await ok(gpath, c, { action: "accept" });
+  assert.deepEqual((await filtered(b, "invites")).groups, []);
+  assert.deepEqual(
+    (await filtered(b, "unread")).groups.map((g) => g.id),
+    [group],
+  );
+  assert.equal((await ok(gpath, b)).topic, edit.topic);
+  assert.equal((await req("/api/feed/" + gpath, b, edit)).status, 403);
+  assert.equal(
+    (await req("/api/feed/" + gpath, a, { ...edit, topic: "x".repeat(201) }))
+      .status,
+    400,
+  );
   assert.equal((await ok(gpath, b)).members.length, 3);
   assert.equal(
     (await req("/api/feed/" + gpath, c, { action: "remove", member: bob }))
       .status,
     403,
   );
-  await ok(gpath, c, { action: "leave" });
+  await ok(gpath, b, {
+    action: "read",
+    through: (await ok(gpath, b)).latest.id,
+  });
+  assert.equal((await ok("unread", b)).groups, 0);
+  assert.deepEqual((await filtered(b, "unread")).groups, []);
+  // Exact page-size boundary and a genuine second page; seed only the disposable fixture.
+  const fixture = new DatabaseSync(join(dir, "test.sqlite"));
+  try {
+    const add = fixture.prepare(
+      "INSERT INTO lb_messages(gid,author,body,created) VALUES(?,?,?,?)",
+    );
+    for (let i = 0; i < 59; i++)
+      add.run(group, bob, "History " + i, Date.now());
+    assert.equal((await ok(gpath, b)).more, false);
+    add.run(group, bob, "Last", Date.now());
+    const page = await ok(gpath, b);
+    assert.equal(page.more, true);
+    assert.equal(page.messages.length, 60);
+    const older = await ok(gpath + "?before=" + page.messages[0].id, b);
+    assert.equal(older.messages.length, 1);
+    assert.equal(older.more, false);
+  } finally {
+    fixture.close();
+  }
+  await ok(gpath, a, { action: "transfer", member: carol });
+  const leavingAdmin = await ok(leavePath, c);
+  assert.equal(leavingAdmin.nextAdmin.id, alice);
+  await ok(gpath, c, { action: "leave", previewToken: leavingAdmin.token });
+  assert.equal((await ok(gpath, b)).admin, alice);
+  assert.equal((await ok("unread", c)).groups, 0);
   assert.equal((await req("/api/feed/" + gpath, c)).status, 404);
   await ok("nickname/" + bob, a, { nickname: "Film fan" });
-  await ok("thread/" + bob, a, { body: "Hello" });
+  await ok("typing/" + bob, a, { active: true });
+  assert.ok((await ok("typing/" + alice, b)).remaining > 0);
+  assert.equal((await ok("typing/" + alice, c)).remaining, 0);
+  await ok("settings", b, { typing: false });
+  assert.equal((await ok("typing/" + alice, b)).remaining, 0);
+  await ok("settings", b, { typing: true });
+  const first = (await ok("thread/" + bob, a, { body: "Hello" })).message;
+  assert.equal(
+    (await ok(`thread/${alice}?opening=1`, b)).firstUnread,
+    first.id,
+  );
+  assert.deepEqual(
+    (await ok("inbox?view=unread", b)).threads.map((t) => t.id),
+    [alice],
+  );
+  assert.equal(
+    (
+      await req(`/api/feed/thread/${alice}`, b, {
+        expectedSender: alice,
+        body: "Wrong account",
+      })
+    ).status,
+    409,
+  );
+  await ok("inbox-pin/" + bob, a, { pinned: true });
+  await ok("thread/" + carol, a, { body: "Newer conversation" });
+  assert.equal((await ok("inbox", a)).threads[0].id, bob);
+  assert.equal((await ok("inbox", b)).threads[0].pinnedChat, 0);
+  await ok("inbox-pin/" + bob, a, { pinned: false });
+  assert.equal((await ok("inbox", a)).threads[0].id, carol);
+  const find = (who, peer, term, extra = {}) =>
+    ok(`thread/${peer}/search`, who, { term, ...extra });
+  assert.deepEqual(
+    (await find(b, alice, "hELLo")).messages.map((m) => m.id),
+    [first.id],
+  );
+  assert.deepEqual(
+    (await find(b, alice, "hello", { before: first.id })).messages,
+    [],
+  );
+  assert.deepEqual((await find(c, alice, "hello")).messages, []);
+  assert.deepEqual(
+    (await ok(`thread/${alice}/context/${first.id}`, b)).messages.map(
+      (m) => m.body,
+    ),
+    ["Hello"],
+  );
+  assert.equal(
+    (await req(`/api/feed/thread/${alice}/context/${first.id}`, c)).status,
+    404,
+  );
+  // The upper bound is exclusive, the lower bound inclusive. Sender values
+  // are roles resolved in the authenticated thread, never caller-supplied IDs.
+  assert.deepEqual(
+    (
+      await find(b, alice, "", {
+        from: "partner",
+        startMs: first.created,
+        endMs: first.created + 1,
+      })
+    ).messages.map((m) => m.id),
+    [first.id],
+  );
+  for (const filters of [
+    { from: "me" },
+    { endMs: first.created },
+    { startMs: first.created + 1 },
+  ])
+    assert.deepEqual((await find(b, alice, "hello", filters)).messages, []);
+  assert.deepEqual(
+    (await find(c, alice, "", { from: "partner", endMs: first.created + 1 }))
+      .messages,
+    [],
+  );
+  for (const invalid of [
+    { from: alice },
+    { from: "any", term: "" },
+    { startMs: "2025-01-01" },
+    { startMs: 20, endMs: 10 },
+  ])
+    assert.equal(
+      (
+        await req(`/api/feed/thread/${alice}/search`, b, {
+          term: "hello",
+          ...invalid,
+        })
+      ).status,
+      400,
+    );
+  assert.equal((await ok("unread", b)).chats, 1);
+  const gone = (await ok("thread/" + bob, a, { body: "Vanishing phrase" }))
+    .message;
+  await ok(`message/${gone.id}/action`, a, { action: "unsend" });
+  assert.equal((await find(b, alice, "Vanishing")).messages.length, 0);
+  assert.equal(
+    (await req(`/api/feed/thread/${alice}/context/${gone.id}`, b)).status,
+    404,
+  );
+  assert.equal((await ok("typing/" + alice, b)).remaining, 0);
   assert.equal(
     (await ok("inbox?q=Film%20fan", a)).threads[0].nickname,
     "Film fan",
@@ -166,6 +369,15 @@ test("Linkback invitations, post visibility, membership and decisions are privat
   assert.equal((await ok(path, a)).post, null);
   assert.equal((await ok(path, b)).decision.id, detail.latest.id);
   await ok("restrict", a, { id: bob, kind: "block", on: true });
+  assert.equal(
+    (await req(`/api/feed/thread/${alice}/search`, b, { term: "Hello" }))
+      .status,
+    403,
+  );
+  assert.equal(
+    (await req(`/api/feed/thread/${alice}/context/${first.id}`, b)).status,
+    403,
+  );
   await denied(a, undefined, 404);
   assert.equal((await ok(path, b)).admin, bob);
   assert.equal((await ok(path, b)).messages.length, 1);

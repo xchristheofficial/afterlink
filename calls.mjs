@@ -10,6 +10,16 @@ export function installCalls({
   nickname,
 }) {
   const active = new Map();
+  const recordElapsed = (c) =>
+    c.recording?.state === "active"
+      ? Math.max(0, Date.now() - c.recordStart)
+      : 0;
+  const modeState = (c, uid) => ({
+    mode: c.mode,
+    modeVersion: c.modeVersion,
+    localCamera: uid === c.a ? c.cameraA : c.cameraB,
+    remoteCamera: uid === c.a ? c.cameraB : c.cameraA,
+  });
   const sweep = () => {
     const now = Date.now();
     for (const [key, c] of active) {
@@ -64,6 +74,7 @@ export function installCalls({
         kind: c.kind,
         state: c.state,
         recording: c.recording || null,
+        recordElapsedMs: recordElapsed(c),
         recordVersion: c.recordVersion || 0,
         candidates:
           q.live === c.id
@@ -71,6 +82,7 @@ export function installCalls({
                 Math.max(0, Number(q.offset) || 0),
               )
             : [],
+        ...modeState(c, uid),
         caller,
         peer,
         name: nickname(uid, peer) || person(peer, uid).name,
@@ -99,6 +111,10 @@ export function installCalls({
         b: peer,
         state: "ringing",
         kind: b.kind,
+        mode: b.kind,
+        modeVersion: 0,
+        cameraA: b.kind === "video",
+        cameraB: b.kind === "video",
         start: now,
         pulseA: now,
         pulseB: now,
@@ -115,12 +131,28 @@ export function installCalls({
       return;
     }
     if (b.action === "accept" && c.b === uid && c.state === "ringing") {
+      c.cameraB = c.kind === "video" && b.camera !== false;
       c.state = "accepted";
       wake("call", peer);
       c.pulseA = c.pulseB = Date.now();
       return { iceServers: ice(uid) };
     }
-    if (c.kind === "video" && c.state === "accepted" && b.action === "watch") {
+    if (c.state === "accepted" && b.action === "mode") {
+      if (b.version !== c.modeVersion) fail("Call changed. Try again.", 409);
+      if (b.step === "audio") {
+        c.mode = "audio";
+        c.cameraA = c.cameraB = false;
+      } else if (b.step === "video") {
+        c.mode = "video";
+        c[uid === c.a ? "cameraA" : "cameraB"] = true;
+      } else if (b.step === "camera-off")
+        c[uid === c.a ? "cameraA" : "cameraB"] = false;
+      else fail("Unknown call mode.");
+      c.modeVersion++;
+      wake("call", peer);
+      return modeState(c, uid);
+    }
+    if (c.state === "accepted" && b.action === "watch") {
       if (b.step === "start" && !c.presenter) c.presenter = uid;
       else if (b.step === "stop" && c.presenter === uid) c.presenter = null;
       else fail("Another member is presenting, or sharing has ended.", 409);
@@ -138,13 +170,22 @@ export function installCalls({
         r.state === "requested"
       )
         r.state = "allowed";
-      else if (b.step === "begin" && r?.owner === uid && r.state === "allowed")
+      else if (
+        b.step === "begin" &&
+        r?.owner === uid &&
+        r.state === "allowed"
+      ) {
         r.state = "active";
-      else if (b.step === "stop" && r) c.recording = null;
+        c.recordStart = Date.now();
+      } else if (b.step === "stop" && r) c.recording = null;
       else fail("Recording request has changed.", 409);
       c.recordVersion = (c.recordVersion || 0) + 1;
       wake("call", peer);
-      return { recording: c.recording || null, recordVersion: c.recordVersion };
+      return {
+        recording: c.recording || null,
+        recordVersion: c.recordVersion,
+        recordElapsedMs: recordElapsed(c),
+      };
     }
     if (c.state === "accepted" && b.action === "ice") {
       const list = (c[uid === c.a ? "iceA" : "iceB"] ??= []);
@@ -178,7 +219,7 @@ export function installCalls({
         !b.sdp.startsWith("v=0") ||
         !/^m=audio /m.test(b.sdp) ||
         /^m=application /m.test(b.sdp) ||
-        (c.kind === "audio" && /^m=video /m.test(b.sdp))
+        (b.sdp.match(/^m=video /gm) || []).length > 2
       )
         fail("Invalid call negotiation.", 409);
       c[k] = { type: k, sdp: b.sdp };

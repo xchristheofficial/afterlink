@@ -104,12 +104,13 @@ export async function api(path, data) {
     );
     throw Error("Please sign in again.");
   }
-  const j = await r.json();
-  if (!r.ok)
-    throw Object.assign(Error(j.error || "Unable to complete request."), {
+  if (!r.ok) {
+    const detail = await r.json().catch(() => null);
+    throw Object.assign(Error(detail?.error || "Unable to complete request."), {
       status: r.status,
     });
-  return j;
+  }
+  return r.json();
 }
 export function icon(key) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"),

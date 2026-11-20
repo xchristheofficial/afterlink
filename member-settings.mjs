@@ -8,6 +8,7 @@ const rules = {
   theme: ["light", "dark", "system"],
   accent: ["purple", "blue", "green", "orange", "rose"],
   activity: [false, true],
+  typing: [true, false],
   downloads: [false, true],
   reduce: [false, true],
   autoplay: [false, true],

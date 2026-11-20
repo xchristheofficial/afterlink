@@ -1,3 +1,6 @@
+import { GROUP_LIMIT, INVITE_BATCH } from "./group-limits.mjs";
+import { multiline, retryableComposer } from "./chat-compose.js";
+import { threadHistory } from "./thread-history.js";
 import {
   $,
   n,
@@ -11,6 +14,7 @@ import {
   empty,
   sheet,
   withIcon,
+  tabs,
   error,
 } from "./social-ui.js";
 const path = (id) => "/linkbacks/" + id;
@@ -65,13 +69,27 @@ function card(g) {
     ),
     n("strong", "", title(g)),
   );
+  if (g.unread) l.append(n("b", "count", g.unread));
   if (g.decision) l.append(n("span", "lb-tag", "Decision: " + g.decision.body));
   if (g.latest)
     l.append(n("span", "subtle", g.latest.name + ": " + g.latest.body));
   if (g.pending) l.append(n("span", "subtle", "Review invitation"));
   return l;
 }
-async function choosePeople(selected, excluded, submit, back) {
+function places(joined, pending, selected = 0) {
+  return `${joined} joined · ${pending} pending · ${GROUP_LIMIT - joined - pending - selected} of ${GROUP_LIMIT} places free`;
+}
+async function choosePeople(
+  selected,
+  excluded,
+  submit,
+  back,
+  joined = 1,
+  pending = 0,
+) {
+  const limit = Math.min(INVITE_BATCH, GROUP_LIMIT - joined - pending),
+    capacity = hint("");
+  capacity.setAttribute("role", "status");
   const search = input("Search members…"),
     chips = box("lb-chips"),
     rows = box("lb-people"),
@@ -92,7 +110,7 @@ async function choosePeople(selected, excluded, submit, back) {
       const check = n("input");
       check.type = "checkbox";
       check.checked = selected.has(p.id);
-      check.disabled = !check.checked && selected.size >= 20;
+      check.disabled = !check.checked && selected.size >= limit;
       check.onchange = () => {
         if (check.checked) selected.set(p.id, p);
         else selected.delete(p.id);
@@ -104,7 +122,8 @@ async function choosePeople(selected, excluded, submit, back) {
     }
     if (!rows.childElementCount) rows.append(hint("No matching members."));
     send.textContent = `Send invites (${selected.size})`;
-    send.disabled = !selected.size;
+    send.disabled = !selected.size || selected.size > limit;
+    capacity.textContent = places(joined, pending, selected.size);
   };
   async function find() {
     const v = ++version;
@@ -118,6 +137,7 @@ async function choosePeople(selected, excluded, submit, back) {
     "Choose people",
     ...(back ? [button("Back", back)] : []),
     search,
+    capacity,
     chips,
     rows,
     send,
@@ -127,14 +147,27 @@ async function choosePeople(selected, excluded, submit, back) {
   search.oninput = () => find().catch(error);
   await find();
 }
+function groupTopic(value = "") {
+  const field = n("textarea", "lb-topic-field");
+  field.maxLength = 200;
+  field.rows = 2;
+  field.value = value;
+  field.placeholder = "What is this group for?";
+  const label = n("label", "lb-field", "Group topic (optional)");
+  label.append(field);
+  return { field, label };
+}
 function createGroup() {
   const name = input("Group name", 60),
+    topic = groupTopic(),
     selected = new Map();
   function start() {
     sheet(
       "Create a group",
       hint("Choose a name and invite people to a private group chat."),
       name,
+      topic.label,
+      hint("Only joined members can see the topic."),
       button(
         "Choose people",
         () => {
@@ -145,6 +178,7 @@ function createGroup() {
             async (people) => {
               const r = await api("/groups", {
                 name: name.value.trim(),
+                topic: topic.field.value,
                 people,
               });
               location.assign("/groups/" + r.id);
@@ -270,14 +304,32 @@ export async function linkbacks(root, gid, named = false) {
   layout.classList.toggle("lb-open", !!gid);
   const search = input(`Search ${label}…`),
     list = box("lb-list");
+  let view = "all",
+    request = 0,
+    groups = null;
+  const views = {
+    All: "all",
+    "Unread chats": "unread",
+    Invitations: "invites",
+  };
+  const filters = tabs(Object.keys(views), "All", (key) => {
+    if (view === views[key]) return;
+    view = views[key];
+    groups = null;
+    list.replaceChildren(hint("Loading…"));
+    inbox().catch(error);
+  });
+  filters.classList.add("lb-filters");
+  filters.setAttribute("role", "group");
+  filters.setAttribute("aria-label", "Inbox filters");
   side.append(
     inboxTabs(label),
     n("h1", "", label),
     ...(named ? [button("Create group", createGroup, "gradient")] : []),
     search,
+    filters,
     list,
   );
-  let groups = null;
   function listGroups() {
     const q = search.value.toLowerCase().trim(),
       found = (groups || []).filter((g) =>
@@ -304,16 +356,25 @@ export async function linkbacks(root, gid, named = false) {
         hint(
           q
             ? `No matching ${label.toLowerCase()}.`
-            : named
-              ? "Create a group or wait for an invitation."
-              : "Start a Linkback from a post to invite people here.",
+            : view === "invites"
+              ? "No pending invitations."
+              : view === "unread"
+                ? "No unread conversations."
+                : named
+                  ? "Create a group or wait for an invitation."
+                  : "Start a Linkback from a post to invite people here.",
         ),
       );
   }
   search.oninput = listGroups;
   async function inbox() {
-    const next = (await api("/linkbacks" + (named ? "?kind=groups" : "")))
-      .groups;
+    const v = ++request;
+    const next = (
+      await api(
+        `/linkbacks?kind=${named ? "groups" : "linkbacks"}&view=${view}`,
+      )
+    ).groups;
+    if (v !== request) return;
     if (JSON.stringify(next) === JSON.stringify(groups)) return;
     groups = next;
     listGroups();
@@ -341,13 +402,15 @@ export async function linkbacks(root, gid, named = false) {
   if (g.pending) {
     sync(async () => {
       await inbox();
-      const current = groups.find((x) => x.id === gid);
-      if (!current) location.replace(base);
-      else if (
-        !current.pending ||
-        JSON.stringify(current) !== JSON.stringify(g)
-      )
-        location.reload();
+      // The open invitation may not appear in the selected inbox filter.
+      try {
+        const current = await api(url);
+        if (!current.pending || JSON.stringify(current) !== JSON.stringify(g))
+          location.reload();
+      } catch (e) {
+        if ([403, 404].includes(e.status)) location.replace(base);
+        else throw e;
+      }
     });
     main.append(
       back,
@@ -384,20 +447,30 @@ export async function linkbacks(root, gid, named = false) {
       button("Details", details),
     ),
     meta = hint(""),
+    topicText = n("p", "lb-topic"),
     source = box("lb-source"),
     decision = box("lb-decision"),
     log = box("lb-log"),
-    draft = input(
-      named ? "Message this group…" : "Message this Linkback…",
-      1000,
-    ),
+    draft = n("textarea"),
     form = n("form", "lb-compose"),
     send = n("button", "gradient", "Send");
+  const composeField = multiline(
+    draft,
+    form,
+    send,
+    named ? "Message this group…" : "Message this Linkback…",
+  );
+  const reader = threadHistory(log, async (through) => {
+    await act("read", { through });
+    window.dispatchEvent(new Event("unread-change"));
+    await inbox();
+  });
   draft.required = true;
-  form.append(draft, send);
+  form.append(composeField, send);
   main.append(
     heading,
     meta,
+    topicText,
     source,
     decision,
     box(
@@ -405,12 +478,12 @@ export async function linkbacks(root, gid, named = false) {
       n("h2", "lb-kicker", "Conversation"),
       n("small", "subtle", "Select a message to pin a decision."),
     ),
-    log,
+    reader.element,
     form,
   );
   const older = button("Earlier messages", async () => {
     const batch = await api(url + "?before=" + history[0].id);
-    hasOlder = batch.messages.length === 60;
+    hasOlder = batch.more;
     history = [...batch.messages, ...history];
     renderLog(false, true);
   });
@@ -458,6 +531,9 @@ export async function linkbacks(root, gid, named = false) {
       : top + (prepend ? Math.max(0, log.scrollHeight - height) : 0);
   }
   function paint(previous) {
+    if (named) heading.querySelector("h1").textContent = g.groupName;
+    topicText.hidden = !g.topic;
+    topicText.textContent = g.topic || "";
     meta.textContent = `Private group ${g.id} · ${g.count} ${g.count === 1 ? "member" : "members"}`;
     if (!named && JSON.stringify(previous?.post) !== JSON.stringify(g.post)) {
       source.replaceChildren(preview(g.post));
@@ -477,10 +553,9 @@ export async function linkbacks(root, gid, named = false) {
           : []),
       );
     if (JSON.stringify(previous?.messages) !== JSON.stringify(g.messages)) {
-      const end =
-        !previous || log.scrollHeight - log.clientHeight - log.scrollTop < 65;
+      const end = !previous || reader.atLatest();
       history = g.messages;
-      hasOlder = history.length === 60;
+      hasOlder = g.more;
       renderLog(end);
     }
   }
@@ -499,10 +574,17 @@ export async function linkbacks(root, gid, named = false) {
       const prev = g;
       g = next;
       paint(prev);
+      reader.updateCursor(g.latest?.id || 0, g.unread);
       if (
         $("#socialDialog").open &&
-        JSON.stringify([prev.post, prev.members]) !==
-          JSON.stringify([g.post, g.members])
+        JSON.stringify([
+          prev.post,
+          prev.members,
+          prev.admin,
+          prev.groupName,
+          prev.topic,
+        ]) !==
+          JSON.stringify([g.post, g.members, g.admin, g.groupName, g.topic])
       )
         close();
     } catch (e) {
@@ -512,41 +594,130 @@ export async function linkbacks(root, gid, named = false) {
       } else throw e;
     }
   }
+  function editGroup() {
+    const name = input("Group name", 60),
+      topic = groupTopic(g.topic);
+    name.value = g.groupName;
+    sheet(
+      "Edit group",
+      name,
+      topic.label,
+      hint(
+        "The name appears on invitations. Only joined members can see the topic.",
+      ),
+      button(
+        "Save group details",
+        async () => {
+          if (!name.value.trim()) throw Error("Give your group a name.");
+          await act("edit", {
+            name: name.value.trim(),
+            topic: topic.field.value,
+          });
+          close();
+          await Promise.all([refresh(), inbox()]);
+        },
+        "gradient",
+      ),
+      button("Cancel", details),
+    );
+    name.focus();
+  }
+  function confirmTransfer(member) {
+    sheet(
+      "Transfer admin role?",
+      hint(
+        `${member.name} will manage this group. You will remain a member and lose admin controls.`,
+      ),
+      button(
+        "Confirm transfer",
+        async () => {
+          await act("transfer", { member: member.id });
+          close();
+          await refresh();
+        },
+        "gradient",
+      ),
+      button("Cancel", details),
+    );
+  }
+  async function reviewLeave(opener) {
+    const impact = await api(url + "/leave-preview");
+    if (!opener.isConnected || !$("#socialDialog").open) return;
+    const summary = impact.closes
+      ? "You are the last joined member. Leaving closes this group."
+      : g.admin === g.uid
+        ? `${impact.nextAdmin.name} will become admin.`
+        : `${impact.nextAdmin.name} will remain admin.`;
+    sheet(
+      "Review leaving",
+      hint(summary),
+      n("strong", "", `Invitations cancelled: ${impact.cancelled.length}`),
+      ...impact.cancelled.map((p) => n("p", "", p.name)),
+      button(
+        "Confirm leave",
+        async () => {
+          await act("leave", { previewToken: impact.token });
+          location.replace(base);
+        },
+        "danger",
+      ),
+      button("Stay in group", details),
+    );
+  }
   function details() {
     const owner = g.admin === g.uid,
-      rows = box("lb-people");
-    for (const pending of [false, true]) {
-      const members = g.members.filter((p) => (p.joined === null) === pending);
-      if (!members.length) continue;
-      rows.append(n("h3", "", pending ? "Pending invitations" : "Members"));
-      for (const p of members) {
-        const l = box(
-          "lb-person",
-          avatar(p.id),
-          n("span", "", p.name + (p.id === g.admin ? " · Admin" : "")),
+      rows = box("lb-people"),
+      search = input("Find a member or invitee");
+    function roster() {
+      rows.replaceChildren();
+      const term = search.value.trim().toLowerCase();
+      for (const pending of [false, true]) {
+        const members = g.members.filter(
+          (p) =>
+            (p.joined === null) === pending &&
+            p.name.toLowerCase().includes(term),
         );
-        if (owner && p.id !== g.uid) {
-          if (pending)
+        if (!members.length) continue;
+        rows.append(n("h3", "", pending ? "Pending invitations" : "Members"));
+        for (const p of members) {
+          const l = box(
+            "lb-person",
+            avatar(p.id),
+            n("span", "", p.name + (p.id === g.admin ? " · Admin" : "")),
+          );
+          if (owner && p.id !== g.uid) {
+            if (!pending)
+              l.append(button("Make admin", () => confirmTransfer(p)));
+            if (pending)
+              l.append(
+                button("Resend", async (b) => {
+                  await act("resend", { member: p.id });
+                  b.textContent = "Resent";
+                }),
+              );
             l.append(
-              button("Resend", async (b) => {
-                await act("resend", { member: p.id });
-                b.textContent = "Resent";
+              button(pending ? "Cancel" : "Remove", async () => {
+                await act("remove", { member: p.id });
+                await refresh();
+                details();
               }),
             );
-          l.append(
-            button(pending ? "Cancel" : "Remove", async () => {
-              await act("remove", { member: p.id });
-              await refresh();
-              details();
-            }),
-          );
+          }
+          rows.append(l);
         }
-        rows.append(l);
       }
+      if (!rows.childElementCount)
+        rows.append(hint("No matching members or invitees."));
     }
+    search.oninput = roster;
+    roster();
     sheet(
       named ? "Group details" : "Linkback details",
       named ? n("strong", "", g.groupName) : preview(g.post),
+      ...(g.topic ? [n("p", "lb-topic", g.topic)] : []),
+      ...(owner && named ? [button("Edit group", editGroup)] : []),
+      hint(places(g.count, g.members.length - g.count)),
+      search,
       rows,
       ...(owner
         ? [
@@ -562,6 +733,8 @@ export async function linkbacks(root, gid, named = false) {
                     details();
                   },
                   details,
+                  g.count,
+                  g.members.length - g.count,
                 ),
               "gradient",
             ),
@@ -572,44 +745,23 @@ export async function linkbacks(root, gid, named = false) {
         b.textContent = "Copied";
       }),
       hint("A link only works for invited people and members."),
-      button(
-        named ? "Leave group" : "Leave Linkback",
-        async () => {
-          if (
-            confirm(
-              (named ? "Leave this group?" : "Leave this Linkback?") +
-                (owner
-                  ? " The next member becomes admin. If nobody else has joined, the group closes."
-                  : ""),
-            )
-          ) {
-            await act("leave");
-            location.replace(base);
-          }
-        },
-        "danger",
-      ),
+      button(named ? "Leave group" : "Leave Linkback", reviewLeave, "danger"),
     );
   }
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    const original = draft.value,
-      text = original.trim();
-    if (!text || send.disabled) return;
-    send.disabled = true;
-    try {
-      await act("message", { message: text });
-      if (draft.value === original) draft.value = "";
+  retryableComposer(
+    form,
+    draft,
+    send,
+    ({ text, clientId }) => act("message", { message: text, clientId }),
+    async () => {
       await refresh();
       log.scrollTop = log.scrollHeight;
       await inbox();
-    } catch (e) {
-      error(e);
-    } finally {
-      send.disabled = false;
-    }
-  };
+    },
+    error,
+  );
   paint(null);
+  reader.updateCursor(g.latest?.id || 0, g.unread);
   sync(async () => {
     await refresh();
     await inbox();

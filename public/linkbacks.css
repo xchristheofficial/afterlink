@@ -279,3 +279,44 @@
     padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
 }
+.lb-filters {
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.social .lb-filters button {
+  font-size: 0.85rem;
+  padding: 0.35em 0.65em;
+}
+.lb-field {
+  display: grid;
+  gap: 0.35rem;
+  margin-block: 0.65rem;
+}
+.lb-topic-field {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: var(--soft);
+  border: 1px solid var(--edge);
+  border-radius: 0.65rem;
+  padding: 0.5em;
+  resize: vertical;
+}
+.lb-topic {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding-inline-start: 0.7rem;
+  border-inline-start: 3px solid var(--tone);
+}
+.lb-compose textarea {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  field-sizing: content;
+  max-height: 6em;
+  border: 1px solid var(--edge);
+  background: var(--soft);
+  color: var(--ink);
+  border-radius: 0.85em;
+  padding: 0.65em 1em;
+}

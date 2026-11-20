@@ -1,7 +1,26 @@
+import {
+  recordingProgress,
+  RECORDING_MS,
+  RECORDING_BYTES,
+} from "./recording-progress.js";
 import { box, button, n, error } from "./social-ui.js";
 // No recording bytes go to AfterLink. Capture choice and final download are local.
-export function callRecording(c, write) {
-  const panel = box("record-controls");
+export function callRecording(c, write, offerDownload) {
+  const panel = box("record-controls"),
+    clock = n("span", "record-clock"),
+    warning = n("small", "record-limit");
+  clock.setAttribute("role", "timer");
+  clock.setAttribute("aria-label", "Elapsed recording time");
+  warning.setAttribute("role", "status");
+  let base = 0,
+    bytes = 0;
+  function tick() {
+    if (state?.state !== "active" || closed) return;
+    const progress = recordingProgress(performance.now() - base, bytes);
+    clock.textContent = progress.time;
+    const message = owns() ? progress.warning : "";
+    if (warning.textContent !== message) warning.textContent = message;
+  }
   let state = null,
     closed = false,
     version = 0,
@@ -14,7 +33,8 @@ export function callRecording(c, write) {
   const owns = () => state && state.owner !== c.peer;
   async function step(next) {
     const result = await write("recording", { id: c.id, step: next });
-    if (!closed) sync(result.recording, result.recordVersion);
+    if (!closed)
+      sync(result.recording, result.recordVersion, result.recordElapsedMs);
   }
   function cleanup() {
     clearTimeout(timeout);
@@ -26,18 +46,6 @@ export function callRecording(c, write) {
   function stop() {
     if (rec && rec.state !== "inactive") rec.stop();
     cleanup();
-  }
-  function save(parts, type) {
-    if (!parts.some((p) => p.size)) return;
-    const blob = new Blob(parts, { type }),
-      url = URL.createObjectURL(blob),
-      link = n("a");
-    link.href = url;
-    link.download = `AfterLink-call-${Date.now()}.${type.includes("mp4") ? (type.startsWith("audio") ? "m4a" : "mp4") : "webm"}`;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
   async function start(withScreen) {
     if (starting || !owns() || state.state !== "allowed") return;
@@ -83,7 +91,7 @@ export function callRecording(c, write) {
           ...(withScreen ? { videoBitsPerSecond: 1500000 } : {}),
         }),
         parts = [];
-      let bytes = 0;
+      bytes = 0;
       // Re-check server-side consent after the system picker returns and before recording.
       await step("begin");
       if (closed || !owns() || state.state !== "active") return;
@@ -95,10 +103,11 @@ export function callRecording(c, write) {
       r.ondataavailable = (e) => {
         parts.push(e.data);
         bytes += e.data.size;
-        if (bytes >= 64 * 1024 * 1024 && r.state === "recording") finish();
+        tick();
+        if (bytes >= RECORDING_BYTES && r.state === "recording") finish();
       };
       r.onstop = () => {
-        save(parts, r.mimeType);
+        offerDownload(new Blob(parts, { type: r.mimeType }));
         if (rec === r) rec = null;
       };
       r.onerror = () => {
@@ -107,7 +116,7 @@ export function callRecording(c, write) {
       };
       r.start(1000);
       if (screen) screen.getVideoTracks()[0].onended = finish;
-      timeout = setTimeout(finish, 10 * 60 * 1000);
+      timeout = setTimeout(finish, RECORDING_MS);
     } catch (e) {
       if (!closed && owns()) await step("stop").catch(() => {});
       if (e.name !== "NotAllowedError") error(e);
@@ -116,20 +125,32 @@ export function callRecording(c, write) {
       if (!rec) cleanup();
     }
   }
-  function sync(next, rev) {
+  function sync(next, rev, elapsed = 0) {
     if (rev < revision || closed) return;
     revision = rev;
     if (JSON.stringify(next) === JSON.stringify(state)) return;
     version++;
+    if (next?.state === "active") base = performance.now() - elapsed;
     state = next;
     if (!owns() || state.state !== "active") stop();
     draw();
+  }
+  const scope =
+    "Records both call microphones. The recorder can also include the picture from a screen or tab they choose. Shared-tab and system sound are not mixed in. The file stays on the recorder’s device. Either person can stop it.";
+  function review() {
+    if (state || closed) return;
+    panel.replaceChildren(
+      n("strong", "", "Before requesting recording"),
+      n("small", "subtle", scope),
+      button("Ask for consent", () => step("request")),
+      button("Cancel", draw),
+    );
   }
   function draw() {
     panel.replaceChildren();
     if (!state) {
       if (window.MediaRecorder && window.AudioContext)
-        panel.append(button("Request recording", () => step("request")));
+        panel.append(button("Request recording", review));
       return;
     }
     const mine = owns();
@@ -142,8 +163,15 @@ export function callRecording(c, write) {
           ? "Recording this call"
           : "Recording permitted";
     panel.append(n("strong", "", text));
+    if (state.state === "active") {
+      panel.append(clock, warning);
+      tick();
+    }
     if (state.state === "requested" && !mine)
-      panel.append(button("Allow recording", () => step("allow")));
+      panel.append(
+        n("small", "subtle", scope),
+        button("Allow recording", () => step("allow")),
+      );
     if (state.state === "allowed" && mine) {
       panel.append(
         n(
@@ -172,6 +200,8 @@ export function callRecording(c, write) {
   return {
     panel,
     sync,
+    tick,
+    needsSync: () => !!state || starting,
     close() {
       closed = true;
       version++;

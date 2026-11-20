@@ -5,7 +5,7 @@
   min-height: 100svh;
   overflow-wrap: anywhere;
 }
-.social :is(button, input, select) {
+.social :is(button, input, textarea, select) {
   font: inherit;
 }
 .social button,
@@ -80,7 +80,7 @@
 .preview {
   color: var(--muted);
 }
-.social input {
+.social :is(input, .send-bar textarea) {
   min-width: 0;
   border: 1px solid var(--edge);
   background: var(--soft);
@@ -349,7 +349,7 @@
 .older {
   align-self: center;
 }
-.send-bar input {
+.send-bar :is(input, textarea) {
   flex: 1;
   width: 0;
 }
@@ -975,4 +975,159 @@
 .social :is(.big-play, .play-icon) svg {
   width: 1em;
   height: 1em;
+}
+.social :is(.lb-card, .thread-row) .count {
+  background: #c21d39;
+  justify-self: end;
+}
+.dm-typing {
+  color: var(--accent-ink);
+  font-style: italic;
+  display: block;
+}
+.dm-typing:empty,
+.summary:has(.dm-typing:not(:empty)) .chat-status {
+  display: none;
+}
+
+.send-bar textarea {
+  resize: none;
+  field-sizing: content;
+  max-height: 6.5em;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.thread-history {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  position: relative;
+}
+.social .thread-jump {
+  position: absolute;
+  bottom: 0.65rem;
+  justify-self: center;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--accent-ink);
+  box-shadow: 0 3px 12px #18102b29;
+  font-size: 0.85em;
+}
+.thread-finder,
+.finder-context,
+.finder-rows,
+.finder-result,
+.finder-line {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.finder-form,
+.finder-filter-fields label {
+  display: grid;
+  gap: 0.4em;
+  min-width: 0;
+}
+.finder-filters summary {
+  cursor: pointer;
+  color: var(--accent-ink);
+}
+.finder-filter-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  align-items: end;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+}
+.finder-filter-fields label {
+  font-size: 0.85em;
+}
+.finder-filter-fields select {
+  max-width: 100%;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 0.5em;
+  border: 1px solid var(--edge);
+  border-radius: 0.65em;
+}
+.manual-copy {
+  width: 100%;
+  min-height: 6rem;
+  resize: vertical;
+  background: var(--soft);
+  color: var(--ink);
+  font: inherit;
+}
+.finder-query {
+  display: flex;
+  gap: 0.5rem;
+}
+.finder-rows,
+.finder-context {
+  max-height: 55svh;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.finder-result,
+.finder-line {
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.finder-result span {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+.finder-line {
+  padding: 0.7rem;
+  border-inline-start: 3px solid var(--edge);
+}
+.finder-line p {
+  white-space: pre-wrap;
+}
+.finder-selected {
+  background: var(--wash);
+  border-color: var(--tone);
+}
+.finder-selected strong {
+  color: var(--accent-ink);
+  font-size: 0.85em;
+}
+.dm-unread-divider {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+  font-size: 0.82em;
+  font-weight: 650;
+  color: var(--accent-ink);
+}
+.dm-unread-divider::before,
+.dm-unread-divider::after {
+  content: "";
+  flex: 1;
+  border-block-start: 1px solid var(--edge);
+}
+.social .private-chat-pin {
+  color: var(--accent-ink);
+}
+.compose-field {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+.social .compose-field textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.composer-limit {
+  font-size: 0.75em;
+  text-align: end;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
 }

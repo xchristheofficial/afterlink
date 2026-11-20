@@ -54,3 +54,25 @@
   --accent-ink: color-mix(in srgb, var(--tone) 44%, white);
   --wash: color-mix(in srgb, var(--tone) 24%, var(--panel));
 }
+:is(#socialNav, .profile-nav, .side-nav, .lb-tabs)
+  :is(a, button):has(.nav-unread) {
+  position: relative;
+}
+.nav-unread {
+  position: absolute;
+  top: -0.2em;
+  right: -0.2em;
+  background: #c21d39;
+  color: #fff;
+  border: 1px solid var(--panel);
+  border-radius: 1rem;
+  min-width: 1.55em;
+  padding: 0 0.3em;
+  font: bold 11px/1.5 system-ui;
+  text-align: center;
+  pointer-events: none;
+}
+.side-nav .nav-unread {
+  right: 0.35rem;
+  top: 0.12rem;
+}
