@@ -5,7 +5,7 @@ import express from "express";
 import { memberAssets, publicAssets } from "./web-assets.mjs";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
-import { googleClient, googleHandoff } from "./google-signin.mjs";
+import { googleClient, googleHandoff, googleReturn } from "./google-signin.mjs";
 import { DatabaseSync } from "node:sqlite";
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
@@ -333,20 +333,12 @@ app.get("/auth/google", limit, async (req, res) => {
   res.redirect(url);
 });
 app.get("/auth/google/callback", limit, async (req, res) => {
-  const [state, ...parts] = cookie(req, "afterlink_oauth").split(".");
+  const result = googleReturn(cookie(req, "afterlink_oauth"), req.query);
   res.clearCookie("afterlink_oauth", flags);
-  if (
-    !google ||
-    !state ||
-    state !== req.query.state ||
-    typeof req.query.code !== "string"
-  )
-    return res.redirect("/?auth=failed");
+  if (!google) return res.redirect("/?auth=unavailable");
+  if (result.status) return res.redirect("/?auth=" + result.status);
   try {
-    const { tokens } = await google.getToken({
-      code: req.query.code,
-      codeVerifier: parts.join("."),
-    });
+    const { tokens } = await google.getToken(result);
     const ticket = await google.verifyIdToken({
       idToken: tokens.id_token,
       audience: process.env.GOOGLE_CLIENT_ID.trim(),

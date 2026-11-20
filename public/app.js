@@ -248,17 +248,46 @@ $("logout").onclick = async () => {
     info("Sign out", "Could not reach AfterLink. Please try again.");
   }
 };
+function resetGoogleButton() {
+  busy = $("google").disabled = $("submit").disabled = false;
+  $("googleLabel").textContent = "Continue with Google";
+}
+addEventListener("pageshow", (event) => {
+  if (event.persisted && $("google").disabled) resetGoogleButton();
+});
 $("google").onclick = async () => {
+  if (busy) return;
+  busy = $("google").disabled = $("submit").disabled = true;
+  $("googleLabel").textContent = "Connecting to Google…";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    const { google } = await (await fetch("/api/providers")).json();
-    if (google) location.assign("/auth/google");
-    else
-      info(
-        "Google sign-in",
-        "Google sign-in hasn’t been connected by Kodra yet. You can use your email and password instead.",
-      );
+    const response = await fetch("/api/providers", {
+      signal: controller.signal,
+    });
+    if (!response.ok) throw Error();
+    const { google } = await response.json();
+    if (google === true) {
+      // Only remember the form mode, never credentials or field contents.
+      try {
+        sessionStorage.setItem("afterlink.googleMode", mode);
+      } catch {}
+      location.assign("/auth/google");
+      return;
+    }
+    resetGoogleButton();
+    info(
+      "Google sign-in",
+      "Google sign-in isn’t available on this site yet. You can continue with email and password.",
+    );
   } catch {
-    info("Connection issue", "Please try again when you are online.");
+    resetGoogleButton();
+    info(
+      "Connection issue",
+      "Could not reach AfterLink. Check your connection and try again.",
+    );
+  } finally {
+    clearTimeout(timeout);
   }
 };
 // Remember only an internal numeric profile destination across sign-in, including OAuth.
@@ -297,15 +326,42 @@ function returnProfile() {
   }
 }
 const auth = new URLSearchParams(location.search).get("auth");
+try {
+  const previousMode = sessionStorage.getItem("afterlink.googleMode");
+  sessionStorage.removeItem("afterlink.googleMode");
+  if (
+    ["cancelled", "restart", "failed", "unavailable"].includes(auth) &&
+    previousMode === "signup"
+  ) {
+    mode = "signup";
+    update();
+  }
+} catch {}
 if (auth) {
+  const message = new Map([
+    [
+      "session",
+      "Sign in to open your Home Feed. If you just signed in, check that cookies are enabled for this site.",
+    ],
+    [
+      "existing",
+      "That email already has an account. Use your original sign-in method.",
+    ],
+    [
+      "unavailable",
+      "Google sign-in isn’t available right now. You can continue with email and password.",
+    ],
+    [
+      "cancelled",
+      "Google sign-in was cancelled. Try Google again or continue with email.",
+    ],
+    [
+      "restart",
+      "This Google sign-in attempt expired or was replaced. Choose Continue with Google to start again.",
+    ],
+  ]);
   error(
-    auth === "session"
-      ? "Sign in to open your Home Feed. If you just signed in, check that cookies are enabled for this site."
-      : auth === "existing"
-        ? "That email already has an account. Sign in with your password."
-        : auth === "unavailable"
-          ? "Google sign-in is not configured."
-          : "Google sign-in was not completed. Please try again.",
+    message.get(auth) || "Google sign-in was not completed. Please try again.",
   );
   history.replaceState(null, "", "/");
 }

@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
-import { googleClient, googleHandoff } from "../google-signin.mjs";
+import {
+  googleClient,
+  googleHandoff,
+  googleReturn,
+} from "../google-signin.mjs";
 
 const env = {
   GOOGLE_CLIENT_ID: "example-client",
@@ -55,4 +59,30 @@ test("incomplete credentials and invalid callbacks disable Google; loopback HTTP
       GOOGLE_REDIRECT_URI: local,
     }),
   );
+});
+
+test("return distinguishes cancellation, stale attempts, and complete handoffs", () => {
+  const cookie = "attempt.verifier.with.dots";
+  assert.deepEqual(
+    googleReturn(cookie, { state: "attempt", code: "returned" }),
+    { code: "returned", codeVerifier: "verifier.with.dots" },
+  );
+  assert.equal(
+    googleReturn(cookie, { state: "attempt", error: "access_denied" }).status,
+    "cancelled",
+  );
+  assert.equal(
+    googleReturn(cookie, { state: "other", error: "access_denied" }).status,
+    "restart",
+  );
+  assert.equal(
+    googleReturn("", { state: "attempt", code: "returned" }).status,
+    "restart",
+  );
+  for (const query of [
+    { error: "access_denied" },
+    { state: "attempt", error: "other", code: "returned" },
+    { state: "attempt", code: "" },
+  ])
+    assert.equal(googleReturn(cookie, query).status, "failed");
 });

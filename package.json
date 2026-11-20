@@ -11,7 +11,8 @@
     "test:ui": "node scripts/check-page.mjs",
     "storage:health": "node scripts/storage-health.mjs",
     "test:restore": "node --test tests/persistence.test.mjs",
-    "test:speed": "node --test tests/web-speed.test.mjs"
+    "test:speed": "node --test tests/web-speed.test.mjs",
+    "test:google-ui": "node scripts/check-google-ui.mjs"
   },
   "repository": {
     "type": "git",
