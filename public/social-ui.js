@@ -105,7 +105,10 @@ export async function api(path, data) {
     throw Error("Please sign in again.");
   }
   const j = await r.json();
-  if (!r.ok) throw Error(j.error || "Unable to complete request.");
+  if (!r.ok)
+    throw Object.assign(Error(j.error || "Unable to complete request."), {
+      status: r.status,
+    });
   return j;
 }
 export function icon(key) {

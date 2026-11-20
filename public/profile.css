@@ -17,9 +17,6 @@
   display: flex;
   align-items: center;
 }
-.rail-collapsed .rail-profile-link {
-  justify-content: center;
-}
 .home .rail-profile-link:hover {
   background: var(--wash);
 }

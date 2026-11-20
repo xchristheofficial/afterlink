@@ -1,5 +1,6 @@
 /* The feed keeps account navigation separate from its reading column. */
 .home#account {
+  --feed-gutter: clamp(12px, 1.25vw, 20px);
   min-height: 100svh;
   color: var(--ink);
   text-align: left;
@@ -83,8 +84,10 @@
   height: 44px;
   border-radius: 0.65rem;
 }
-#railToggle[aria-expanded="false"] .rail-arrow {
+#railToggle .rail-arrow {
   transform-origin: 16px 12px;
+}
+#railToggle[aria-expanded="false"] .rail-arrow {
   transform: rotate(180deg);
 }
 .topbar .fi {
@@ -93,20 +96,27 @@
 }
 .home-grid {
   display: grid;
-  max-width: 68rem;
-  padding: clamp(12px, 2.5vw, 32px);
+  --rail-width: clamp(12.5rem, 18vw, 15rem);
+  padding: clamp(12px, 2vw, 24px) var(--feed-gutter);
   gap: clamp(12px, 2vw, 24px);
   align-items: start;
-  margin-inline: auto;
-  grid-template-columns: minmax(13rem, 23%) minmax(0, 1fr);
+  grid-template-columns: var(--rail-width) minmax(0, 1fr);
   min-height: calc(100svh - 4rem);
 }
 .profile-rail {
   border: 1px solid var(--edge);
   border-radius: 16px;
-  padding: 1.25rem 1rem;
+  padding: 0.75rem 0.625rem;
+  min-width: 0;
+  overflow: clip;
+}
+.rail-identity {
+  display: grid;
+  grid-template-rows: 1fr;
 }
 .who {
+  min-height: 0;
+  overflow: hidden;
   text-align: center;
 }
 .who .avatar {
@@ -168,6 +178,9 @@
   text-decoration: underline;
 }
 .stream {
+  width: 100%;
+  max-width: 58rem;
+  justify-self: center;
   min-width: 0;
 }
 .feed-heading,
@@ -330,34 +343,39 @@
   min-height: 44px;
   min-width: 44px;
 }
-.rail-collapsed .who,
-.rail-collapsed .side-nav span,
-.rail-collapsed .logout span {
-  display: none;
+.rail-collapsed .rail-identity {
+  grid-template-rows: 0fr;
+  opacity: 0;
 }
 .rail-collapsed .side-nav {
   margin-top: 0;
 }
-.rail-collapsed .side-nav :is(button, .rail-profile-link) {
-  justify-content: center;
-  min-width: 44px;
+.profile-rail :is(.side-nav span, .logout span) {
+  white-space: nowrap;
+  min-width: 0;
+}
+.rail-collapsed :is(.side-nav span, .logout span) {
+  opacity: 0;
+  transform: translateX(-4px);
 }
 @media (min-width: 651px) {
   .home-grid.rail-collapsed {
     grid-template-columns: 4.25rem minmax(0, 1fr);
   }
-  .rail-collapsed .profile-rail {
-    padding: 0.75rem 0.5rem;
-    text-align: center;
+  .profile-rail .who {
+    width: calc(var(--rail-width) - 1.25rem - 2px);
+  }
+  .profile-rail :is(.side-nav button, .rail-profile-link, .logout) {
+    min-width: 0;
+    overflow: hidden;
+    justify-content: flex-start;
+    padding-inline: 10px;
+  }
+  .profile-rail .logout {
+    width: 100%;
   }
 }
 @media (max-width: 1000px) {
-  .home-grid {
-    grid-template-columns: minmax(190px, 28%) minmax(0, 1fr);
-  }
-  .home-grid.rail-collapsed {
-    grid-template-columns: 4.25rem minmax(0, 1fr);
-  }
   .stream {
     border: 0;
   }
@@ -416,17 +434,32 @@
     margin-top: 10px;
     gap: 4px;
   }
-  .rail-collapsed .profile-rail {
-    display: flex;
+  .profile-rail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 4px;
+    column-gap: 6px;
   }
-  .rail-collapsed .side-nav {
-    min-width: 0;
-    flex: 1;
+  .rail-identity {
+    grid-column: 1/-1;
   }
-  .rail-collapsed .logout {
+  .profile-rail .logout {
     margin: 0;
+    width: 44px;
+  }
+  .profile-rail .logout span {
+    display: none;
+  }
+  .side-nav span {
+    max-height: 1.4em;
+    overflow: hidden;
+  }
+  .rail-collapsed .side-nav span {
+    max-height: 0;
+  }
+  .rail-collapsed .side-nav :is(button, .rail-profile-link) {
+    gap: 0;
+    min-width: 44px;
   }
   .side-nav :is(button, .rail-profile-link) {
     padding: 6px;
@@ -451,6 +484,26 @@
   }
 }
 @media (prefers-reduced-motion: no-preference) {
+  .home-grid {
+    transition: grid-template-columns 0.3s cubic-bezier(0.22, 0.75, 0.2, 1);
+  }
+  .rail-identity {
+    transition:
+      grid-template-rows 0.3s cubic-bezier(0.22, 0.75, 0.2, 1),
+      opacity 0.16s ease;
+  }
+  .profile-rail .side-nav {
+    transition: margin-top 0.3s ease;
+  }
+  .profile-rail :is(.side-nav span, .logout span) {
+    transition:
+      opacity 0.14s ease,
+      transform 0.18s ease,
+      max-height 0.22s ease;
+  }
+  #railToggle .rail-arrow {
+    transition: transform 0.28s ease;
+  }
   button,
   .field input {
     transition:
@@ -496,4 +549,27 @@
 }
 .home .post-detail-link:hover {
   text-decoration: underline;
+}
+.feed-options {
+  position: relative;
+  font-size: 0.9rem;
+}
+.feed-options summary {
+  cursor: pointer;
+  color: var(--dim);
+  padding: 0.4rem;
+}
+.feed-options div {
+  display: grid;
+  gap: 6px;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 1;
+  white-space: nowrap;
+  background: var(--panel);
+  color: var(--accent-ink);
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
 }

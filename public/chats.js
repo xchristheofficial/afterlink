@@ -1,3 +1,4 @@
+import { inboxTabs } from "./linkbacks.js";
 import {
   $,
   n,
@@ -54,6 +55,7 @@ export async function messages(root, peer) {
     return find();
   }
   left.append(
+    inboxTabs("Chats"),
     box(
       "list-heading",
       n("h1", "", "Messages"),

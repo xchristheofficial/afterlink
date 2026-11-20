@@ -1,3 +1,4 @@
+import { installLinkbacks } from "./linkbacks.mjs";
 import { installMemberSettings } from "./member-settings.mjs";
 import { separated, muted } from "./visibility.mjs";
 import express from "express";
@@ -90,6 +91,7 @@ export function installSocial(app, db, enrich) {
     getPost,
     enrich,
   });
+  installLinkbacks(db, { endpoint, one, all, run, id, body, fail, allowedDM });
   function notify(recipient, actor, kind, pid) {
     if (recipient !== actor)
       run(

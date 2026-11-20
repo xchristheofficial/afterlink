@@ -664,7 +664,7 @@
 
 @media (min-width: 761px) {
   #account:not(.profile-screen) .topbar {
-    padding-inline: max(32px, calc((100% - 64rem) / 2));
+    padding-inline: var(--feed-gutter);
     gap: 12px;
   }
   #account:not(.profile-screen) #peopleSearch {

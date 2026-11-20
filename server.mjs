@@ -377,6 +377,8 @@ app.get(
     "/connections",
     "/stories",
     "/stories/create",
+    "/linkbacks",
+    "/linkbacks/:gid",
     "/safety",
     "/messages",
     "/messages/:peer",
