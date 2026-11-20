@@ -115,7 +115,7 @@ This tracker starts after the call playback controls and group topics. Checked m
 - [x] 092 Add an operator storage-health check that does not expose filesystem paths publicly.
 - [ ] 093 Test an interrupted schema migration against a copy of an older database.
 - [ ] 094 Measure inbox query cost against a representative large synthetic conversation set.
-- [ ] 095 Avoid overlapping unread-count requests on slow connections.
+- [x] 095 Avoid overlapping unread-count requests on slow connections.
 - [ ] 096 Reconcile group events received during an in-flight refresh instead of dropping the wake-up.
 - [ ] 097 Add repeatable browser coverage for reconnect after server-sent event interruption.
 - [x] 098 Verify downloaded recordings decode to playable media, not just nonempty files.

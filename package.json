@@ -10,7 +10,8 @@
     "test": "node --test",
     "test:ui": "node scripts/check-page.mjs",
     "storage:health": "node scripts/storage-health.mjs",
-    "test:restore": "node --test tests/persistence.test.mjs"
+    "test:restore": "node --test tests/persistence.test.mjs",
+    "test:speed": "node --test tests/web-speed.test.mjs"
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,7 @@
   "homepage": "https://github.com/xchristheofficial/afterlink#readme",
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
+    "compression": "^1.8.2",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.5",
     "google-auth-library": "^10.9.1",

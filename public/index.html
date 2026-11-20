@@ -16,17 +16,11 @@
       sizes="any"
     />
     <link rel="stylesheet" href="/theme.css" />
-    <script defer src="/navigation.js"></script>
     <link rel="stylesheet" href="/style.css" />
-    <link rel="stylesheet" href="/notes.css" />
     <link rel="stylesheet" href="/feed.css" />
     <link rel="stylesheet" href="/profile.css" />
-    <link rel="stylesheet" href="/editor.css" />
-    <link rel="stylesheet" href="/composer.css" />
-    <script defer src="/composer.js"></script>
-    <script defer src="/editor.js"></script>
-    <script defer src="/profile.js"></script>
-    <script defer src="/feed.js"></script>
+    <!-- member-styles -->
+    <!-- member-scripts -->
     <script defer src="/app.js"></script>
     <link rel="stylesheet" href="/preferences.css" />
     <script src="/appearance.js"></script>
@@ -42,6 +36,7 @@
         aria-label="Decorative feed illustration from the AfterLink design reference, not live user activity"
       >
         <img
+          loading="lazy"
           src="/assets/auth-illustration.webp"
           alt=""
           width="959"
@@ -333,7 +328,11 @@
                 class="profile-avatar-link"
                 href="/profile"
                 aria-label="Open your profile"
-                ><img class="avatar" src="/assets/avatar-default.webp" alt=""
+                ><img
+                  loading="lazy"
+                  class="avatar"
+                  src="/assets/avatar-default.webp"
+                  alt=""
               /></a>
               <h2 id="profileName"></h2>
               <p id="profileHandle"></p>
@@ -408,7 +407,12 @@
             </header>
             <div id="homeNotes"></div>
             <div class="compose-row">
-              <img class="avatar" src="/assets/avatar-default.webp" alt="" />
+              <img
+                loading="lazy"
+                class="avatar"
+                src="/assets/avatar-default.webp"
+                alt=""
+              />
               <div class="compose-box">
                 <button id="openComposer">What's on your mind?</button
                 ><span class="compose-tools"
@@ -493,6 +497,7 @@
           <section class="member-hero">
             <img
               class="member-avatar"
+              loading="lazy"
               src="/assets/avatar-default.webp"
               alt=""
             />
@@ -542,6 +547,7 @@
             <aside class="edit-photo">
               <img
                 id="editAvatar"
+                loading="lazy"
                 src="/assets/editor-avatar.webp"
                 alt="Profile photo"
               /><button id="pickPhoto" type="button">Change Photo</button
@@ -623,7 +629,7 @@
           </header>
           <div class="create-body">
             <div class="post-identity">
-              <img class="avatar" id="postAvatar" alt="" />
+              <img loading="lazy" class="avatar" id="postAvatar" alt="" />
               <div>
                 <strong id="postName"></strong><small id="postHandle"></small>
               </div>

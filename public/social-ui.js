@@ -41,6 +41,8 @@ export function input(label, max = 100) {
 export function avatar(id) {
   const e = n("img", "face");
   e.alt = "";
+  e.loading = "lazy";
+  e.decoding = "async";
   e.src = "/api/feed/avatar/" + id;
   return e;
 }
