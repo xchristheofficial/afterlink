@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- member-session -->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AfterLink — Connect After. Link Forever.</title>
     <meta
@@ -30,7 +31,11 @@
     <script src="/appearance.js"></script>
   </head>
   <body>
-    <main class="layout">
+    <div id="routePending" class="route-pending">
+      <p id="routeStatus" role="status">Loading AfterLink…</p>
+      <button type="button" id="retryRoute" hidden>Try again</button>
+    </div>
+    <main class="layout" hidden>
       <aside
         class="art"
         aria-label="Decorative feed illustration from the AfterLink design reference, not live user activity"

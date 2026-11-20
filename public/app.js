@@ -62,7 +62,9 @@ $("switchMode").onclick = () => {
   $("heading").focus({ preventScroll: true });
 };
 $("reveal").onclick = () => showPassword($("password").type === "password");
-let resetToken = new URLSearchParams(location.hash.slice(1)).get("reset");
+let resetToken =
+  location.pathname === "/" &&
+  new URLSearchParams(location.hash.slice(1)).get("reset");
 const resetEyes = document.querySelectorAll(".reset-eye");
 function setResetVisibility(button, visible) {
   const input = $(button.getAttribute("aria-controls"));
@@ -180,6 +182,8 @@ $("recoveryForm").onsubmit = async (event) => {
   }
 };
 if (resetToken) {
+  $("routePending").hidden = true;
+  document.querySelector(".layout").hidden = false;
   history.replaceState(null, "", location.pathname);
   openRecovery();
 }
@@ -228,7 +232,7 @@ $("form").onsubmit = async (event) => {
       $("factorCode").focus();
       return;
     }
-    location.replace("/home");
+    location.replace(returnProfile() || "/home");
   } catch (e) {
     error(e.message);
   } finally {
@@ -239,7 +243,6 @@ $("form").onsubmit = async (event) => {
 $("logout").onclick = async () => {
   try {
     await post("/api/logout", {});
-    account(null);
     location.replace("/");
   } catch {
     info("Sign out", "Could not reach AfterLink. Please try again.");
@@ -306,32 +309,39 @@ if (auth) {
   );
   history.replaceState(null, "", "/");
 }
-if (!resetToken) {
-  const atHome = location.pathname.replace(/\/$/, "") === "/home";
-  const atCreate = location.pathname.replace(/\/$/, "") === "/create";
-  const atProfile = /^\/profile(?:\/|$)/.test(location.pathname);
-  if (atHome || atProfile || atCreate) {
-    document.title = atProfile
-      ? "Profile · AfterLink"
-      : "Home Feed · AfterLink";
-    document.querySelector(".layout").hidden = true;
-  }
-  fetch("/api/session")
-    .then((r) => {
+// Both shells start hidden: never paint sign-in or an unrelated member page
+// while the session check is in flight. Recovery links do not need a session.
+async function openRoute() {
+  const atHome = /^\/home\/?$/.test(location.pathname);
+  const memberRoute =
+    atHome || /^\/(create\/?$|profile(?:\/|$))/.test(location.pathname);
+  $("retryRoute").hidden = true;
+  $("routeStatus").textContent = "Loading AfterLink…";
+  try {
+    const member = document.querySelector('meta[name="member-session"]');
+    let user;
+    if (memberRoute && member)
+      user = { email: decodeURIComponent(member.content) };
+    else {
+      const r = await fetch("/api/session", { cache: "no-store" });
       if (!r.ok) throw Error();
-      return r.json();
-    })
-    .then(({ user }) => {
-      if (user && (atHome || atProfile || atCreate)) {
-        const target = atHome && returnProfile();
-        if (target) location.replace(target);
-        else account(user);
-      } else if (user) location.replace("/home");
-      else if (atHome || atProfile || atCreate)
-        location.replace("/?auth=session");
-    })
-    .catch(() => {
-      document.querySelector(".layout").hidden = false;
-      error("Could not reach AfterLink. Please refresh to retry.");
-    });
+      ({ user } = await r.json());
+    }
+    if (memberRoute && !user) return location.replace("/?auth=session");
+    if (!memberRoute && user)
+      return location.replace(returnProfile() || "/home");
+    const target = user && atHome && returnProfile();
+    if (target) return location.replace(target);
+    if (user) {
+      document.title = atHome ? "Home Feed · AfterLink" : "Profile · AfterLink";
+      account(user);
+    } else document.querySelector(".layout").hidden = false;
+    $("routePending").hidden = true;
+  } catch {
+    $("routeStatus").textContent =
+      "Could not load this page. Check your connection and try again.";
+    $("retryRoute").hidden = false;
+  }
 }
+$("retryRoute").onclick = openRoute;
+if (!resetToken) openRoute();

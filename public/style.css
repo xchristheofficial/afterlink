@@ -463,10 +463,6 @@ dialog .primary {
   content: "← ";
 }
 @media (prefers-reduced-motion: no-preference) {
-  .layout,
-  .home:not([hidden]) {
-    animation: site-enter 0.18s ease-out;
-  }
   button,
   a,
   input,
@@ -479,14 +475,6 @@ dialog .primary {
       box-shadow 0.15s ease,
       transform 0.15s ease;
   }
-  @keyframes site-enter {
-    from {
-      opacity: 0.75;
-    }
-    to {
-      opacity: 1;
-    }
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -495,5 +483,49 @@ dialog .primary {
     scroll-behavior: auto !important;
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+/* Keep page chrome stationary; transition individual controls and content instead. */
+.route-pending {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  padding: 1rem;
+  background: var(--panel);
+  color: var(--dim);
+}
+.route-pending button {
+  font: inherit;
+  color: var(--accent-ink);
+  background: var(--wash);
+  border: 1px solid var(--edge);
+  border-radius: 0.6rem;
+  padding: 0.55rem 1rem;
+}
+.social-loading {
+  display: none;
+}
+.social-loading:has(+ #surface[aria-busy="true"]:empty) {
+  display: block;
+  padding: 2rem;
+  text-align: center;
+  color: var(--dim);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .route-pending p:has(+ button[hidden]),
+  .social-loading:has(+ #surface:empty) {
+    animation: loading-label 0.12s 0.2s both;
+  }
+  @keyframes loading-label {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 }

@@ -163,6 +163,39 @@ try {
   await page.click("#submit");
   await page.locator("#account").waitFor();
   assert.equal(new URL(page.url()).pathname, "/home");
+  // The server already checked the session before returning member HTML.
+  // A stalled API must not leave the user looking at sign-in on a member URL.
+  let sessionRequests = 0;
+  await page.route("**/api/session", (route) => {
+    sessionRequests++;
+    return route.abort();
+  });
+  let releaseProfile;
+  const slowProfile = new Promise((resolve) => {
+    releaseProfile = resolve;
+  });
+  await page.route("**/api/feed/profile", async (route) => {
+    await slowProfile;
+    await route.continue();
+  });
+  await page.goto(url + "/profile/edit");
+  try {
+    await page.locator("#editLoading").waitFor();
+    assert.ok(await page.locator(".topbar").isVisible());
+    assert.ok(await page.locator(".layout").isHidden());
+    assert.ok(await page.locator(".home-grid").isHidden());
+  } finally {
+    releaseProfile();
+  }
+  await page.locator("#editForm").waitFor();
+  await page.goto(url + "/create");
+  await page.locator("#createPage").waitFor();
+  await page.goBack();
+  await page.locator("#editForm").waitFor();
+  assert.equal(sessionRequests, 0);
+  await page.unroute("**/api/feed/profile");
+  await page.unroute("**/api/session");
+  await page.goto(url + "/home");
   await page.reload();
   await page.locator("#account").waitFor();
   assert.equal(new URL(page.url()).pathname, "/home");

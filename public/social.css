@@ -856,14 +856,13 @@
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .social #surface,
   .social .result-groups > div,
   .social .bubble,
   .social .notice,
   .social .reel-caption,
   .social .comment,
   .social .player {
-    animation: social-rise 0.19s ease-out both;
+    animation: social-rise 0.19s ease-out;
   }
   .social dialog[open] {
     animation: social-rise 0.16s ease-out;
@@ -880,8 +879,8 @@
   }
   @keyframes social-rise {
     from {
-      opacity: 0;
-      transform: translateY(4px);
+      opacity: 0.88;
+      transform: translateY(2px);
     }
     to {
       opacity: 1;

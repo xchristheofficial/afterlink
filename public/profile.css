@@ -288,8 +288,6 @@
   dialog::backdrop {
     animation: veil 0.16s ease-out;
   }
-  .member-post,
-  .member-empty,
   #memberContent:not([hidden]),
   #feedPanel:not([hidden]),
   #memberStatus:not([hidden]) {
