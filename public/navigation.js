@@ -45,15 +45,22 @@
 // Counts cover all visible unread items, not only the first page of the inbox.
 (() => {
   if (location.pathname === "/") return;
-  let version = 0;
-  async function refresh() {
+  let busy = false,
+    queued = false;
+  async function refresh(event) {
     if (document.hidden) return;
-    const seq = ++version;
+    if (busy) {
+      // Interval ticks can wait for the next poll. A real change needs a
+      // fresh count after this request, no matter how many events arrived.
+      if (event) queued = true;
+      return;
+    }
+    busy = true;
     try {
       const r = await fetch("/api/feed/unread");
       if (!r.ok) return;
       const counts = await r.json();
-      if (seq !== version) return;
+      if (document.hidden) return;
       for (const [key, title] of [
         ["messages", "Messages"],
         ["notifications", "Notifications"],
@@ -83,6 +90,12 @@
       }
     } catch {
       /* A network interruption must not prevent navigation. */
+    } finally {
+      busy = false;
+      if (queued) {
+        queued = false;
+        void refresh();
+      }
     }
   }
   addEventListener("unread-change", refresh);

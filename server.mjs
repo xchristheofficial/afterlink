@@ -2,6 +2,7 @@ import { installAuthenticator } from "./authenticator.mjs";
 import { installFeed } from "./feed.mjs";
 import { installRecovery, recoveryMailer } from "./recovery.mjs";
 import express from "express";
+import { memberAssets, publicAssets } from "./web-assets.mjs";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { OAuth2Client, CodeChallengeMethod } from "google-auth-library";
@@ -433,14 +434,14 @@ app.get(["/home", "/create", "/profile", "/profile/:id"], (req, res) => {
   res
     .type("html")
     .send(
-      memberShell.replace(
+      memberAssets(memberShell, req.path).replace(
         "<!-- member-session -->",
         () =>
           `<meta name="member-session" content="${encodeURIComponent(member.email)}">`,
       ),
     );
 });
-app.use(express.static(resolve(dir, "public")));
+app.use(publicAssets(resolve(dir, "public")));
 app.use((err, req, res, next) => {
   if (res.headersSent) return next(err);
   bad(

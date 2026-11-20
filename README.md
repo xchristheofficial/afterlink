@@ -6,6 +6,9 @@ Reference-led account access page. The left panel is noninteractive artwork from
 
 Node 22.13 or newer (built-in SQLite), `npm ci`, then `npm start`. The app serves the page and API from one origin on port 3000. Run `npm test` for the isolated authentication, recovery, and social settings tests; it never touches the live database.
 
+**Database-free performance check:** `npm run test:speed` serves only public files, compares Brotli/gzip with uncompressed transfers, checks which scripts each page loads, and simulates slow unread-count requests. It never starts the application or opens SQLite. Private API responses, live event streams and signed-in HTML are not routed through the public asset compressor.
+
+
 For browser checks, install Chromium with `npx playwright install --with-deps chromium`, then run `npm run test:ui`. The script starts a separate service with a temporary database, exercises the actual page, and removes the database afterward.
 
 ## Accounts
