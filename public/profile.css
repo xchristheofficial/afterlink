@@ -315,3 +315,11 @@
     }
   }
 }
+
+#shareMember .editor-actions { flex-wrap: wrap; }
+
+.visitor-preview { max-width:min(32rem,90vw); max-height:80dvh; overflow:auto; overflow-wrap:anywhere; color:var(--ink); background:var(--panel); border:1px solid var(--edge); border-radius:1rem; padding:1.25rem; }
+#profilePostFilter { margin:.6rem; max-width:90%; padding:.4rem; }
+.visitor-preview article { margin-block:.75rem; border-top:1px solid var(--edge); padding:.6rem 0; }
+.visitor-preview article :is(img,video) { max-width:100%; max-height:45dvh; object-fit:contain; }
+.visitor-preview > img { width:3rem; height:3rem; border-radius:50%; }

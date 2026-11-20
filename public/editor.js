@@ -1,6 +1,21 @@
 const profileEditor = (() => {
   const el = (id) => document.getElementById(id);
-  let api, timer, photo;
+  let api, timer, photo, wasPrivate;
+  let crops = [];
+  function previewCrop() {
+    const url = crops[el("photoFocus").selectedIndex];
+    if (!url) return;
+    el("editAvatar").src = url;
+    photo = url.split(",")[1];
+  }
+  el("photoFocus").onchange = previewCrop;
+  el("undoPhoto").onclick = () => {
+    crops = [];
+    photo = undefined;
+    el("editAvatar").src = "/api/feed/avatar/me";
+    el("photoAdjust").hidden = true;
+    el("pickPhoto").focus();
+  };
   const privateNote = () => {
     el("privacyNote").hidden = !el("editPrivate").checked;
   };
@@ -45,27 +60,43 @@ const profileEditor = (() => {
         file.size > 8 * 1024 * 1024
       )
         throw Error("Choose a JPG, PNG or WebP under 8 MB.");
-      const image = await createImageBitmap(file),
-        size = Math.min(image.width, image.height),
-        canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 256;
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, 256, 256);
-      ctx.drawImage(
-        image,
-        (image.width - size) / 2,
-        (image.height - size) / 2,
-        size,
-        size,
-        0,
-        0,
-        256,
-        256,
-      );
-      image.close();
-      el("editAvatar").src = canvas.toDataURL("image/jpeg", 0.84);
-      photo = el("editAvatar").src.split(",")[1];
+      const image = await createImageBitmap(file);
+      try {
+        const size = Math.min(image.width, image.height),
+          canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 256;
+        const ctx = canvas.getContext("2d"),
+          square = image.width === image.height;
+        const labels = square
+          ? ["Center"]
+          : image.width > image.height
+            ? ["Left", "Center", "Right"]
+            : ["Top", "Center", "Bottom"];
+        crops = labels.map((_, i) => {
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, 256, 256);
+          ctx.drawImage(
+            image,
+            ((image.width - size) * i) / 2,
+            ((image.height - size) * i) / 2,
+            size,
+            size,
+            0,
+            0,
+            256,
+            256,
+          );
+          return canvas.toDataURL("image/jpeg", 0.84);
+        });
+        const focus = el("photoFocus");
+        focus.replaceChildren(...labels.map((l) => new Option(l, l)));
+        focus.value = "Center";
+        focus.hidden = el("photoFocusLabel").hidden = square;
+        el("photoAdjust").hidden = false;
+        previewCrop();
+      } finally {
+        image.close();
+      }
       el("editError").textContent = "";
     } catch (err) {
       el("editError").textContent = err.message;
@@ -79,6 +110,16 @@ const profileEditor = (() => {
     if (el("editSave").disabled) return;
     el("editSave").disabled = true;
     try {
+      if (wasPrivate && !el("editPrivate").checked) {
+        const { confirmPublicProfile } = await import("./privacy-review.js");
+        if (!(await confirmPublicProfile())) {
+          el("editPrivate").checked = true;
+          privateNote();
+          el("editSave").disabled = false;
+          el("editPrivate").focus();
+          return;
+        }
+      }
       await api("/profile", {
         name: el("editName").value,
         username: el("editUsername").value,
@@ -128,7 +169,7 @@ const profileEditor = (() => {
         el("editBio").value = p.bio;
         el("editPhone").value = contact.phone || "";
         el("editEmail").value = contact.email;
-        el("editPrivate").checked = !!p.private;
+        wasPrivate = el("editPrivate").checked = !!p.private;
         privateNote();
         el("editAvatar").src = "/api/feed/avatar/me";
         el("editForm").hidden = false;

@@ -51,37 +51,58 @@ export async function postDetail(root, id) {
     startLinkback(source);
   else if (new URLSearchParams(location.search).get("action") === "groups")
     await yourLinkbacks(source);
-  let index = 0;
-  function slide() {
-    stage.replaceChildren();
-    if (p.media.length) {
-      stage.append(media(p.media[index]));
-      if (p.media.length > 1)
-        stage.append(
-          box(
-            "slide-controls",
-            withIcon(
-              button("", () => {
-                index = (index + p.media.length - 1) % p.media.length;
-                slide();
-              }),
-              "back",
-              "Previous attachment",
-            ),
-            n("span", "", `${index + 1} / ${p.media.length}`),
-            withIcon(
-              button("", () => {
-                index = (index + 1) % p.media.length;
-                slide();
-              }),
-              "next",
-              "Next attachment",
-            ),
-          ),
-        );
-    } else stage.append(n("blockquote", "", p.body));
+  if (!p.media.length) stage.append(n("blockquote", "", p.body));
+  else stage.append(media(p.media[0]));
+  if (p.media.length > 1) {
+    let index = 0;
+    const total = p.media.length,
+      position = n("span", "", `1 / ${total}`);
+    position.setAttribute("role", "status");
+    function select(next) {
+      index = (next + total) % total;
+      stage.firstElementChild.replaceWith(media(p.media[index]));
+      position.textContent = `${index + 1} / ${total}`;
+    }
+    function arrow(step, glyph, label) {
+      const control = withIcon(n("button"), glyph, label);
+      control.type = "button";
+      control.onclick = () => select(index + step);
+      return control;
+    }
+    stage.tabIndex = 0;
+    stage.setAttribute("role", "group");
+    stage.setAttribute(
+      "aria-label",
+      "Post gallery. Use Left and Right arrow keys to browse attachments.",
+    );
+    stage.onkeydown = (e) => {
+      if (
+        e.altKey ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.shiftKey ||
+        e.target.closest("video")
+      )
+        return;
+      const next = {
+        ArrowLeft: index - 1,
+        ArrowRight: index + 1,
+        Home: 0,
+        End: total - 1,
+      }[e.key];
+      if (typeof next !== "number") return;
+      e.preventDefault();
+      select(next);
+    };
+    stage.append(
+      box(
+        "slide-controls",
+        arrow(-1, "back", "Previous attachment"),
+        position,
+        arrow(1, "next", "Next attachment"),
+      ),
+    );
   }
-  slide();
   const like = button("", async () => {
     await api("/heart", { post: id, on: !p.liked });
     p.liked = !p.liked;
@@ -132,7 +153,7 @@ export async function postDetail(root, id) {
   );
   right.append(
     author,
-    n("p", "caption", p.body),
+    postComposer.caption(p.body),
     postComposer.content({ ...p, media: [] }, api),
     title,
     rows,

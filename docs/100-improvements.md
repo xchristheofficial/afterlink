@@ -17,22 +17,22 @@ This tracker starts after the call playback controls and group topics. Checked m
 ### Calls on real devices
 - [ ] 011 Switch between front and rear cameras during a connected call.
 - [ ] 012 Select an available microphone without redialing.
-- [ ] 013 Pick a speaker or headset on browsers supporting audio output selection.
+- [x] 013 Pick a speaker or headset on browsers supporting audio output selection.
 - [ ] 014 Warn locally when a selected microphone disconnects and offer recovery.
 - [x] 015 Answer with the microphone muted from the outset.
-- [ ] 016 Expose a manual low-data video mode independent of network hints.
-- [ ] 017 Show a local connection-quality estimate based on measured RTC statistics.
-- [ ] 018 Offer redial after a failed connection without resending an invitation automatically.
-- [ ] 019 Distinguish a declined call from an unanswered call in the caller's UI.
-- [ ] 020 Add an optional locally enabled incoming ring sound with a silent fallback.
+- [x] 016 Expose a manual low-data video mode independent of network hints.
+- [x] 017 Show a local connection-quality estimate based on measured RTC statistics.
+- [x] 018 Offer redial after a failed connection without resending an invitation automatically.
+- [x] 019 Distinguish a declined call from an unanswered call in the caller's UI.
+- [x] 020 Add an optional locally enabled incoming ring sound with a silent fallback.
 
 ### Watching and recording
-- [ ] 021 Switch the shared tab without ending the presentation where the browser supports it.
+- [x] 021 Switch the shared tab without ending the presentation where the browser supports it.
 - [x] 022 Tell the presenter whether their selected tab actually includes audio.
 - [x] 023 Let the presenter pause tab-sound transmission separately from the microphone.
-- [ ] 024 Expand the shared content while keeping an accessible route back to chat.
+- [x] 024 Expand the shared content while keeping an accessible route back to chat.
 - [x] 025 Offer a user-gesture playback recovery control when the guest's tab stream cannot autoplay.
-- [ ] 026 Show an unread watch-chat indicator when its conversation pane is collapsed.
+- [x] 026 Show an unread watch-chat indicator when its conversation pane is collapsed.
 - [x] 027 Show elapsed recording time to both participants.
 - [x] 028 Warn the recorder shortly before hitting the local recording limit.
 - [x] 029 Provide a second local download opportunity if the first recording download is dismissed.
@@ -42,11 +42,11 @@ This tracker starts after the call playback controls and group topics. Checked m
 - [x] 031 Filter conversation search by sender.
 - [x] 032 Narrow conversation search to a date range.
 - [ ] 033 Make text matching handle Unicode case folding in private search.
-- [ ] 034 Search joined group messages without exposing results to invitees.
-- [ ] 035 Browse kept photos and GIFs from the open DM without opening view-once media.
-- [ ] 036 Jump directly to a chosen calendar date in a long DM.
+- [x] 034 Search joined group messages without exposing results to invitees.
+- [x] 035 Browse kept photos and GIFs from the open DM without opening view-once media.
+- [x] 036 Jump directly to a chosen calendar date in a long DM.
 - [x] 037 Copy a text message from its action menu with clipboard-denied fallback.
-- [ ] 038 Add private message bookmarks with access rechecked when revisiting them.
+- [x] 038 Add private message bookmarks with access rechecked when revisiting them.
 - [ ] 039 Allow a sender to correct a text DM with a visible edited label.
 - [ ] 040 Reply to a group message with a permission-checked quotation.
 
@@ -60,55 +60,55 @@ This tracker starts after the call playback controls and group topics. Checked m
 - [x] 047 Show a preview of which invitations will be cancelled before an admin leaves.
 - [ ] 048 Prevent concurrent admin edits from silently overwriting group details.
 - [ ] 049 Show opt-in typing presence in joined group chats without identifying pending invitees.
-- [ ] 050 Open a pinned group decision in its surrounding conversation.
+- [x] 050 Open a pinned group decision in its surrounding conversation.
 
 ### Composer and attachments
 - [x] 051 Paste a supported image from the clipboard into the DM attachment preview.
 - [x] 052 Drop a supported image into a conversation without navigating away.
 - [x] 053 Show the processed attachment size before sending.
-- [ ] 054 Warn before leaving a page with an unsent attachment.
+- [x] 054 Warn before leaving a page with an unsent attachment.
 - [x] 055 Provide a remaining-character indicator near the text limit.
-- [ ] 056 Offer a searchable list of recently used emojis on this device with a clear option.
-- [ ] 057 Show microphone input activity while capturing a voice note.
+- [x] 056 Offer a searchable list of recently used emojis on this device with a clear option.
+- [x] 057 Show microphone input activity while capturing a voice note.
 - [x] 058 Choose a voice-note playback rate without changing call audio.
-- [ ] 059 Warn before the voice-note duration limit cuts capture short.
+- [x] 059 Warn before the voice-note duration limit cuts capture short.
 - [ ] 060 Allow cancellation of a pending attachment upload with clear delivery reconciliation.
 
 ### Feed, discovery and profiles
-- [ ] 061 Return to the previous reading position when backing out of a feed post.
-- [ ] 062 Collapse long captions with an accessible expand control.
-- [ ] 063 Navigate a post's media gallery with the keyboard.
+- [x] 061 Return to the previous reading position when backing out of a feed post.
+- [x] 062 Collapse long captions with an accessible expand control.
+- [x] 063 Navigate a post's media gallery with the keyboard.
 - [ ] 064 Allow authors to supply alternative text for new post images.
-- [ ] 065 Preserve discovery filters when opening a result and returning.
-- [ ] 066 Offer a following-only activity filter in notifications.
-- [ ] 067 Let members mark only the currently selected notification category as read.
-- [ ] 068 Add keyword filtering within a private saved collection.
-- [ ] 069 Provide an accessible focal-point choice for profile photos.
-- [ ] 070 Let users copy a canonical profile link without tracking parameters.
+- [x] 065 Preserve discovery filters when opening a result and returning.
+- [x] 066 Offer a following-only activity filter in notifications.
+- [x] 067 Let members mark only the currently selected notification category as read.
+- [x] 068 Add keyword filtering within a private saved collection.
+- [x] 069 Provide an accessible focal-point choice for profile photos.
+- [x] 070 Let users copy a canonical profile link without tracking parameters.
 
 ### Privacy and account controls
-- [ ] 071 Offer a preview of a profile as seen by a non-follower.
+- [x] 071 Offer a preview of a profile as seen by a non-follower.
 - [ ] 072 Make clearing private nicknames a single confirmed settings action.
-- [ ] 073 Show a searchable blocked-member list for large accounts.
+- [x] 073 Show a searchable blocked-member list for large accounts.
 - [ ] 074 Allow revoking one other signed-in session instead of all other sessions.
 - [ ] 075 Explicitly revoke lingering live-event connections on logout.
-- [ ] 076 Warn before a privacy change broadens an existing post's audience.
-- [ ] 077 Offer an authenticated download of the member's own profile settings.
-- [ ] 078 Clear sensitive client-side previews when session expiry redirects to login.
-- [ ] 079 Add a review step explaining the effect of deleting an account on group ownership.
+- [x] 076 Warn before a privacy change broadens an existing post's audience.
+- [x] 077 Offer an authenticated download of the member's own profile settings.
+- [x] 078 Clear sensitive client-side previews when session expiry redirects to login.
+- [x] 079 Add a review step explaining the effect of deleting an account on group ownership.
 - [ ] 080 Allow members to discard all outstanding recovery sessions after a successful password change.
 
 ### Accessibility and small screens
-- [ ] 081 Restore focus to the invoking message after closing its action sheet.
-- [ ] 082 Add a skip link directly to the active conversation composer.
-- [ ] 083 Make new-message announcements useful without re-announcing message history.
-- [ ] 084 Keep the active composer reachable as the mobile on-screen keyboard opens.
+- [x] 081 Restore focus to the invoking message after closing its action sheet.
+- [x] 082 Add a skip link directly to the active conversation composer.
+- [x] 083 Make new-message announcements useful without re-announcing message history.
+- [x] 084 Keep the active composer reachable as the mobile on-screen keyboard opens.
 - [x] 085 Give call mute state a persistent text indicator in the minimized dock.
-- [ ] 086 Let users reposition the minimized call away from the active input.
-- [ ] 087 Keep long display names from pushing call controls off narrow screens.
-- [ ] 088 Respect forced-colors settings for unread badges and selected chips.
-- [ ] 089 Preserve visible focus across live group member-list updates.
-- [ ] 090 Surface recoverable form errors beside the affected field and link them for screen readers.
+- [x] 086 Let users reposition the minimized call away from the active input.
+- [x] 087 Keep long display names from pushing call controls off narrow screens.
+- [x] 088 Respect forced-colors settings for unread badges and selected chips.
+- [x] 089 Preserve visible focus across live group member-list updates.
+- [x] 090 Surface recoverable form errors beside the affected field and link them for screen readers.
 
 ### Reliability and operations
 - [x] 091 Automate a backup-to-fresh-database restore drill against disposable data.
@@ -116,8 +116,8 @@ This tracker starts after the call playback controls and group topics. Checked m
 - [ ] 093 Test an interrupted schema migration against a copy of an older database.
 - [ ] 094 Measure inbox query cost against a representative large synthetic conversation set.
 - [x] 095 Avoid overlapping unread-count requests on slow connections.
-- [ ] 096 Reconcile group events received during an in-flight refresh instead of dropping the wake-up.
-- [ ] 097 Add repeatable browser coverage for reconnect after server-sent event interruption.
+- [x] 096 Reconcile group events received during an in-flight refresh instead of dropping the wake-up.
+- [x] 097 Add repeatable browser coverage for reconnect after server-sent event interruption.
 - [x] 098 Verify downloaded recordings decode to playable media, not just nonempty files.
-- [ ] 099 Add a real-device release checklist for calls on separate mobile networks using TURN.
+- [x] 099 Add a real-device release checklist for calls on separate mobile networks using TURN.
 - [x] 100 Document rollback and data-preservation checks for releases that add SQLite columns.

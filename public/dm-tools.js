@@ -9,9 +9,36 @@ import {
   withIcon,
   error,
 } from "./social-ui.js";
-let catalog;
+let catalog, byChar;
 const close = () => $("#socialDialog").close();
-export async function emojiPicker(choose) {
+const sessionRecents = new Map();
+function recentList(key) {
+  if (!key) return [];
+  if (sessionRecents.has(key)) return sessionRecents.get(key);
+  try {
+    const raw = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(raw)
+      ? raw.filter((c) => typeof c === "string").slice(0, 24)
+      : [];
+  } catch {
+    return sessionRecents.get(key) || [];
+  }
+}
+function saveRecent(key, chars) {
+  if (!key) return;
+  try {
+    if (chars.length) localStorage.setItem(key, JSON.stringify(chars));
+    else localStorage.removeItem(key);
+    sessionRecents.delete(key);
+  } catch {
+    sessionRecents.set(key, chars);
+  }
+}
+export async function emojiPicker(choose, viewer) {
+  const key =
+    Number.isSafeInteger(viewer) && viewer > 0
+      ? `afterlink.recentEmoji.${viewer}`
+      : null;
   const search = input("Search emojis"),
     grid = box("emoji-grid"),
     group = n("select"),
@@ -33,8 +60,15 @@ export async function emojiPicker(choose) {
     "Symbols",
     "Flags",
   ].forEach((s, i) => group.add(new Option(s, i - 1)));
+  if (key) group.add(new Option("Recently used", "recent"), 1);
+  const clear = button("Clear recent emojis", () => {
+    saveRecent(key, []);
+    render();
+    search.focus();
+  });
+  clear.hidden = more.hidden = true;
   let limit = 96;
-  sheet("Choose an emoji", search, group, grid, more);
+  sheet("Choose an emoji", search, group, clear, grid, more);
   search.focus();
   const rows = await (catalog ??= fetch("/assets/emoji.json")
     .then((r) => {
@@ -45,25 +79,44 @@ export async function emojiPicker(choose) {
       catalog = null;
       throw e;
     }));
+  byChar ??= new Map(rows.map((row) => [row[0], row]));
   function render() {
+    const recent = group.value === "recent",
+      chars = recent ? recentList(key) : [];
+    clear.hidden = !recent || !chars.length;
     const q = search.value.trim().toLowerCase(),
-      all = rows.filter(
+      all = (
+        recent ? chars.map((c) => byChar.get(c)).filter(Boolean) : rows
+      ).filter(
         ([char, label, g]) =>
-          (group.value === "-1" || g === Number(group.value)) &&
+          (recent || group.value === "-1" || g === Number(group.value)) &&
           (label.toLowerCase().includes(q) || char === q),
       );
     grid.replaceChildren(
       ...all.slice(0, limit).map(([char, label]) => {
         const b = button(char, async () => {
           close();
-          await choose(char);
+          if ((await choose(char)) !== false && key)
+            saveRecent(
+              key,
+              [char, ...recentList(key).filter((c) => c !== char)].slice(0, 24),
+            );
         });
         b.title = label;
         b.setAttribute("aria-label", label);
         return b;
       }),
     );
-    if (!all.length) grid.append(n("p", "", "No matches"));
+    if (!all.length)
+      grid.append(
+        n(
+          "p",
+          "",
+          recent && !chars.length
+            ? "No recent emojis on this device."
+            : "No matches",
+        ),
+      );
     more.hidden = all.length <= limit;
   }
   search.oninput = group.onchange = () => {
@@ -72,22 +125,50 @@ export async function emojiPicker(choose) {
   };
   render();
 }
-export function messageMenu(m, sent, reply, refresh) {
+export function messageMenu(
+  m,
+  sent,
+  reply,
+  refresh,
+  viewer,
+  actionTarget,
+  peer,
+) {
   const request = async (action, data = {}) => {
     await api(`/message/${m.id}/action`, { action, ...data });
     close();
     await refresh();
   };
   const trigger = withIcon(
-    button("", () => {
+    button("", async () => {
+      const { markButton } = await import("./thread-library.js");
+      if (!trigger.isConnected) return;
+      let replying = false;
+      const dialog = $("#socialDialog");
+      dialog.addEventListener(
+        "close",
+        () => {
+          if (
+            !replying &&
+            !dialog.open &&
+            (document.activeElement === document.body ||
+              document.activeElement === trigger ||
+              dialog.contains(document.activeElement))
+          )
+            actionTarget().focus({ preventScroll: true });
+        },
+        { once: true },
+      );
       const items = [
+        markButton(viewer, peer, m.id),
         button("Reply", () => {
+          replying = true;
           close();
           reply(m);
         }),
         button(m.pinned ? "Unpin" : "Pin", () => request("pin")),
         button("React", () =>
-          emojiPicker((emoji) => request("react", { emoji })),
+          emojiPicker((emoji) => request("react", { emoji }), viewer),
         ),
       ];
       if (m.body)
@@ -169,6 +250,7 @@ export function messageMenu(m, sent, reply, refresh) {
     "more",
     "Message actions",
   );
+  trigger.classList.add("message-action-trigger");
   return trigger;
 }
 export function liveMessages(refresh) {

@@ -673,3 +673,13 @@
     background: var(--soft);
   }
 }
+
+.local-filter { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.local-filter input { flex: 1 1 12rem; min-width: 0; }
+.local-filter button { color: var(--accent-ink); }
+
+.security-field { display: grid; gap: .35rem; }
+.security-field label { font-weight: 600; }
+.security-issue { color: var(--danger-ink); }
+.security-issue:empty { display: none; }
+.security-field [aria-invalid="true"] { border: 2px solid var(--danger-ink); }

@@ -12,7 +12,22 @@
     "storage:health": "node scripts/storage-health.mjs",
     "test:restore": "node --test tests/persistence.test.mjs",
     "test:speed": "node --test tests/web-speed.test.mjs",
-    "test:google-ui": "node scripts/check-google-ui.mjs"
+    "test:google-ui": "node scripts/check-google-ui.mjs",
+    "test:browsing-ui": "node scripts/check-browsing-ui.mjs",
+    "test:voice-ui": "node scripts/check-voice-ui.mjs",
+    "test:chat-shortcuts": "node scripts/check-chat-shortcuts.mjs",
+    "test:watch-layout": "node scripts/check-watch-layout.mjs",
+    "test:call-dock": "node scripts/check-call-dock.mjs",
+    "test:profile-edits": "node scripts/check-profile-edits.mjs",
+    "test:group-live": "node scripts/check-group-reconnect.mjs",
+    "test:call-quality": "node scripts/check-call-quality.mjs",
+    "test:call-output": "node scripts/check-call-output.mjs",
+    "test:thread-access": "node scripts/check-thread-access.mjs",
+    "test:security-review": "node scripts/check-security-review.mjs",
+    "test:feed-return": "node scripts/check-feed-return.mjs",
+    "test:group-roster": "node scripts/check-group-roster.mjs",
+    "test:call-outcomes": "node scripts/check-call-outcomes.mjs",
+    "test:thirty": "node scripts/check-thirty.mjs"
   },
   "repository": {
     "type": "git",

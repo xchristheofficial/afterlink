@@ -1,3 +1,20 @@
+// Remove private UI before navigating away, including when navigation is slow.
+globalThis.clearExpiredSession = () => {
+  if (document.documentElement.dataset.sessionExpired) return;
+  document.documentElement.dataset.sessionExpired = "true";
+  window.dispatchEvent(new Event("afterlink-session-expired"));
+  for (const media of document.querySelectorAll("video,audio")) {
+    media.pause();
+    media.srcObject?.getTracks().forEach((track) => track.stop());
+    media.srcObject = null;
+    media.removeAttribute("src");
+  }
+  for (const dialog of document.querySelectorAll("dialog[open]"))
+    dialog.close();
+  document.body.replaceChildren(
+    document.createTextNode("Your session ended. Returning to sign in…"),
+  );
+};
 // The feed already has a rail. Other member pages share these four shortcuts;
 // the compact profile editor shows only the profile photo.
 (() => {

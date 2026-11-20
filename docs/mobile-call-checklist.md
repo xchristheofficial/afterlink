@@ -1,0 +1,13 @@
+# Mobile call release check
+
+Run this on a staging HTTPS deployment before releasing call changes. Passing the local Chromium test verifies measurement and UI, **not** mobile routing, speaker output, permission prompts, or TURN reachability.
+
+1. Use two test accounts, two physical phones, and separate networks (for example Wi-Fi on A, mobile data on B; disable Wi-Fi on B). Record build SHA, phone/OS/browser versions and network types. Keep credentials, IPs, ICE candidates, and raw statistics out of tickets and screenshots.
+2. Verify staging has `CALL_TURN_URL` and `CALL_TURN_SECRET` configured for the same TURN service. Use **Messages → Start audio call** on A. Answer muted on B. Confirm B hears A, A does not hear B until B unmutes, and neither camera activates. Repeat with the roles reversed.
+3. On each phone open **My call settings → Check connection**. Record only the estimate, round-trip delay, incoming audio loss, and path type. A **Direct** result is a useful baseline, but does **not** prove TURN works. Missing measurements are not zero loss.
+4. Repeat on a controlled test network that permits signaling and the configured TURN endpoint but disallows a direct media path. Require a connected call, audible speech both ways, and a **TURN relay** reading (or independent confirmation of a relayed media allocation in sanitized staging TURN diagnostics). If no relay was observed, mark the TURN check **not verified**, even if direct calls worked.
+5. While relayed, switch to video with each person's consent, check motion and voice both ways, minimize/restore, and return to audio. Deny a camera prompt on one run; confirm the mic-only call still works. End from each side in separate runs and check that device capture indicators clear.
+6. With a headset connected, choose **My call settings → Choose partner voice output** if offered. Confirm the voice actually moves to the chosen output, cancelling a second selection leaves it there, and **Use system default** moves it back. When watching a shared tab with sound, route its output separately. Verify the other person’s microphone and playback are unaffected. Record unsupported device/browser combinations explicitly.
+7. Switch network on one phone during a call. Note whether it recovers or ends with feedback; verify that an explicit new call works afterward. Repeat with the supported mobile browser families and record any feature limitations rather than assuming desktop behavior.
+
+Record **pass / fail / not verified** per scenario, plus which phone placed the call. Do not sign off on cross-network calling if the relay case failed or was skipped.

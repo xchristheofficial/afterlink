@@ -89,6 +89,9 @@ export async function messages(root, peer) {
       n("h1", "", "Messages"),
       button("New Message", compose, "gradient"),
     ),
+    button("Local call options", async () =>
+      (await import("./call-local-options.js")).localCallOptions(),
+    ),
     noteHost,
     filters,
     search,
@@ -190,11 +193,11 @@ export async function messages(root, peer) {
                 (msg.selectionEnd - msg.selectionStart) >
               1000
             )
-              return;
+              return false;
             msg.setRangeText(char, msg.selectionStart, msg.selectionEnd, "end");
             msg.dispatchEvent(new Event("input"));
             msg.focus();
-          }),
+          }, viewer),
         ),
         "smile",
         "Add emoji",
@@ -230,7 +233,11 @@ export async function messages(root, peer) {
       window.dispatchEvent(new Event("unread-change"));
       inbox().catch(error);
     });
+    const arrivals = n("span", "sr-only thread-arrivals");
+    arrivals.setAttribute("role", "status");
+    arrivals.setAttribute("aria-atomic", "true");
     right.append(
+      arrivals,
       header,
       pinBar,
       historyView.element,
@@ -286,6 +293,15 @@ export async function messages(root, peer) {
         sheet(
           "Conversation details",
           profile(identity),
+          button("Conversation library", async () =>
+            (await import("./thread-library.js")).threadLibrary(
+              identity,
+              viewer,
+            ),
+          ),
+          button("Local call options", async () =>
+            (await import("./call-local-options.js")).localCallOptions(),
+          ),
           ...(nodes.size
             ? [
                 button(
@@ -331,6 +347,8 @@ export async function messages(root, peer) {
       }
       if (d.viewer) viewer = d.viewer;
       const opening = "firstUnread" in d;
+      const announce = ready && !opening && !prepend && !document.hidden;
+      let incoming = 0;
       if (opening) firstUnread = d.firstUnread;
       if (d.member) {
         if (!identity) identity = {};
@@ -400,7 +418,8 @@ export async function messages(root, peer) {
           m.reactions,
           m.replyRemoved,
         ]);
-        let existing = nodes.get(m.id)?.parentNode;
+        const existing = nodes.get(m.id)?.parentNode;
+        if (announce && !existing && !sent && !m.removed) incoming++;
         if (existing?.dataset.meta === signature) {
           const time = nodes.get(m.id);
           if (time.textContent !== stamp) time.textContent = stamp;
@@ -417,6 +436,13 @@ export async function messages(root, peer) {
           time,
         );
         bubble.dataset.meta = signature;
+        bubble.tabIndex = -1;
+        const actionTarget = () => {
+          const current = nodes.get(m.id)?.parentNode;
+          return (
+            current?.querySelector(".message-action-trigger") || current || log
+          );
+        };
         if (m.removed) bubble.querySelector("p").textContent = "Message unsent";
         else {
           if (m.forwarded) bubble.prepend(n("small", "", "Forwarded"));
@@ -436,13 +462,36 @@ export async function messages(root, peer) {
           const reactions = JSON.parse(m.reactions || "[]");
           if (reactions.length)
             bubble.append(n("span", "reaction-badge", reactions.join(" ")));
-          bubble.append(messageMenu(m, sent, reply, () => update(true)));
+          bubble.append(
+            messageMenu(
+              m,
+              sent,
+              reply,
+              () => update(true),
+              viewer,
+              actionTarget,
+              peer,
+            ),
+          );
         }
         const attachment = mediaBubble(m, sent);
         if (attachment) bubble.prepend(attachment);
-        if (existing) existing.replaceWith(bubble);
-        else frag.append(bubble);
+        if (existing) {
+          const refocus =
+            existing === document.activeElement ||
+            existing.querySelector(".message-action-trigger") ===
+              document.activeElement;
+          existing.replaceWith(bubble);
+          if (refocus) actionTarget().focus({ preventScroll: true });
+        } else frag.append(bubble);
         oldest = Math.min(oldest, m.id);
+      }
+      if (incoming) {
+        const who = identity.nickname || identity.name;
+        // Replace the text node even for two consecutive identical counts.
+        arrivals.replaceChildren(
+          `${incoming === 1 ? "New message" : `${incoming} new messages`} from ${who}.`,
+        );
       }
       if (prepend) older.after(frag);
       else log.append(frag);

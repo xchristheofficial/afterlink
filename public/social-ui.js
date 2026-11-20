@@ -72,6 +72,7 @@ export function ago(ms) {
         : new Date(ms).toLocaleDateString();
 }
 export function error(e) {
+  if (document.documentElement.dataset.sessionExpired) return;
   const dialog = $("#socialDialog[open]");
   let alert = $("#alert");
   if (dialog) {
@@ -100,6 +101,7 @@ export async function api(path, data) {
         },
   );
   if (r.status === 401) {
+    window.clearExpiredSession?.();
     location.replace(
       "/?auth=session&next=" +
         encodeURIComponent(location.pathname + location.search),

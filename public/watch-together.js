@@ -79,7 +79,7 @@ export function watchTogether(c, dialog, write, constrained) {
     hint = n(
       "p",
       "subtle",
-      "Open the website in another tab, then choose that tab to share. Enable tab audio in the picker if you want to share its sound.",
+      "Open the website in another tab, then choose that tab to share. Enable tab audio in the picker to share sound. If your browser offers “Share this tab instead”, use it to switch without stopping.",
     ),
     url = input("Website address (optional)", 2048),
     setup = box("watch-setup"),
@@ -90,7 +90,10 @@ export function watchTogether(c, dialog, write, constrained) {
     log = box("watch-log"),
     form = n("form", "watch-compose"),
     chat = box("watch-chat", n("strong", "", "Conversation"), log, form),
-    content = box("watch-content", label, video, chat),
+    chatToggle = n("button", "watch-view-toggle"),
+    newMessages = n("span", "watch-new"),
+    heading = box("watch-heading", label, chatToggle, newMessages),
+    content = box("watch-content", heading, video, chat),
     send = n("button", "gradient", "Send");
   let presenter = null,
     revision = 0,
@@ -99,7 +102,29 @@ export function watchTogether(c, dialog, write, constrained) {
     opening = false,
     version = 0,
     last = "",
+    latestId = null,
+    collapsed = false,
     chatTimer;
+  chat.id = "watch-chat-" + c.id;
+  chatToggle.type = "button";
+  chatToggle.setAttribute("aria-controls", chat.id);
+  newMessages.setAttribute("role", "status");
+  function setExpandedVideo(expand) {
+    collapsed = expand;
+    content.classList.toggle("watch-expanded", expand);
+    chat.hidden = expand;
+    chatToggle.setAttribute("aria-expanded", String(!expand));
+    chatToggle.textContent = expand ? "Show conversation" : "Expand shared tab";
+    if (!expand) newMessages.textContent = "";
+  }
+  setExpandedVideo(false);
+  chatToggle.onclick = () => {
+    setExpandedVideo(!collapsed);
+    if (!collapsed) {
+      log.scrollTop = log.scrollHeight;
+      field.focus();
+    }
+  };
   const typing = typingIndicator(field, c.peer);
   chat.firstChild.append(typing.label);
   notice.setAttribute("role", "status");
@@ -210,6 +235,19 @@ export function watchTogether(c, dialog, write, constrained) {
     try {
       const d = await api("/thread/" + c.peer);
       if (closed || seq !== version || !presenter) return;
+      // Use message IDs, not rendered text: a repeated message is new, but a
+      // refresh, receipt, or unsend on an older message is not. This indicator
+      // is local to the watch layout; it does not change DM read receipts.
+      if (
+        collapsed &&
+        latestId !== null &&
+        !newMessages.textContent &&
+        d.messages.some(
+          (m) => m.id > latestId && m.sender === c.peer && !m.removed,
+        )
+      )
+        newMessages.textContent = "New messages";
+      latestId = Math.max(latestId ?? 0, ...d.messages.map((m) => m.id));
       const items = d.messages
         .slice(-30)
         .map((m) => [
@@ -267,6 +305,8 @@ export function watchTogether(c, dialog, write, constrained) {
       !c.remote.requestPictureInPicture;
     if (owner === presenter) return;
     presenter = owner;
+    setExpandedVideo(false);
+    latestId = null;
     paintSound();
     playTab.hidden = true;
     c.watchTransport.resizeCameras(!!owner);
@@ -328,6 +368,7 @@ export function watchTogether(c, dialog, write, constrained) {
           frameRate: { ideal: constrained ? 12 : 24, max: 30 },
         },
         audio: true,
+        surfaceSwitching: "include",
         selfBrowserSurface: "exclude",
         systemAudio: "exclude",
       });
