@@ -90,7 +90,7 @@ test("public assets negotiate smaller wire bodies with byte-identical fallback",
   assert.equal(partial.data.length, 100);
   assert.equal(partial.headers["content-encoding"], undefined);
   assert.equal(
-    (await load("/assets/auth-illustration.webp", "br")).headers[
+    (await load("/assets/jacaranda-ride.webp", "br")).headers[
       "content-encoding"
     ],
     undefined,

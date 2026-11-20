@@ -31,17 +31,16 @@
       <button type="button" id="retryRoute" hidden>Try again</button>
     </div>
     <main class="layout" hidden>
-      <aside
-        class="art"
-        aria-label="Decorative feed illustration from the AfterLink design reference, not live user activity"
-      >
-        <img
-          loading="lazy"
-          src="/assets/auth-illustration.webp"
-          alt=""
-          width="959"
-          height="1280"
-        />
+      <aside class="art" aria-hidden="true">
+        <picture>
+          <source media="(max-width: 760px)" srcset="/assets/jacaranda-banner.webp" />
+          <img loading="lazy" src="/assets/jacaranda-ride.webp" alt="" width="896" height="1200" />
+        </picture>
+        <div class="art-imprint">
+          <span class="art-edition">Field notes <i></i> No. 01</span>
+          <span class="art-wordmark">After<em>Link</em></span>
+          <span class="art-location">Nairobi <b>✦</b> The jacaranda ride</span>
+        </div>
       </aside>
       <section class="card" aria-label="AfterLink account access">
         <div class="inside" data-mode="signin">

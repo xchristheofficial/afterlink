@@ -90,7 +90,7 @@ try {
       assert.ok(box && box.y >= 0 && box.y + box.height <= height);
       assert.equal(
         await image.evaluate((el) => getComputedStyle(el).objectFit),
-        "contain",
+        "cover",
       );
     }
     assert.equal(bounds.x, 0);
@@ -113,7 +113,7 @@ try {
       () =>
         performance
           .getEntriesByType("resource")
-          .filter((e) => e.name.endsWith("/auth-illustration.webp")).length,
+          .filter((e) => e.name.endsWith("/jacaranda-ride.webp")).length,
     );
   const initialRequests = await imageRequests();
   for (const label of [
