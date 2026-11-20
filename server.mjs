@@ -79,7 +79,9 @@ app.use("/api", (req, res, next) => {
 app.use("/api/feed/profile", express.json({ limit: "100kb" }));
 const smallJson = express.json({ limit: "4kb" });
 app.use((req, res, next) =>
-  /^\/api\/feed\/(posts|stories|draft|thread\/[1-9]\d*)\/?$/.test(req.path)
+  /^\/api\/feed\/(posts|stories|draft|calls|thread\/[1-9]\d*)\/?$/.test(
+    req.path,
+  )
     ? next()
     : smallJson(req, res, next),
 );
@@ -389,6 +391,8 @@ app.get(
     "/connections",
     "/stories",
     "/stories/create",
+    "/groups",
+    "/groups/:gid",
     "/linkbacks",
     "/linkbacks/:gid",
     "/safety",

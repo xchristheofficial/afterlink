@@ -23,7 +23,7 @@ export function installFeed(app, db, session, limit) {
   });
   let mention;
   const enrich = installComposer(app, db, limit, (...args) => mention(...args));
-  mention = installSocial(app, db, enrich);
+  mention = installSocial(app, db, enrich, session);
   app.get("/api/feed", (req, res) => {
     const uid = res.locals.uid;
     const profile = db

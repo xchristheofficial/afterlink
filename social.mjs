@@ -1,3 +1,7 @@
+import { installLiveEvents } from "./live-events.mjs";
+import { installMessageActions } from "./message-actions.mjs";
+import { installDmMedia } from "./dm-media.mjs";
+import { installCalls } from "./calls.mjs";
 import { installLinkbacks } from "./linkbacks.mjs";
 import { installMemberSettings } from "./member-settings.mjs";
 import { separated, muted } from "./visibility.mjs";
@@ -5,7 +9,8 @@ import express from "express";
 import { rateLimit } from "express-rate-limit";
 import { visiblePost } from "./composer.mjs";
 
-export function installSocial(app, db, enrich) {
+export function installSocial(app, db, enrich, session) {
+  const wake = installLiveEvents(app, session);
   const limit = rateLimit({
     windowMs: 60_000,
     limit: 60,
@@ -91,7 +96,64 @@ export function installSocial(app, db, enrich) {
     getPost,
     enrich,
   });
-  installLinkbacks(db, { endpoint, one, all, run, id, body, fail, allowedDM });
+  const { parseMedia, checkQuota } = installDmMedia(app, db, {
+    wake,
+    endpoint,
+    id,
+    fail,
+    one,
+    run,
+  });
+  app.post("/api/feed/calls", express.json({ limit: "72kb" }));
+  db.exec(
+    `CREATE TABLE IF NOT EXISTS dm_nicknames(owner INTEGER REFERENCES users(id) ON DELETE CASCADE,peer INTEGER REFERENCES users(id) ON DELETE CASCADE,nickname TEXT NOT NULL,PRIMARY KEY(owner,peer))`,
+  );
+  const nickname = (uid, peer) =>
+    one("SELECT nickname FROM dm_nicknames WHERE owner=? AND peer=?", uid, peer)
+      ?.nickname || "";
+  endpoint("post", "nickname/:peer", (uid, q, b, p) => {
+    const peer = id(p.peer);
+    if (peer === uid || hidden(uid, peer))
+      fail("Conversation unavailable.", 403);
+    person(peer, uid);
+    if (typeof b.nickname !== "string" || b.nickname.length > 40)
+      fail("Use up to 40 characters.");
+    const value = b.nickname.trim();
+    if (value)
+      run(
+        "INSERT OR REPLACE INTO dm_nicknames VALUES(?,?,?)",
+        uid,
+        peer,
+        value,
+      );
+    else run("DELETE FROM dm_nicknames WHERE owner=? AND peer=?", uid, peer);
+    wake("chat", uid);
+  });
+  installCalls({ endpoint, id, fail, person, allowedDM, wake, nickname });
+  const { select, target } = installMessageActions(db, {
+    endpoint,
+    id,
+    fail,
+    run,
+    one,
+    all,
+    person,
+    hidden,
+    allowedDM,
+    wake,
+    checkQuota,
+  });
+  installLinkbacks(db, {
+    wake,
+    endpoint,
+    one,
+    all,
+    run,
+    id,
+    body,
+    fail,
+    allowedDM,
+  });
   function notify(recipient, actor, kind, pid) {
     if (recipient !== actor)
       run(
@@ -270,7 +332,7 @@ export function installSocial(app, db, enrich) {
       .slice(0, 100);
     return {
       threads: all(
-        `WITH mine AS (SELECT *,CASE WHEN sender=:uid THEN recipient ELSE sender END peer FROM messages WHERE sender=:uid OR recipient=:uid), latest AS (SELECT peer,max(id) id,sum(CASE WHEN recipient=:uid AND seen=0 THEN 1 ELSE 0 END) unread FROM mine GROUP BY peer) SELECT p.*,m.body,m.created,m.sender=:uid outgoing,l.unread FROM latest l JOIN mine m ON m.id=l.id JOIN feed_profiles p ON p.id=l.peer WHERE NOT ${separated(":uid", "l.peer")} AND (instr(lower(p.name||' '||coalesce(p.username,'')),:term) OR EXISTS(SELECT 1 FROM mine t WHERE t.peer=l.peer AND instr(lower(t.body),:term))) ORDER BY l.id DESC LIMIT 100`,
+        `WITH mine AS (SELECT *,CASE WHEN sender=:uid THEN recipient ELSE sender END peer FROM messages WHERE sender=:uid OR recipient=:uid), latest AS (SELECT peer,max(id) id,sum(CASE WHEN recipient=:uid AND seen=0 THEN 1 ELSE 0 END) unread FROM mine GROUP BY peer) SELECT p.*,nn.nickname,m.body,m.removed,(SELECT type FROM dm_media WHERE message=m.id) mediaType,m.created,m.sender=:uid outgoing,l.unread FROM latest l JOIN mine m ON m.id=l.id JOIN feed_profiles p ON p.id=l.peer LEFT JOIN dm_nicknames nn ON nn.owner=:uid AND nn.peer=p.id WHERE NOT ${separated(":uid", "l.peer")} AND (instr(lower(p.name||' '||coalesce(p.username,'')||' '||coalesce(nn.nickname,'')),:term) OR EXISTS(SELECT 1 FROM mine t WHERE t.peer=l.peer AND instr(lower(t.body),:term))) ORDER BY l.id DESC LIMIT 100`,
         { uid, term },
       ),
     };
@@ -282,7 +344,8 @@ export function installSocial(app, db, enrich) {
     const member = person(peer, uid),
       before = q.before ? id(q.before) : Number.MAX_SAFE_INTEGER;
     const rows = all(
-      "SELECT id,body,created,sender,seen,exists(SELECT 1 FROM message_photos WHERE message=id) hasPhoto FROM messages WHERE ((recipient=? AND sender=?) OR (sender=? AND recipient=?)) AND id<? ORDER BY id DESC LIMIT 61",
+      select +
+        " WHERE ((m.recipient=? AND m.sender=?) OR (m.sender=? AND m.recipient=?)) AND m.id<? ORDER BY m.id DESC LIMIT 61",
       uid,
       peer,
       uid,
@@ -290,7 +353,15 @@ export function installSocial(app, db, enrich) {
       before,
     );
     return {
-      member,
+      member: { ...member, nickname: nickname(uid, peer) },
+      pin:
+        one(
+          "SELECT id,body FROM messages WHERE pinned=1 AND ((sender=? AND recipient=?) OR (sender=? AND recipient=?))",
+          uid,
+          peer,
+          peer,
+          uid,
+        ) || null,
       active: !!(
         prefs(uid).activity &&
         prefs(peer).activity &&
@@ -304,13 +375,28 @@ export function installSocial(app, db, enrich) {
       more: rows.length > 60,
     };
   });
-  app.use("/api/feed/thread/:peer", express.json({ limit: "240kb" }));
+  app.use("/api/feed/thread/:peer", express.json({ limit: "6mb" }));
   endpoint("post", "thread/:peer", (uid, q, b, p) => {
     const peer = id(p.peer);
     if (peer === uid) fail("Choose another member.");
     person(peer, uid);
     if (!allowedDM(uid, peer))
       fail("This member is not accepting messages from you.", 403);
+    const token = b.clientId ?? null;
+    if (token !== null) {
+      if (typeof token !== "string" || !/^[-a-zA-Z0-9]{16,64}$/.test(token))
+        fail("Invalid message token.");
+      const prior = one(
+        select + " WHERE m.sender=? AND m.recipient=? AND m.client_token=?",
+        uid,
+        peer,
+        token,
+      );
+      if (prior) return { message: prior };
+    }
+    if (b.media !== undefined && b.photo !== undefined)
+      fail("Choose one attachment.");
+    const media = b.media === undefined ? null : parseMedia(b.media, uid);
     let photo = null;
     if (b.photo !== undefined) {
       if (
@@ -322,29 +408,40 @@ export function installSocial(app, db, enrich) {
       photo = Buffer.from(b.photo, "base64");
       if (!photo.subarray(-2).equals(Buffer.from([255, 217])))
         fail("Invalid photo.");
-      if (
-        one(
-          "SELECT coalesce(sum(length(bytes)),0) used FROM message_photos JOIN messages ON message=id WHERE sender=?",
-          uid,
-        ).used +
-          photo.length >
-        64 * 1024 * 1024
-      )
-        fail("Message photo storage is full.", 413);
+      checkQuota(uid, photo.length);
+    }
+    let reply = null;
+    if (b.replyTo) {
+      const m = target(uid, b.replyTo);
+      if (![m.sender, m.recipient].includes(peer))
+        fail("Reply must be in this conversation.");
+      reply = m.id;
     }
     const result = run(
-      "INSERT INTO messages(sender,recipient,body,created) VALUES(?,?,?,?)",
+      "INSERT INTO messages(sender,recipient,body,created,reply_to,client_token) VALUES(?,?,?,?,?,?)",
       uid,
       peer,
-      photo && !b.body ? "" : body(b.body, 1000),
+      (photo || media) && !b.body ? "" : body(b.body, 1000),
       Date.now(),
+      reply,
+      token,
     );
+    if (media)
+      run(
+        "INSERT INTO dm_media(message,type,once_only,bytes) VALUES(?,?,?,?)",
+        result.lastInsertRowid,
+        media.type,
+        media.once,
+        media.bytes,
+      );
     if (photo)
       run(
         "INSERT INTO message_photos VALUES(?,?)",
         result.lastInsertRowid,
         photo,
       );
+    wake("chat", peer, uid);
+    return { message: one(select + " WHERE m.id=?", result.lastInsertRowid) };
   });
   app.get("/api/feed/message-photo/:id", (req, res) => {
     const uid = res.locals.uid,
@@ -373,6 +470,7 @@ export function installSocial(app, db, enrich) {
       peer,
       through,
     );
+    wake("read", peer);
     res.json({ ok: true });
   });
   return mentions;

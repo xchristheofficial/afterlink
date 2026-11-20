@@ -59,6 +59,51 @@ test("Linkback invitations, post visibility, membership and decisions are privat
     { cookie: b, id: bob } = await signup("bob"),
     { cookie: c, id: carol } = await signup("carol");
 
+  const group = (
+      await ok("groups", a, { name: "Movie night", people: [bob, carol] })
+    ).id,
+    gpath = "linkbacks/" + group;
+  assert.equal(
+    (await ok("linkbacks?kind=groups", b)).groups[0].groupName,
+    "Movie night",
+  );
+  assert.deepEqual((await ok("linkbacks", b)).groups, []);
+  await ok(gpath, a, { action: "message", message: "Private introduction" });
+  assert.ok(!("messages" in (await ok(gpath, b))));
+  await ok(gpath, b, { action: "accept" });
+  await ok(gpath, c, { action: "accept" });
+  assert.equal((await ok(gpath, b)).members.length, 3);
+  assert.equal(
+    (await req("/api/feed/" + gpath, c, { action: "remove", member: bob }))
+      .status,
+    403,
+  );
+  await ok(gpath, c, { action: "leave" });
+  assert.equal((await req("/api/feed/" + gpath, c)).status, 404);
+  await ok("nickname/" + bob, a, { nickname: "Film fan" });
+  await ok("thread/" + bob, a, { body: "Hello" });
+  assert.equal(
+    (await ok("inbox?q=Film%20fan", a)).threads[0].nickname,
+    "Film fan",
+  );
+  assert.equal((await ok("thread/" + bob, c)).member.nickname, "");
+  assert.equal((await ok("thread/" + bob, a)).member.name, "bob");
+  await ok("nickname/" + bob, a, { nickname: "" });
+  assert.equal((await ok("thread/" + bob, a)).member.nickname, "");
+  const call = await ok("calls", a, {
+    action: "start",
+    kind: "video",
+    peer: bob,
+  });
+  const watch = (step) => ({ action: "watch", id: call.id, step });
+  assert.equal((await req("/api/feed/calls", a, watch("start"))).status, 409);
+  await ok("calls", b, { action: "accept", id: call.id });
+  await ok("calls", b, watch("start"));
+  assert.equal((await req("/api/feed/calls", a, watch("start"))).status, 409);
+  assert.equal((await req("/api/feed/calls", c, watch("stop"))).status, 404);
+  assert.equal((await req("/api/feed/calls", a, watch("stop"))).status, 409);
+  await ok("calls", b, watch("stop"));
+  await ok("calls", a, { action: "end", id: call.id });
   const post = (await ok("posts", c, { body: "The original caption" })).id;
   const { id: gid } = await ok("linkbacks", a, {
     post,

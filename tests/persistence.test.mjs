@@ -75,6 +75,13 @@ test("accounts and member activity survive a process replacement", async (t) => 
   await ok("feed/save", b, { id: post.id, on: true });
   await ok("feed/settings", b, { theme: "dark" });
   await ok("feed/thread/" + bob, a, { body: "A private message" });
+  const data = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+    legacy = "/9j/2Q==";
+  await ok("feed/thread/" + bob, a, { photo: legacy });
+  for (const once of [false, true])
+    await ok("feed/thread/" + bob, a, {
+      media: { type: "image/gif", once, data },
+    });
   await stop();
   await start();
   assert.equal((await ok("session", b)).user.email, "bob@example.test");
@@ -86,4 +93,116 @@ test("accounts and member activity survive a process replacement", async (t) => 
     (await ok("feed/thread/" + alice, fresh)).messages[0].body,
     "A private message",
   );
+  const [, photo, kept, single] = (await ok("feed/thread/" + alice, b))
+    .messages;
+  assert.equal(photo.hasPhoto, 1);
+  const load = async (path, user) =>
+    Buffer.from(await (await request(path, user)).arrayBuffer()).toString(
+      "base64",
+    );
+  assert.equal(await load("feed/message-photo/" + photo.id, b), legacy);
+  const path = "feed/message-media/" + single.id,
+    open = path + "/open",
+    third = await sign("carol", true);
+  assert.equal(await load("feed/message-media/" + kept.id, b), data);
+  assert.equal(await load("feed/message-media/" + kept.id, b), data);
+  assert.equal((await request(path, b)).status, 404);
+  assert.equal((await request(open, a, {})).status, 404);
+  assert.equal((await request(open, third, {})).status, 404);
+  // A block after sending prevents an open. Reading the conversation never consumes it.
+  await ok("feed/restrict", b, { kind: "block", id: alice, on: true });
+  assert.equal((await request(open, b, {})).status, 404);
+  await ok("feed/restrict", b, { kind: "block", id: alice, on: false });
+  const opens = await Promise.all([request(open, b, {}), request(open, b, {})]);
+  assert.deepEqual(opens.map((x) => x.status).sort(), [200, 404]);
+  assert.equal((await opens.find((x) => x.ok).json()).data, data);
+  await stop();
+  await start();
+  assert.equal((await request(open, b, {})).status, 404);
+  assert.ok((await ok("feed/thread/" + bob, a)).messages.at(-1).opened);
+  const calls = "feed/calls",
+    startCall = { action: "start", peer: bob, kind: "audio" };
+  await ok("feed/settings", b, { messages: "none" });
+  assert.equal((await request(calls, a, startCall)).status, 403);
+  await ok("feed/settings", b, { messages: "everyone" });
+  const { id } = await ok(calls, a, startCall);
+  assert.equal((await ok(calls, third)).call, null);
+  assert.equal(
+    (await request(calls, third, { id, action: "end" })).status,
+    404,
+  );
+  assert.equal((await request(calls, a, { id, action: "accept" })).status, 409);
+  assert.equal((await request(calls, a, startCall)).status, 409);
+  await ok(calls, b, { id, action: "accept" });
+  const recording = (step) => ({ id, action: "recording", step });
+  await ok(calls, a, recording("request"));
+  assert.equal((await request(calls, a, recording("allow"))).status, 409);
+  assert.equal((await request(calls, a, recording("begin"))).status, 409);
+  await ok(calls, b, recording("allow"));
+  await ok(calls, a, recording("begin"));
+  assert.equal((await ok(calls, b)).call.recording.state, "active");
+  await ok(calls, b, recording("stop"));
+  await ok(calls, b, { id, action: "end" });
+  assert.equal((await ok(calls, a)).call, null);
+  const thread = "feed/thread/" + bob,
+    carol = (await ok("feed/settings", third)).id;
+  const action = (id) => "feed/message/" + id + "/action";
+  const sent = {
+    body: "An original",
+    clientId: "01234567-0123-4123-8123-012345678901",
+  };
+  const original = (await ok(thread, a, sent)).message.id;
+  assert.equal((await ok(thread, a, sent)).message.id, original);
+  await ok("feed/thread/" + alice, b, { body: "Replying", replyTo: original });
+  assert.equal(
+    (
+      await request("feed/thread/" + carol, a, {
+        body: "wrong chat",
+        replyTo: original,
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await request(action(original), third, { action: "react", emoji: "🙂" }))
+      .status,
+    404,
+  );
+  await ok(action(original), b, { action: "react", emoji: "🙂" });
+  await ok(action(original), b, { action: "pin" });
+  let result = await ok(thread, a);
+  assert.equal(result.pin.id, original);
+  assert.equal(result.messages.at(-1).replyBody, sent.body);
+  assert.equal(result.messages.at(-2).reactions, '["🙂"]');
+  assert.equal(
+    (await request(action(single.id), b, { action: "forward", peer: carol }))
+      .status,
+    403,
+  );
+  await ok(action(kept.id), b, { action: "forward", peer: carol });
+  const copy = (await ok(thread, third)).messages.at(-1);
+  assert.equal(copy.forwarded, 1);
+  assert.equal(await load("feed/message-media/" + copy.id, third), data);
+  assert.equal(
+    (await request(action(original), b, { action: "unsend" })).status,
+    403,
+  );
+  await ok(action(original), a, { action: "unsend" });
+  result = await ok(thread, a);
+  assert.equal(result.pin, null);
+  assert.equal(result.messages.at(-1).replyRemoved, 1);
+  assert.equal(result.messages.at(-1).replyBody, "");
+  assert.equal(result.messages.at(-2).reactions, "[]");
+  await ok(action(kept.id), a, { action: "unsend" });
+  assert.equal((await request("feed/message-media/" + kept.id, b)).status, 404);
+  await ok("feed/notes", a, { body: "In Nairobi" });
+  await ok("feed/follow", b, { id: alice, on: true });
+  await stop();
+  await start();
+  assert.ok(
+    (await ok("feed/notes", b)).notes.some((n) => n.body === "In Nairobi"),
+  );
+  assert.ok(!(await ok("feed/notes", third)).notes.some((n) => n.id === alice));
+  await ok("feed/notes", a, { body: "" });
+  assert.ok(!(await ok("feed/notes", b)).notes.some((n) => n.id === alice));
 });

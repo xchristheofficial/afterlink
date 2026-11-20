@@ -17,7 +17,9 @@ const path = (id) => "/linkbacks/" + id;
 const close = () => $("#socialDialog").close();
 const hint = (t) => n("p", "subtle", t);
 const title = (g) =>
-  g.post?.body || (g.post ? "Media post" : "Original post unavailable");
+  g.groupName ||
+  g.post?.body ||
+  (g.post ? "Media post" : "Original post unavailable");
 function preview(p) {
   if (!p)
     return box(
@@ -52,7 +54,7 @@ function pinCard(text) {
   );
 }
 function card(g) {
-  const l = a(path(g.id), "", "lb-card");
+  const l = a(g.groupName ? "/groups/" + g.id : path(g.id), "", "lb-card");
   l.append(
     n(
       "small",
@@ -125,6 +127,38 @@ async function choosePeople(selected, excluded, submit, back) {
   search.oninput = () => find().catch(error);
   await find();
 }
+function createGroup() {
+  const name = input("Group name", 60),
+    selected = new Map();
+  function start() {
+    sheet(
+      "Create a group",
+      hint("Choose a name and invite people to a private group chat."),
+      name,
+      button(
+        "Choose people",
+        () => {
+          if (!name.value.trim()) throw Error("Give your group a name.");
+          return choosePeople(
+            selected,
+            new Set(),
+            async (people) => {
+              const r = await api("/groups", {
+                name: name.value.trim(),
+                people,
+              });
+              location.assign("/groups/" + r.id);
+            },
+            start,
+          );
+        },
+        "gradient",
+      ),
+    );
+    name.focus();
+  }
+  start();
+}
 export function startLinkback(p) {
   const first = input("First message (optional)", 1000),
     selected = new Map();
@@ -184,6 +218,7 @@ export function inboxTabs(active) {
   nav.setAttribute("aria-label", "Inbox views");
   for (const [label, url] of [
     ["Chats", "/messages"],
+    ["Groups", "/groups"],
     ["Linkbacks", "/linkbacks"],
   ]) {
     const link = a(url, label);
@@ -192,7 +227,7 @@ export function inboxTabs(active) {
   }
   return nav;
 }
-function poll(task) {
+function poll(task, live = false) {
   let busy = false;
   const tick = async () => {
     if (document.hidden || busy) return;
@@ -205,26 +240,47 @@ function poll(task) {
       busy = false;
     }
   };
+  let src;
+  function connect() {
+    if (live && !src && window.EventSource) {
+      src = new EventSource("/api/feed/live");
+      src.addEventListener("group", tick);
+      src.onopen = tick;
+    }
+  }
+  connect();
+  window.addEventListener("pageshow", connect);
   const timer = setInterval(tick, 4500);
   window.addEventListener("pagehide", (e) => {
+    src?.close();
+    src = null;
     if (!e.persisted) clearInterval(timer);
   });
   document.addEventListener("visibilitychange", tick);
 }
-export async function linkbacks(root, gid) {
+export async function linkbacks(root, gid, named = false) {
+  const label = named ? "Groups" : "Linkbacks",
+    base = named ? "/groups" : "/linkbacks",
+    sync = (task) => poll(task, named);
   const layout = box("lb-layout"),
     side = box("lb-side"),
     main = box("lb-main");
   root.append(layout);
   layout.append(side, main);
   layout.classList.toggle("lb-open", !!gid);
-  const search = input("Search Linkbacks…"),
+  const search = input(`Search ${label}…`),
     list = box("lb-list");
-  side.append(inboxTabs("Linkbacks"), n("h1", "", "Linkbacks"), search, list);
+  side.append(
+    inboxTabs(label),
+    n("h1", "", label),
+    ...(named ? [button("Create group", createGroup, "gradient")] : []),
+    search,
+    list,
+  );
   let groups = null;
   function listGroups() {
     const q = search.value.toLowerCase().trim(),
-      found = groups.filter((g) =>
+      found = (groups || []).filter((g) =>
         [
           title(g),
           g.from?.name,
@@ -247,26 +303,29 @@ export async function linkbacks(root, gid) {
       list.append(
         hint(
           q
-            ? "No matching Linkbacks."
-            : "Start a Linkback from a post to invite people here.",
+            ? `No matching ${label.toLowerCase()}.`
+            : named
+              ? "Create a group or wait for an invitation."
+              : "Start a Linkback from a post to invite people here.",
         ),
       );
   }
   search.oninput = listGroups;
   async function inbox() {
-    const next = (await api("/linkbacks")).groups;
+    const next = (await api("/linkbacks" + (named ? "?kind=groups" : "")))
+      .groups;
     if (JSON.stringify(next) === JSON.stringify(groups)) return;
     groups = next;
     listGroups();
   }
   await inbox();
   if (!gid) {
-    poll(inbox);
+    sync(inbox);
     main.append(
       empty(
-        "Choose a Linkback",
+        named ? "Choose a group" : "Choose a Linkback",
         "Your conversations and invitations appear in the inbox.",
-        a("/search", "Explore posts", "gradient"),
+        ...(named ? [] : [a("/search", "Explore posts", "gradient")]),
       ),
     );
     return;
@@ -274,12 +333,16 @@ export async function linkbacks(root, gid) {
   const url = path(gid),
     act = (action, b = {}) => api(url, { action, ...b });
   let g = await api(url);
-  const back = a("/linkbacks", "All Linkbacks", "lb-back");
+  if (!!g.groupName !== named) {
+    location.replace((g.groupName ? "/groups/" : "/linkbacks/") + gid);
+    return;
+  }
+  const back = a(base, "All " + label, "lb-back");
   if (g.pending) {
-    poll(async () => {
+    sync(async () => {
       await inbox();
       const current = groups.find((x) => x.id === gid);
-      if (!current) location.replace("/linkbacks");
+      if (!current) location.replace(base);
       else if (
         !current.pending ||
         JSON.stringify(current) !== JSON.stringify(g)
@@ -288,18 +351,18 @@ export async function linkbacks(root, gid) {
     });
     main.append(
       back,
-      n("h1", "", "Linkback invitation"),
+      n("h1", "", named ? "Group invitation" : "Linkback invitation"),
       box(
         "lb-invite",
         avatar(g.from.id),
         n("h2", "", g.from.name + " invited you"),
-        preview(g.post),
+        named ? n("strong", "", g.groupName) : preview(g.post),
         hint("Accept to join the private conversation."),
         box(
           "lb-actions",
           button("Decline", async () => {
             await act("leave");
-            location.replace("/linkbacks");
+            location.replace(base);
           }),
           button(
             "Accept",
@@ -317,14 +380,17 @@ export async function linkbacks(root, gid) {
   const heading = box(
       "lb-heading",
       back,
-      n("h1", "", "Linkback"),
+      n("h1", "", g.groupName || "Linkback"),
       button("Details", details),
     ),
     meta = hint(""),
     source = box("lb-source"),
     decision = box("lb-decision"),
     log = box("lb-log"),
-    draft = input("Message this Linkback…", 1000),
+    draft = input(
+      named ? "Message this group…" : "Message this Linkback…",
+      1000,
+    ),
     form = n("form", "lb-compose"),
     send = n("button", "gradient", "Send");
   draft.required = true;
@@ -393,7 +459,7 @@ export async function linkbacks(root, gid) {
   }
   function paint(previous) {
     meta.textContent = `Private group ${g.id} · ${g.count} ${g.count === 1 ? "member" : "members"}`;
-    if (JSON.stringify(previous?.post) !== JSON.stringify(g.post)) {
+    if (!named && JSON.stringify(previous?.post) !== JSON.stringify(g.post)) {
       source.replaceChildren(preview(g.post));
       if (!g.post)
         source.append(hint("Your conversation and decision remain here."));
@@ -442,7 +508,7 @@ export async function linkbacks(root, gid) {
     } catch (e) {
       if (e.status === 404 || e.status === 403) {
         close();
-        location.replace("/linkbacks");
+        location.replace(base);
       } else throw e;
     }
   }
@@ -479,8 +545,8 @@ export async function linkbacks(root, gid) {
       }
     }
     sheet(
-      "Linkback details",
-      preview(g.post),
+      named ? "Group details" : "Linkback details",
+      named ? n("strong", "", g.groupName) : preview(g.post),
       rows,
       ...(owner
         ? [
@@ -502,23 +568,23 @@ export async function linkbacks(root, gid) {
           ]
         : []),
       button("Copy group link", async (b) => {
-        await navigator.clipboard.writeText(location.origin + url);
+        await navigator.clipboard.writeText(location.origin + base + "/" + gid);
         b.textContent = "Copied";
       }),
       hint("A link only works for invited people and members."),
       button(
-        "Leave Linkback",
+        named ? "Leave group" : "Leave Linkback",
         async () => {
           if (
             confirm(
-              "Leave this Linkback?" +
+              (named ? "Leave this group?" : "Leave this Linkback?") +
                 (owner
                   ? " The next member becomes admin. If nobody else has joined, the group closes."
                   : ""),
             )
           ) {
             await act("leave");
-            location.replace("/linkbacks");
+            location.replace(base);
           }
         },
         "danger",
@@ -544,7 +610,7 @@ export async function linkbacks(root, gid) {
     }
   };
   paint(null);
-  poll(async () => {
+  sync(async () => {
     await refresh();
     await inbox();
   });

@@ -3,7 +3,7 @@ import { separated } from "./visibility.mjs";
 
 export function installLinkbacks(
   db,
-  { one, all, run, id, body, fail, endpoint, allowedDM },
+  { one, all, run, id, body, fail, endpoint, allowedDM, wake },
 ) {
   db.exec(`CREATE TABLE IF NOT EXISTS linkbacks(id INTEGER PRIMARY KEY AUTOINCREMENT,post INTEGER REFERENCES posts(id) ON DELETE SET NULL,updated INTEGER NOT NULL,pin INTEGER REFERENCES lb_messages(id) ON DELETE SET NULL);
     CREATE TABLE IF NOT EXISTS lb_members(gid INTEGER NOT NULL REFERENCES linkbacks(id) ON DELETE CASCADE,uid INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,inviter INTEGER REFERENCES users(id) ON DELETE SET NULL,invited INTEGER NOT NULL,joined INTEGER,PRIMARY KEY(gid,uid));
@@ -17,6 +17,15 @@ export function installLinkbacks(
     CREATE TRIGGER IF NOT EXISTS lb_block AFTER INSERT ON restrictions WHEN new.kind='block' BEGIN
       DELETE FROM lb_members WHERE uid=new.owner AND gid IN(SELECT gid FROM lb_members WHERE uid=new.target);
     END;`);
+  if (!all("PRAGMA table_info(linkbacks)").some((c) => c.name === "group_name"))
+    db.exec("ALTER TABLE linkbacks ADD COLUMN group_name TEXT");
+  function changed(gid, ...extra) {
+    wake(
+      "group",
+      ...extra,
+      ...all("SELECT uid FROM lb_members WHERE gid=?", gid).map((m) => m.uid),
+    );
+  }
   const deny = () => fail("Linkback unavailable.", 404);
   const group = (gid, uid) =>
     one(
@@ -41,6 +50,7 @@ export function installLinkbacks(
   function summary(g, uid) {
     const shared = {
       id: g.id,
+      groupName: g.group_name,
       post: preview(g.post, uid),
       pending: g.joined === null,
       updated: g.joined === null ? g.invited : g.updated,
@@ -101,6 +111,18 @@ export function installLinkbacks(
       body(text, 1000),
       Date.now(),
     );
+  endpoint("post", "groups", (uid, q, b) => {
+    const name = body(b.name, 60),
+      now = Date.now(),
+      gid = Number(
+        run("INSERT INTO linkbacks(group_name,updated) VALUES(?,?)", name, now)
+          .lastInsertRowid,
+      );
+    run("INSERT INTO lb_members VALUES(?,?,NULL,?,?)", gid, uid, now, now);
+    invite(gid, uid, b.people);
+    changed(gid);
+    return { id: gid };
+  });
   endpoint("post", "linkbacks", (uid, q, b) => {
     const pid = id(b.post);
     if (!preview(pid, uid)) fail("Post unavailable.", 404);
@@ -119,8 +141,9 @@ export function installLinkbacks(
     if (filter && !preview(filter, uid)) fail("Post unavailable.", 404);
     return {
       groups: all(
-        `SELECT g.*,m.joined,m.invited,m.inviter FROM lb_members m JOIN linkbacks g ON m.gid=g.id WHERE m.uid=? AND (? IS NULL OR g.post=?) ORDER BY CASE WHEN m.joined IS NULL THEN m.invited ELSE g.updated END DESC,g.id DESC LIMIT 100`,
+        `SELECT g.*,m.joined,m.invited,m.inviter FROM lb_members m JOIN linkbacks g ON m.gid=g.id WHERE m.uid=? AND (g.group_name IS NOT NULL)=? AND (? IS NULL OR g.post=?) ORDER BY CASE WHEN m.joined IS NULL THEN m.invited ELSE g.updated END DESC,g.id DESC LIMIT 100`,
         uid,
+        q.kind === "groups" ? 1 : 0,
         filter,
         filter,
       ).map((g) => summary(g, uid)),
@@ -150,6 +173,7 @@ export function installLinkbacks(
       g = group(gid, uid);
     if (b.action === "leave") {
       run("DELETE FROM lb_members WHERE gid=? AND uid=?", gid, uid);
+      if (g.group_name) changed(gid, uid);
       return;
     }
     if (g.joined === null) {
@@ -187,5 +211,7 @@ export function installLinkbacks(
       else fail("Invalid action.");
     }
     run("UPDATE linkbacks SET updated=? WHERE id=?", Date.now(), gid);
+    if (g.group_name)
+      changed(gid, ...(b.action === "remove" ? [b.member] : []));
   });
 }

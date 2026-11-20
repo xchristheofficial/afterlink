@@ -43,6 +43,187 @@ export async function checkSocial({
     await v.getByRole("textbox", { name: "Message…" }).fill("Received.");
     await v.getByRole("button", { name: "Send", exact: false }).click();
     await p.locator(".chat-log").getByText("Received.").waitFor();
+    // Actual browser capture, recording, and peer-to-peer transport, with Chromium test devices.
+    const ctl = (page, name) => page.getByRole("button", { name, exact: true });
+    await ctl(p, "Conversation details").click();
+    await p.getByPlaceholder("Nickname").fill("Movie buddy");
+    await ctl(p, "Save nickname").click();
+    await p.locator(".thread-head").getByText("Movie buddy").waitFor();
+    await p.getByRole("button", { name: /Your note/ }).click();
+    await p.getByRole("textbox", { name: "Note text" }).fill("Available today");
+    await ctl(p, "Save note").click();
+    await p.getByRole("button", { name: /Available today/ }).waitFor();
+    const received = p
+      .locator(".bubble")
+      .filter({ has: p.getByText("Received.", { exact: true }) });
+    const actions = () =>
+      received.getByRole("button", { name: "Message actions" }).click();
+    await actions();
+    await ctl(p, "Pin").click();
+    await v.getByText("Pinned · Received.", { exact: true }).waitFor();
+    await actions();
+    await ctl(p, "React").click();
+    await p.getByPlaceholder("Search emojis").fill("red heart");
+    await ctl(p, "red heart").click();
+    await v.locator(".reaction-badge").waitFor();
+    await actions();
+    await ctl(p, "Reply").click();
+    await ctl(p, "Add emoji").click();
+    await p.getByPlaceholder("Search emojis").fill("flag: Kenya");
+    await ctl(p, "flag: Kenya").click();
+    await ctl(p, "Send").click();
+    await v.locator(".reply-quote").filter({ hasText: "Received." }).waitFor();
+    const reply = p
+      .locator(".bubble.mine")
+      .filter({ has: p.locator(".reply-quote") });
+    await reply.getByRole("button", { name: "Message actions" }).click();
+    await ctl(p, "Unsend").click();
+    await ctl(p, "Unsend for everyone").click();
+    await v
+      .locator(".chat-log")
+      .getByText("Message unsent", { exact: true })
+      .waitFor();
+    await ctl(p, "Add attachment").click();
+    await ctl(p, "Voice note").click();
+    await ctl(p, "Cancel").click();
+    await ctl(p, "Add attachment").click();
+    await ctl(p, "Voice note").click();
+    await ctl(p, "Pause").click();
+    await ctl(p, "Resume").click();
+    await p.waitForFunction(() =>
+      document.querySelector(".dm-preview")?.textContent.includes("0:01"),
+    );
+    await ctl(p, "Finish").click();
+    await ctl(p, "Remove voice note").waitFor();
+    await ctl(p, "Send").click();
+    await v.locator(".dm-voice audio").evaluate((e) => e.play());
+    const gif = Buffer.from(
+      "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+      "base64",
+    );
+    await p
+      .locator("input[type=file]")
+      .setInputFiles({ name: "test.gif", mimeType: "image/gif", buffer: gif });
+    await ctl(p, "View once").click();
+    await ctl(p, "Send").click();
+    await ctl(v, "View once · GIF").click();
+    await v.locator("#sheet img").evaluate((e) => e.decode());
+    await ctl(v, "Close").click();
+    await ctl(p, "Opened · GIF").waitFor();
+    await ctl(p, "Start audio call").click();
+    await ctl(v, "Decline").click();
+    await p.locator(".call-panel").waitFor({ state: "hidden" });
+    for (const kind of ["audio", "video"]) {
+      await ctl(p, "Start " + kind + " call").click();
+      await ctl(v, "Accept").click();
+      for (const page of [p, v])
+        await page
+          .locator(".call-panel")
+          .getByText("Connected", { exact: true })
+          .waitFor();
+      await v.waitForFunction(
+        () =>
+          document.querySelector(".call-remote")?.srcObject?.getAudioTracks()[0]
+            ?.readyState === "live",
+      );
+      await ctl(p, "Mute").click();
+      await ctl(p, "Unmute").click();
+      if (kind === "video") {
+        await v.waitForFunction(
+          () => document.querySelector(".call-remote")?.videoWidth > 0,
+        );
+        await ctl(v, "Camera off").click();
+        await ctl(v, "Camera on").click();
+      }
+      if (kind === "video") {
+        // Substitute only the browser picker. Canvas pixels, tab audio and both
+        // cameras/mics then travel over the actual WebRTC connection.
+        for (const [host, guest] of [
+          [p, v],
+          [v, p],
+        ]) {
+          await host.evaluate(() =>
+            Object.defineProperty(navigator.mediaDevices, "getDisplayMedia", {
+              configurable: true,
+              value: async () => {
+                const page = document.createElement("canvas");
+                page.width = 256;
+                page.height = 160;
+                const ctx = page.getContext("2d"),
+                  stream = page.captureStream(12);
+                let count = 0;
+                const t = setInterval(() => {
+                  ctx.fillStyle = count++ % 2 ? "blue" : "red";
+                  ctx.fillRect(0, 0, 256, 160);
+                  if (!stream.active) clearInterval(t);
+                }, 80);
+                stream.addTrack(
+                  document
+                    .querySelector(".call-local")
+                    .srcObject.getAudioTracks()[0]
+                    .clone(),
+                );
+                return stream;
+              },
+            }),
+          );
+          await ctl(host, "Watch together").click();
+          await ctl(host, "Share a tab").click();
+          await guest.waitForFunction(() => {
+            const v = document.querySelector(".watch-video");
+            return (
+              v?.videoWidth === 256 &&
+              v.currentTime > 0 &&
+              v.srcObject.getAudioTracks()[0]?.readyState === "live" &&
+              document.querySelector(".call-remote")?.videoWidth > 0
+            );
+          });
+          await guest
+            .getByPlaceholder("Message your watch partner…")
+            .fill("Great scene");
+          await guest.locator(".watch-compose button").click();
+          await host
+            .locator(".watch-log")
+            .getByText("Great scene", { exact: true })
+            .first()
+            .waitFor();
+          await ctl(host, "Stop sharing").click();
+          await guest.locator(".watch-pane").waitFor({ state: "hidden" });
+        }
+      }
+      await ctl(p, "Request recording").click();
+      await ctl(v, "Allow recording").click();
+      if (kind === "video") {
+        // Replace the OS chooser only. Record a real video track and both live audio streams.
+        await p.evaluate(() =>
+          Object.defineProperty(navigator.mediaDevices, "getDisplayMedia", {
+            value: async () =>
+              new MediaStream([
+                document
+                  .querySelector(".call-local")
+                  .srcObject.getVideoTracks()[0]
+                  .clone(),
+              ]),
+          }),
+        );
+      }
+      await ctl(
+        p,
+        kind === "audio" ? "Record audio only" : "Record screen + audio",
+      ).click();
+      await v.getByText("Recording this call", { exact: true }).waitFor();
+      await p.waitForTimeout(1250);
+      const saved = p.waitForEvent("download");
+      await ctl(v, "Stop recording").click();
+      const download = await saved;
+      assert.equal(await download.failure(), null);
+      const file = await download.path();
+      assert.ok(
+        (await (await import("node:fs/promises")).stat(file)).size > 100,
+      );
+      await ctl(v, "End call").click();
+      await p.locator(".call-panel").waitFor({ state: "hidden" });
+    }
     const third = await browser.newContext({ baseURL: url });
     try {
       assert.equal((await third.request.get(photoUrl)).status(), 401);
@@ -90,6 +271,19 @@ export async function checkSocial({
     } finally {
       await third.close();
     }
+    await p.getByRole("link", { name: "Groups", exact: true }).click();
+    await ctl(p, "Create group").click();
+    await p.getByPlaceholder("Group name").fill("Movie night");
+    await ctl(p, "Choose people").click();
+    await p.getByRole("checkbox", { name: "Second Member" }).check();
+    await ctl(p, "Send invites (1)").click();
+    await p.getByRole("heading", { name: "Movie night" }).waitFor();
+    await v.goto(url + "/groups");
+    await v.getByRole("link", { name: /Invitation from.*Movie night/ }).click();
+    await ctl(v, "Accept").click();
+    await v.getByPlaceholder("Message this group…").fill("Ready to watch!");
+    await ctl(v, "Send").click();
+    await ctl(p, "Ready to watch!").waitFor();
     await v.goto(url + "/post/" + postId);
     await v
       .getByRole("textbox", { name: "Add a comment…" })
