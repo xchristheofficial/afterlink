@@ -1,0 +1,20 @@
+# For a new single-instance service. For an existing service see README first.
+services:
+  - type: web
+    name: afterlink
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci
+    startCommand: npm start
+    disk:
+      name: afterlink-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DB_FILE
+        value: /var/data/afterlink.sqlite
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.22.3

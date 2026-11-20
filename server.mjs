@@ -9,14 +9,27 @@ import { DatabaseSync } from "node:sqlite";
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { mkdirSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const dir = dirname(fileURLToPath(import.meta.url)),
-  dbFile = process.env.DB_FILE || resolve(dir, "data/afterlink.sqlite");
-mkdirSync(dirname(dbFile), { recursive: true, mode: 0o700 });
+const dir = dirname(fileURLToPath(import.meta.url));
+const production = process.env.NODE_ENV === "production";
+// Don't silently initialize accounts on a deploy's temporary application disk.
+if (production && !isAbsolute(process.env.DB_FILE || "")) {
+  throw Error(
+    "Set DB_FILE to an absolute SQLite filename on a mounted persistent disk before starting in production.",
+  );
+}
+const dbFile = resolve(
+  process.env.DB_FILE || resolve(dir, "data/afterlink.sqlite"),
+);
+if (dbFile.startsWith(resolve(dir, "public") + "/")) {
+  throw Error("DB_FILE must be outside the public directory.");
+}
+// A missing production mount should fail startup, not create its directory.
+if (!production) mkdirSync(dirname(dbFile), { recursive: true, mode: 0o700 });
 const db = new DatabaseSync(dbFile);
-db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
+db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;
  CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,email TEXT UNIQUE NOT NULL,phone TEXT,hash TEXT,google_sub TEXT UNIQUE);
  CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id),expires INTEGER NOT NULL);`);
 // Existing accounts (including Google users) do not need invented profile values.
@@ -37,7 +50,6 @@ const app = express(),
   derive = promisify(scrypt),
   sha = (s) => createHash("sha256").update(s).digest("hex");
 const token = () => randomBytes(32).toString("hex");
-const production = process.env.NODE_ENV === "production";
 app.disable("x-powered-by");
 app.use(
   helmet({

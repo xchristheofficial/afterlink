@@ -14,6 +14,16 @@ Select **Sign up** and enter a full name, unique username (3–30 letters, numbe
 
 Accounts and revocable, seven-day sessions are stored in `data/afterlink.sqlite`. Passwords use salted scrypt hashes; session tokens are random, hashed in storage and held in HTTP-only cookies in the browser. Never commit or serve the data directory. Run behind HTTPS with `NODE_ENV=production` to require secure cookies. Use a persistent volume and backups for the database in a deployed single-instance service; a workspace preview is not production hosting.
 
+## Keeping data across deployments
+
+Submitted accounts, posts, media, relationships, settings, and conversations are saved in the server’s SQLite database, not just in the browser. Logging out does not delete them. A process restart or a new release must reopen **the same database file**. Production requires an absolute `DB_FILE` and an existing parent directory; a path by itself does not make a disk persistent.
+
+- **Existing Render service:** before making any change that triggers a redeploy, pause writes and take a SQLite-consistent backup of the current database to secure storage outside the service. For example, with the SQLite CLI use `sqlite3 /actual/path/afterlink.sqlite ".backup '/private/path/afterlink-backup.sqlite'"`, then export the backup. Do not copy only a live `.sqlite` file while it has WAL writes. Attach a persistent disk mounted at `/var/data`, restore the backup there as `afterlink.sqlite` **before accepting traffic**, and set `DB_FILE=/var/data/afterlink.sqlite`. If already using a persistent disk, keep the current mount and filename. Do not replace an existing database with an empty one.
+- **New Render service:** `render.yaml` describes a single Node service with a 1 GB persistent disk. This requires a paid disk-capable plan. Adding the file to Git does not attach a disk to an existing service. On other hosts, mount a persistent volume and set `DB_FILE` equivalently.
+- **Backups:** keep private, regularly tested backups off-volume and back up the authenticator encryption key separately. Never serve or commit a database or backup. Monitor disk space, especially when users upload media.
+
+`tests/persistence.test.mjs` writes data through the API, kills the server, starts a new process on the same database and signs in again to verify the records survived.
+
 ## Home feed
 
 Signing in opens `/home`, the bookmarkable, session-protected Home Feed. Opening `/home` while signed out returns you to sign-in. The responsive feed opens with a post composer, people search, follow/unfollow, follower counts and saved posts. The latest 50 posts by the viewer or accounts they follow are shown newest first. All records and counts start empty. Stories, the inbox, and the activity center use real member data.
@@ -64,7 +74,7 @@ Profile counts open searchable follower/following lists. **Saved** shows your pr
 ## Server configuration
 
 - `PORT` — default `3000`.
-- `DB_FILE` — override database location (including its filename).
+- `DB_FILE` — SQLite filename; required in production (absolute path on a persistent volume).
 - `TRUST_PROXY_HOPS` — only set to a known/trusted reverse-proxy hop count for client IP rate limiting.
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` — optional web OAuth client settings. Register the exact public HTTPS callback URL ending in `/auth/google/callback` with Google. Supply secrets via server environment, never frontend code. Without all three settings, the button explains that Google sign-in is not configured. With credentials, the flow checks state, uses PKCE, verifies the ID token and its verified-email claim, and identifies returning Google users by subject. It does not silently merge with a password account using the same email. Provider connectivity is required at runtime.
 
