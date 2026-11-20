@@ -29,7 +29,36 @@ export function callControls() {
     stage = box("call-stage"),
     controls = box("call-controls");
   dialog.setAttribute("aria-label", "AfterLink call");
-  dialog.append(title, status, stage, timer, controls);
+  const size = n("select"),
+    sizeLabel = n("label", "call-size-label", "Call size");
+  for (const label of ["Small", "Medium", "Large"])
+    size.add(new Option(label, label.toLowerCase()));
+  sizeLabel.append(size);
+  size.onchange = () => {
+    dialog.dataset.size = size.value;
+  };
+  const minimize = button("Minimize", () => {
+    // Switch only the dialog mode: keep the same video elements, tracks and RTC session.
+    dialog.close();
+    dialog.dataset.size = "minimized";
+    dialog.show();
+    restore.focus();
+  });
+  function expand() {
+    if (dialog.dataset.size === "minimized") dialog.close();
+    dialog.dataset.size = size.value;
+    if (!dialog.open) dialog.showModal();
+    size.focus();
+  }
+  const restore = button("Restore call", expand, "call-restore");
+  dialog.append(
+    box("call-view-tools", sizeLabel, minimize, restore),
+    title,
+    status,
+    stage,
+    timer,
+    controls,
+  );
   document.body.append(dialog);
   const write = (action, extra) => api("/calls", { action, ...extra });
   function release(c) {
@@ -78,6 +107,8 @@ export function callControls() {
       }).catch(() => {});
   });
   function show(c, incoming) {
+    size.value = dialog.dataset.size = "medium";
+    minimize.hidden = true;
     title.textContent = incoming
       ? "Incoming call"
       : c.kind === "video"
@@ -141,6 +172,7 @@ export function callControls() {
       }
       c.id = c.id || result.id;
       c.talking = true;
+      minimize.hidden = false;
       const pc = (c.pc = new RTCPeerConnection({
         iceServers: result.iceServers,
         bundlePolicy: "max-bundle",
@@ -353,7 +385,7 @@ export function callControls() {
         withIcon(
           button("", async () => {
             if (session) {
-              dialog.showModal();
+              expand();
               return;
             }
             const c = (session = {

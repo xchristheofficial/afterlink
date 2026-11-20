@@ -126,6 +126,47 @@ export async function checkSocial({
           document.querySelector(".call-remote")?.srcObject?.getAudioTracks()[0]
             ?.readyState === "live",
       );
+      const panel = p.locator(".call-panel"),
+        size = panel.getByRole("combobox", { name: "Call size" });
+      const stream = await panel
+        .locator(".call-remote")
+        .evaluateHandle((el) => el.srcObject);
+      const widths = [];
+      // Measure final layout, independent of the user's motion preference.
+      for (const preset of ["small", "medium", "large"]) {
+        await size.selectOption(preset);
+        widths.push(
+          await panel.evaluate(async (el) => {
+            void el.offsetWidth;
+            await Promise.all(el.getAnimations().map((a) => a.finished));
+            return el.offsetWidth;
+          }),
+        );
+      }
+      assert.ok(
+        widths[0] < widths[1] && widths[1] < widths[2],
+        "Call sizes increase",
+      );
+      await ctl(p, "Minimize").click();
+      assert.equal(await panel.evaluate((el) => el.matches(":modal")), false);
+      await p
+        .getByPlaceholder("Message…", { exact: true })
+        .fill("Still on the call");
+      await ctl(p, "Send").click();
+      await ctl(p, "Restore call").click();
+      assert.equal(await size.inputValue(), "large");
+      assert.equal(await panel.evaluate((el) => el.matches(":modal")), true);
+      assert.ok(
+        await panel
+          .locator(".call-remote")
+          .evaluate(
+            (el, old) =>
+              el.srcObject === old &&
+              old.getAudioTracks()[0].readyState === "live",
+            stream,
+          ),
+      );
+      await stream.dispose();
       await ctl(p, "Mute").click();
       await ctl(p, "Unmute").click();
       if (kind === "video") {
@@ -221,6 +262,7 @@ export async function checkSocial({
       assert.ok(
         (await (await import("node:fs/promises")).stat(file)).size > 100,
       );
+      await ctl(p, "Minimize").click();
       await ctl(v, "End call").click();
       await p.locator(".call-panel").waitFor({ state: "hidden" });
     }
