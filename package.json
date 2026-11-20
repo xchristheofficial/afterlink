@@ -8,7 +8,9 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test",
-    "test:ui": "node scripts/check-page.mjs"
+    "test:ui": "node scripts/check-page.mjs",
+    "storage:health": "node scripts/storage-health.mjs",
+    "test:restore": "node --test tests/persistence.test.mjs"
   },
   "repository": {
     "type": "git",

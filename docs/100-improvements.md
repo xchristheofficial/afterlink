@@ -111,8 +111,8 @@ This tracker starts after the call playback controls and group topics. Checked m
 - [ ] 090 Surface recoverable form errors beside the affected field and link them for screen readers.
 
 ### Reliability and operations
-- [ ] 091 Automate a backup-to-fresh-database restore drill against disposable data.
-- [ ] 092 Add an operator storage-health check that does not expose filesystem paths publicly.
+- [x] 091 Automate a backup-to-fresh-database restore drill against disposable data.
+- [x] 092 Add an operator storage-health check that does not expose filesystem paths publicly.
 - [ ] 093 Test an interrupted schema migration against a copy of an older database.
 - [ ] 094 Measure inbox query cost against a representative large synthetic conversation set.
 - [ ] 095 Avoid overlapping unread-count requests on slow connections.
@@ -120,4 +120,4 @@ This tracker starts after the call playback controls and group topics. Checked m
 - [ ] 097 Add repeatable browser coverage for reconnect after server-sent event interruption.
 - [x] 098 Verify downloaded recordings decode to playable media, not just nonempty files.
 - [ ] 099 Add a real-device release checklist for calls on separate mobile networks using TURN.
-- [ ] 100 Document rollback and data-preservation checks for releases that add SQLite columns.
+- [x] 100 Document rollback and data-preservation checks for releases that add SQLite columns.

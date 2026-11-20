@@ -2,20 +2,23 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, rm } from "node:fs/promises";
+import { DatabaseSync } from "node:sqlite";
+import { constants } from "node:fs";
+import { copyFile, mkdir, mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 // Two distinct production server processes share only the volume, not memory.
-test("accounts and member activity survive a process replacement", async (t) => {
+test("accounts and member activity survive process replacement and a fresh-volume restore", async (t) => {
   const volume = await mkdtemp(join(tmpdir(), "afterlink-volume-"));
+  let database = join(volume, "afterlink.sqlite");
   let server, base;
   async function start() {
     server = spawn(process.execPath, ["server.mjs"], {
       env: {
         ...process.env,
         NODE_ENV: "production",
-        DB_FILE: join(volume, "afterlink.sqlite"),
+        DB_FILE: database,
         PORT: "0",
       },
       stdio: ["ignore", "pipe", "inherit"],
@@ -116,8 +119,29 @@ test("accounts and member activity survive a process replacement", async (t) => 
   const opens = await Promise.all([request(open, b, {}), request(open, b, {})]);
   assert.deepEqual(opens.map((x) => x.status).sort(), [200, 404]);
   assert.equal((await opens.find((x) => x.ok).json()).data, data);
+  // Take a consistent snapshot with the server still holding its WAL open.
+  assert.ok((await stat(database + "-wal")).size > 0);
+  const snapshot = join(volume, "snapshot.sqlite");
+  const reader = new DatabaseSync(database, { readOnly: true });
+  try {
+    reader.prepare("VACUUM INTO ?").run(snapshot);
+  } finally {
+    reader.close();
+  }
+  const marker = await ok("feed/posts", a, { body: "After snapshot" });
+  assert.ok((await ok("feed", a)).posts.some((item) => item.id === marker.id));
   await stop();
+  // Start from the snapshot alone; do not reuse the original db or sidecars.
+  const restored = join(volume, "fresh");
+  await mkdir(restored);
+  database = join(restored, "afterlink.sqlite");
+  await copyFile(snapshot, database, constants.COPYFILE_EXCL);
   await start();
+  const restoredFeed = (await ok("feed", a)).posts;
+  assert.ok(restoredFeed.some((item) => item.id === post.id));
+  assert.ok(!restoredFeed.some((item) => item.id === marker.id));
+  assert.equal((await ok("feed/settings", b)).prefs.theme, "dark");
+  assert.equal(await load("feed/message-media/" + kept.id, b), data);
   assert.equal((await request(open, b, {})).status, 404);
   assert.ok((await ok("feed/thread/" + bob, a)).messages.at(-1).opened);
   const calls = "feed/calls",
