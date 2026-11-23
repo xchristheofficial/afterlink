@@ -1,4 +1,4 @@
-# AfterLink — a product of Kodra
+# AfterLink — made by Razorbill
 
 Product proposal · 19 November 2026 · not an implemented feature list
 

@@ -6,8 +6,8 @@ const messages = {
     "AfterLink stores your email, an optional phone number, and a salted password hash for password accounts. Google accounts use a Google account identifier. An HTTP-only cookie keeps you signed in for up to seven days. Signing out revokes that session.",
   Terms:
     "Use an account you control and keep your sign-in details private. Do not impersonate someone else or access another person’s account.",
-  Help: "Choose Sign up and enter your full name, username, email, and a password of at least 12 characters. To sign in, use the same email and password. You can leave Phone blank. Google sign-in requires Kodra to enable its Google connection.",
-  More: "AfterLink is a product of Kodra. Connect After. Link Forever. The jacaranda cycling scene is AI-generated artwork, not a member post.",
+  Help: "Choose Sign up and enter your full name, username, email, and a password of at least 12 characters. To sign in, use the same email and password. You can leave Phone blank. Google sign-in requires Razorbill to enable its Google connection.",
+  More: "AfterLink is made by Razorbill. Connect After. Link Forever. The jacaranda cycling scene is AI-generated artwork, not a member post.",
 };
 function info(title, text) {
   $("dialogTitle").textContent = title;
