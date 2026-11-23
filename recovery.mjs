@@ -19,7 +19,7 @@ export function recoveryMailer(env) {
         from: env.RESET_FROM_EMAIL,
         to: [email],
         subject: "Reset your AfterLink password",
-        text: `Use this link within 15 minutes to choose a new password for AfterLink:\n\n${url}\n\nIf you didn't request this, ignore this email.\nAfterLink by Kodra`,
+        text: `Use this link within 15 minutes to choose a new password for AfterLink:\n\n${url}\n\nIf you didn't request this, ignore this email.\nAfterLink by Razorbill`,
       }),
       signal: AbortSignal.timeout(10000),
     });

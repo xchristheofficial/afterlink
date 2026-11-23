@@ -1,4 +1,4 @@
-# AfterLink · a product of Kodra
+# AfterLink · made by Razorbill
 
 See the [30-upgrade browser batch](docs/30-browser-upgrades.md) for new notification, saved-library, reel, chat, group, profile and call controls and how they were tested.
 
@@ -109,7 +109,7 @@ Links expire in 15 minutes, contain a random single-use token in the URL fragmen
 
 ## Launch checklist
 
-Before public launch, configure production storage/TLS, recovery delivery and email verification, operational monitoring, and Kodra-approved legal and support information. The brief information dialogs describe this implementation, not a comprehensive production policy. Assign operators to review stored reports and define an escalation policy before opening posting and messaging broadly.
+Before public launch, configure production storage/TLS, recovery delivery and email verification, operational monitoring, and Razorbill-approved legal and support information. The brief information dialogs describe this implementation, not a comprehensive production policy. Assign operators to review stored reports and define an escalation policy before opening posting and messaging broadly.
 
 ## Direct messages and calls
 

@@ -318,6 +318,20 @@ h2:focus {
 footer {
   margin-top: 26px;
 }
+/* Quiet developer credit: on every entry point, never competing with the
+   sign-in actions above it. */
+.made-by {
+  text-align: center;
+  margin: 18px 0 0;
+  color: var(--dim);
+  font-size: .8rem;
+  letter-spacing: .04em;
+}
+/* The card sizes with its container query, so the credit tracks it. */
+.inside .made-by {
+  margin-top: 5cqw;
+  font-size: clamp(12px, 3.2cqw, 19px);
+}
 footer button {
   background: none;
   border: 0;
