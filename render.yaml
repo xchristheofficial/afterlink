@@ -1,19 +1,20 @@
-# For a new single-instance service. For an existing service see README first.
+# Free plan: no disk is available, so durability comes from Postgres.
+# DATABASE_URL is sync:false - paste the Supabase connection string into the
+# Render dashboard instead of committing it. For a paid service with a disk,
+# see docs/sqlite-release.md.
 services:
   - type: web
     name: afterlink
     runtime: node
-    plan: starter
+    plan: free
     region: oregon
     buildCommand: npm ci
     startCommand: npm start
-    disk:
-      name: afterlink-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
+      - key: DATABASE_URL
+        sync: false
       - key: DB_FILE
-        value: /var/data/afterlink.sqlite
+        value: /tmp/afterlink.sqlite
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION

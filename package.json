@@ -10,6 +10,9 @@
     "test": "node --test",
     "test:ui": "node scripts/check-page.mjs",
     "storage:health": "node scripts/storage-health.mjs",
+    "db:status": "node scripts/db-snapshot.mjs status",
+    "db:backup": "node scripts/db-snapshot.mjs pull",
+    "db:restore": "node scripts/db-snapshot.mjs push",
     "test:restore": "node --test tests/persistence.test.mjs",
     "test:speed": "node --test tests/web-speed.test.mjs",
     "test:google-ui": "node scripts/check-google-ui.mjs",
@@ -45,7 +48,8 @@
     "express-rate-limit": "^8.7.5",
     "google-auth-library": "^10.9.1",
     "helmet": "^8.3.0",
-    "otpauth": "^9.6.0"
+    "otpauth": "^9.6.0",
+    "pg": "^8.23.1"
   },
   "private": true,
   "engines": {

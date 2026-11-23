@@ -7,6 +7,7 @@ import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { googleClient, googleHandoff, googleReturn } from "./google-signin.mjs";
 import { DatabaseSync } from "node:sqlite";
+import { openRemoteStore, remoteStoreConfigured } from "./remote-store.mjs";
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { mkdirSync, readFileSync } from "node:fs";
@@ -15,10 +16,12 @@ import { fileURLToPath } from "node:url";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 const production = process.env.NODE_ENV === "production";
-// Don't silently initialize accounts on a deploy's temporary application disk.
-if (production && !isAbsolute(process.env.DB_FILE || "")) {
+// With DATABASE_URL the durable copy lives in Postgres, so a container-local
+// SQLite file is expected; without it, only a mounted disk survives a deploy.
+const replicated = remoteStoreConfigured();
+if (production && !replicated && !isAbsolute(process.env.DB_FILE || "")) {
   throw Error(
-    "Set DB_FILE to an absolute SQLite filename on a mounted persistent disk before starting in production.",
+    "Set DATABASE_URL (Postgres/Supabase) or point DB_FILE at an absolute SQLite filename on a mounted persistent disk before starting in production.",
   );
 }
 const dbFile = resolve(
@@ -28,7 +31,23 @@ if (dbFile.startsWith(resolve(dir, "public") + "/")) {
   throw Error("DB_FILE must be outside the public directory.");
 }
 // A missing production mount should fail startup, not create its directory.
-if (!production) mkdirSync(dirname(dbFile), { recursive: true, mode: 0o700 });
+if (!production || replicated)
+  mkdirSync(dirname(dbFile), { recursive: true, mode: 0o700 });
+// Restore before the database is opened: a later restore would be ignored by
+// the already-open connection. A configured store that fails stops startup,
+// because serving from an empty file is how accounts were lost before.
+const store = replicated
+  ? await openRemoteStore({ dbFile }).catch((error) => {
+      throw Error(
+        `Could not open the Postgres snapshot store from DATABASE_URL: ${error.message}. Refusing to start on an empty database.`,
+        { cause: error },
+      );
+    })
+  : null;
+if (store?.restored)
+  console.log(
+    `Restored database from Postgres snapshot #${store.generation} (${store.restoredBytes} bytes)`,
+  );
 const db = new DatabaseSync(dbFile);
 db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;
  CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,email TEXT UNIQUE NOT NULL,phone TEXT,hash TEXT,google_sub TEXT UNIQUE);
@@ -69,6 +88,14 @@ app.use(["/api", "/auth"], (req, res, next) => {
   res.set("Cache-Control", "no-store");
   next();
 });
+// Replicate shortly after a request that could have written, so a new account
+// is durable in seconds instead of at the next interval.
+if (store)
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD")
+      res.on("finish", () => store.requestFlush());
+    next();
+  });
 app.use("/api", (req, res, next) => {
   if (
     req.method === "POST" &&
@@ -426,6 +453,27 @@ app.use((err, req, res, next) => {
     err.status || 500,
   );
 });
-app.listen(Number(process.env.PORT ?? 3000), "0.0.0.0", function () {
-  console.log(`AfterLink listening on ${this.address().port}`);
-});
+const server = app.listen(
+  Number(process.env.PORT ?? 3000),
+  "0.0.0.0",
+  function () {
+    console.log(`AfterLink listening on ${this.address().port}`);
+  },
+);
+if (store) {
+  // Attach once every installer has created its tables, so the first upload
+  // is a full schema rather than a half-built one.
+  store.attach(db);
+  let closing = false;
+  const shutdown = async () => {
+    if (closing) return;
+    closing = true;
+    server.close();
+    // Spin-downs and redeploys arrive as a signal: take a final snapshot so
+    // the last minutes of activity are not lost with the container.
+    await store.flush();
+    await store.close();
+    process.exit(0);
+  };
+  for (const signal of ["SIGTERM", "SIGINT"]) process.on(signal, shutdown);
+}
